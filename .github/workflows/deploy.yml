@@ -1,0 +1,52 @@
+name: Deploy (frontend)
+
+# Test + build on every PR and push; deploy to Cloudflare Pages only on
+# push to main. `vite build` auto-loads the committed .env.production
+# (VITE_API_BASE_URL, VITE_USE_MSW=false, ...) — do not override it here.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: deploy-frontend-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-deploy:
+    name: Test, build & deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          # FE has no packageManager field; pin to match the backend toolchain.
+          version: 11.9.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build # tsc -b && vite build -> dist/ (loads .env.production)
+
+      # Deploy only on a real push to main — skipped on pull_request builds.
+      - name: Deploy to Cloudflare Pages
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          # Account ID is a public identifier, not a secret — safe to inline.
+          accountId: '543db91ab298210e65f7ca0f520babdd'
+          command: pages deploy dist --project-name fleet-taxi-web --branch=main
