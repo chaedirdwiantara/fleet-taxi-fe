@@ -24,7 +24,7 @@ type LoginValues = z.infer<typeof loginSchema>;
 
 const COPY = {
   admin: { title: 'Admin Console', desc: 'Masuk sebagai admin fleet-taxi.id', home: '/admin' },
-  partner: { title: 'Portal Partner', desc: 'Masuk sebagai partner fleet-taxi.id', home: '/partner/dashboard' },
+  partner: { title: 'Portal Partner', desc: 'Masuk sebagai partner fleet-taxi.id', home: '/partner' },
 } as const;
 
 // Shared login form parameterized by audience — each uses its own auth

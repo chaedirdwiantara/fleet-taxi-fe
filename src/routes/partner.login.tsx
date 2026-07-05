@@ -16,7 +16,7 @@ function PartnerLoginPage() {
 
   // Already signed in as a partner → skip the form. Ignore a redirect that
   // points back at a login page (would loop).
-  const safeRedirect = redirect && !redirect.includes('/login') ? redirect : '/partner/dashboard';
+  const safeRedirect = redirect && !redirect.includes('/login') ? redirect : '/partner';
   if (!isPending && user) {
     return <Navigate to={safeRedirect} replace />;
   }
