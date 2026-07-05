@@ -1,19 +1,22 @@
 import { useState, type ReactNode } from 'react';
 import { Link } from '@tanstack/react-router';
-import { Car, ClipboardList, LayoutDashboard, LogOut, Menu, Table2 } from 'lucide-react';
+import { Car, ClipboardList, LayoutDashboard, LogOut, Menu, Table2, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import type { SessionUser } from '@/features/auth/hooks';
 
 export type Audience = 'admin' | 'partner';
 
-type NavItem = { to: string; label: string; icon: typeof Table2 };
+// `requireRole` hides an item unless the session user holds that role
+// (UX only — the route + backend still enforce access).
+type NavItem = { to: string; label: string; icon: typeof Table2; requireRole?: string };
 
 const NAV: Record<Audience, NavItem[]> = {
   admin: [
     { to: '/admin', label: 'Dashboard', icon: LayoutDashboard },
     { to: '/admin/fleet-monitoring', label: 'Fleet Monitoring — Gojek', icon: Table2 },
     { to: '/admin/fleet-monitoring-grab', label: 'Fleet Monitoring — Grab', icon: Car },
+    { to: '/admin/user-management', label: 'Manajemen Akun', icon: Users, requireRole: 'super_admin' },
   ],
   partner: [
     { to: '/partner/fleet-monitoring', label: 'Fleet Monitoring — Gojek', icon: Table2 },
@@ -49,7 +52,9 @@ function SidebarContent({
         </span>
       </div>
       <nav className="flex-1 space-y-1 overflow-y-auto p-2" aria-label="Navigasi utama">
-        {NAV[audience].map((item) => (
+        {NAV[audience]
+          .filter((item) => !item.requireRole || (user?.roles ?? []).includes(item.requireRole))
+          .map((item) => (
           <Link
             key={item.to}
             to={item.to}

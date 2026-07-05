@@ -9,6 +9,12 @@ export const qk = {
   adminSession: ['session', 'admin'] as const,
   partnerSession: ['session', 'partner'] as const,
 
+  // super_admin user-management area (create + list admin/partner accounts)
+  admin: {
+    users: (type: 'admin' | 'partner') => ['admin', 'users', type] as const,
+    partners: ['admin', 'partners'] as const,
+  },
+
   fleet: {
     grid: (p: { platform: Platform; month: number; year: number; rentalPartner: string[]; plate?: string }) =>
       ['fleet', p.platform, 'grid', p] as const,
