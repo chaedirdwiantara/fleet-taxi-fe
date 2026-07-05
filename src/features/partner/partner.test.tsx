@@ -1,8 +1,13 @@
-import { describe, it, expect } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
-import { useDashboardQuery, useOrdersQuery, useOrderQuery } from './hooks';
+import { usePartnerPlatesQuery, useRegisterPlate, useDeletePlate } from './hooks';
+import {
+  usePartnerGojekGridQuery,
+  usePartnerGojekSummaryQuery,
+} from '@/features/fleet/hooks/useFleetQueries';
+import { resetPartnerPlates } from '@/mocks/handlers';
 
 const makeClient = () => new QueryClient({ defaultOptions: { queries: { retry: false } } });
 const wrapperFor =
@@ -11,32 +16,88 @@ const wrapperFor =
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
 
-describe('partner portal hooks (§6.2 — server-scoped, envelope-unwrapped)', () => {
-  it('dashboard exposes metrics + chart series', async () => {
-    const { result } = renderHook(() => useDashboardQuery(), { wrapper: wrapperFor(makeClient()) });
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    const d = result.current.data!;
-    expect(d.totalOrders).toBeGreaterThan(0);
-    expect(Number.isInteger(d.revenueThisMonth)).toBe(true); // integer rupiah
-    expect(d.ordersByDay.length).toBeGreaterThan(0);
-    expect(d.ordersByStatus.length).toBeGreaterThan(0);
-  });
+beforeEach(() => resetPartnerPlates());
 
-  it('orders list carries pagination meta from the envelope', async () => {
-    const { result } = renderHook(() => useOrdersQuery({ page: 3, pageSize: 10 }), {
+describe('Daftarkan Plat — CRUD over own registered plates', () => {
+  it('lists the registered plates (nomor + Type)', async () => {
+    const { result } = renderHook(() => usePartnerPlatesQuery(), {
       wrapper: wrapperFor(makeClient()),
     });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data!.data).toHaveLength(10);
-    expect(result.current.data!.meta).toEqual({ page: 3, pageSize: 10, total: 120 });
-    // page 3 starts at order 21
-    expect(result.current.data!.data[0].id).toBe(21);
+    expect(result.current.data!).toHaveLength(3);
+    expect(result.current.data!.map((p) => p.plateNumberNorm)).toContain('B1000XYZ');
+    expect(result.current.data![0]).toHaveProperty('vehicleType');
   });
 
-  it('order detail resolves one own order; money stays integer', async () => {
-    const { result } = renderHook(() => useOrderQuery('7'), { wrapper: wrapperFor(makeClient()) });
+  it('registers a plate (normalizing) and rejects duplicates + blanks', async () => {
+    const { result } = renderHook(() => useRegisterPlate(), { wrapper: wrapperFor(makeClient()) });
+
+    let created!: { plateNumberNorm: string };
+    await act(async () => {
+      created = await result.current.mutateAsync({ plateNumber: 'b 1002 xyz', vehicleType: 'Innova' });
+    });
+    expect(created.plateNumberNorm).toBe('B1002XYZ');
+
+    await act(async () => {
+      await expect(result.current.mutateAsync({ plateNumber: 'B1002XYZ' })).rejects.toMatchObject({
+        code: 'CONFLICT',
+      });
+      await expect(result.current.mutateAsync({ plateNumber: '   ' })).rejects.toMatchObject({
+        code: 'VALIDATION_ERROR',
+      });
+    });
+  });
+
+  it('deletes a plate', async () => {
+    const { result } = renderHook(() => useDeletePlate(), { wrapper: wrapperFor(makeClient()) });
+    await act(async () => {
+      await result.current.mutateAsync(1);
+    });
+    const { result: list } = renderHook(() => usePartnerPlatesQuery(), {
+      wrapper: wrapperFor(makeClient()),
+    });
+    await waitFor(() => expect(list.current.isSuccess).toBe(true));
+    expect(list.current.data!.map((p) => p.id)).not.toContain(1);
+  });
+});
+
+describe('partner fleet monitoring — scoped to registered plates', () => {
+  it('the Gojek grid shows only registered plates', async () => {
+    const { result } = renderHook(() => usePartnerGojekGridQuery({ month: 6, year: 2026 }), {
+      wrapper: wrapperFor(makeClient()),
+    });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data!.orderNumber).toBe('ORD-2026-00007');
-    expect(Number.isInteger(result.current.data!.basicPrice)).toBe(true);
+    const norms = result.current.data!.rows.map((r) => r.plateNorm);
+    expect(norms.length).toBeGreaterThan(0);
+    // only the seeded Gojek plates (the Grab-only plate must not appear here)
+    expect(norms.every((n) => ['B1000XYZ', 'B1001XYZ'].includes(n))).toBe(true);
+  });
+
+  it('with no registered plates the grid is empty and the summary is Rp 0', async () => {
+    const delClient = makeClient();
+    const { result: del } = renderHook(() => useDeletePlate(), { wrapper: wrapperFor(delClient) });
+    for (const id of [1, 2, 3]) {
+      await act(async () => {
+        await del.current.mutateAsync(id);
+      });
+    }
+
+    const { result: grid } = renderHook(() => usePartnerGojekGridQuery({ month: 6, year: 2026 }), {
+      wrapper: wrapperFor(makeClient()),
+    });
+    await waitFor(() => expect(grid.current.isSuccess).toBe(true));
+    expect(grid.current.data!.rows).toHaveLength(0);
+    expect(grid.current.data!.tableTotals.totalDeduction).toBe(0);
+
+    const { result: summary } = renderHook(
+      () => usePartnerGojekSummaryQuery({ month: 6, year: 2026 }),
+      { wrapper: wrapperFor(makeClient()) },
+    );
+    await waitFor(() => expect(summary.current.isSuccess).toBe(true));
+    expect(summary.current.data!.globalSummary).toEqual({
+      totalDeduction: 0,
+      totalDue: 0,
+      totalOutstanding: 0,
+    });
   });
 });

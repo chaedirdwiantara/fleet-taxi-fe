@@ -1,26 +1,9 @@
-// Partner portal (§6.2) — everything is server-scoped to the session's
-// partner; the client never sends a partnerId (guardrail §11).
-
-export type Order = {
+// Partner portal domain: a plate the partner registered ("Daftarkan Plat",
+// legacy /partner/plates — nomor + Type). Fleet grids are scoped to these,
+// server-side, from the session partner (the client never sends a partnerId).
+export type PartnerPlate = {
   id: number;
-  orderNumber: string;
-  orderType: string;
-  tripStatus: string;
-  pickupCode: string;
-  destinationCode: string;
-  carTypesId: number;
-  pickupAt: string; // UTC ISO — display in WIB
-  basicPrice: number; // integer rupiah
-  passengerDetails: Record<string, unknown> | null;
-  createdAt: string;
+  plateNumber: string; // as entered, e.g. "B 1793 SCP"
+  plateNumberNorm: string; // normalized [A-Z0-9]
+  vehicleType: string | null; // "Type", free text (e.g. "Premium - BYD M6")
 };
-
-export type PartnerDashboard = {
-  totalOrders: number;
-  ordersThisMonth: number;
-  revenueThisMonth: number; // integer rupiah
-  ordersByDay: { date: string; count: number }[];
-  ordersByStatus: { status: string; count: number }[];
-};
-
-export type ExportFormat = 'pdf' | 'xlsx';

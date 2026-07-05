@@ -6,9 +6,11 @@ import {
   makeGojekCharts,
   makeDriverActivity,
   makePerformers,
+  scopeGojekGrid,
+  scopeGrabGrid,
   importBatches,
 } from './fixtures/fleet';
-import { partnerMe, adminMe, partnerDashboard, orders } from './fixtures/partner';
+import { partnerMe, adminMe, seedPartnerPlates } from './fixtures/partner';
 
 // Single mock layer for dev (VITE_USE_MSW=true) and tests (frontend-kickoff.md §9).
 // All responses use the standard envelope from PROJECT-BRIEF.md §6.
@@ -72,6 +74,24 @@ const exceptionState: MockException[] = [
 ];
 let nextExceptionId = 100;
 
+// ---- Mock partner-plate registration state (Daftarkan Plat) ------------------
+type MockPlate = {
+  id: number;
+  plateNumber: string;
+  plateNumberNorm: string;
+  vehicleType: string | null;
+};
+const normPlate = (s: string) => s.toUpperCase().replace(/[^A-Z0-9]/g, '');
+let platesState: MockPlate[] = seedPartnerPlates.map((p) => ({ ...p }));
+let nextPlateId = 100;
+const registeredNorms = () => new Set(platesState.map((p) => p.plateNumberNorm));
+
+/** Reset registered plates to the seed (call between tests for isolation). */
+export const resetPartnerPlates = () => {
+  platesState = seedPartnerPlates.map((p) => ({ ...p }));
+  nextPlateId = 100;
+};
+
 export const handlers = [
   // ---- Admin fleet — grids -------------------------------------------------
   http.get('*/admin/fleet/gojek/grid', ({ request }) => {
@@ -94,10 +114,11 @@ export const handlers = [
     const month = int(url.searchParams.get('month'), 6);
     const year = int(url.searchParams.get('year'), 2026);
     const dayParam = url.searchParams.get('day');
+    const grid = makeGojekGrid(month, year);
     return ok({
-      globalSummary: makeGojekGlobalSummary(month, year),
-      driverActivity: makeDriverActivity(month, year, dayParam ? Number(dayParam) : undefined),
-      charts: makeGojekCharts(month, year),
+      globalSummary: makeGojekGlobalSummary(grid),
+      driverActivity: makeDriverActivity(grid, dayParam ? Number(dayParam) : undefined),
+      charts: makeGojekCharts(grid),
     });
   }),
 
@@ -335,36 +356,108 @@ export const handlers = [
     return ok(user);
   }),
 
-  http.get('*/partner/portal/dashboard', () => ok(partnerDashboard)),
+  // ---- Partner portal — Daftarkan Plat (registered plates) -----------------
+  http.get('*/partner/portal/plates', () =>
+    ok([...platesState].sort((a, b) => a.plateNumberNorm.localeCompare(b.plateNumberNorm))),
+  ),
 
-  http.get('*/partner/portal/orders/export', ({ request }) => {
-    const format = new URL(request.url).searchParams.get('format');
-    if (format !== 'pdf' && format !== 'xlsx') {
-      return err(422, 'VALIDATION_ERROR', 'format harus pdf atau xlsx');
+  http.post('*/partner/portal/plates', async ({ request }) => {
+    const body = (await request.json()) as { plateNumber?: string; vehicleType?: string };
+    const norm = normPlate(body.plateNumber ?? '');
+    if (!norm) return err(400, 'VALIDATION_ERROR', 'Nomor plat tidak valid');
+    if (platesState.some((p) => p.plateNumberNorm === norm)) {
+      return err(409, 'CONFLICT', 'Plat sudah terdaftar');
     }
-    return new HttpResponse(new Blob([`mock ${format} export`]), {
-      status: 200,
-      headers: {
-        'Content-Type':
-          format === 'pdf'
-            ? 'application/pdf'
-            : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': `attachment; filename="orders.${format}"`,
-      },
+    const created: MockPlate = {
+      id: nextPlateId++,
+      plateNumber: (body.plateNumber ?? '').trim(),
+      plateNumberNorm: norm,
+      vehicleType: body.vehicleType?.trim() || null,
+    };
+    platesState.push(created);
+    return HttpResponse.json({ success: true, data: created }, { status: 201 });
+  }),
+
+  http.delete('*/partner/portal/plates/:id', ({ params }) => {
+    const idx = platesState.findIndex((p) => String(p.id) === params.id);
+    if (idx === -1) return err(404, 'NOT_FOUND', 'Plat tidak ditemukan');
+    platesState.splice(idx, 1);
+    return ok({ deleted: true });
+  }),
+
+  // ---- Partner portal — read-only fleet (scoped to registered plates) ------
+  http.get('*/partner/portal/fleet/gojek/grid', ({ request }) => {
+    const url = new URL(request.url);
+    const grid = makeGojekGrid(
+      int(url.searchParams.get('month'), 6),
+      int(url.searchParams.get('year'), 2026),
+    );
+    return ok(scopeGojekGrid(grid, registeredNorms()));
+  }),
+
+  http.get('*/partner/portal/fleet/gojek/summary', ({ request }) => {
+    const url = new URL(request.url);
+    const month = int(url.searchParams.get('month'), 6);
+    const year = int(url.searchParams.get('year'), 2026);
+    const dayParam = url.searchParams.get('day');
+    const grid = scopeGojekGrid(makeGojekGrid(month, year), registeredNorms());
+    return ok({
+      globalSummary: makeGojekGlobalSummary(grid),
+      driverActivity: makeDriverActivity(grid, dayParam ? Number(dayParam) : undefined),
+      charts: makeGojekCharts(grid),
     });
   }),
 
-  http.get('*/partner/portal/orders/:id', ({ params }) => {
-    const order = orders.find((o) => String(o.id) === params.id);
-    if (!order) return err(404, 'NOT_FOUND', 'Order not found');
-    return ok(order);
+  http.get('*/partner/portal/fleet/gojek/cell', ({ request }) => {
+    const url = new URL(request.url);
+    const plate = url.searchParams.get('plate') ?? '';
+    const day = int(url.searchParams.get('day'), 1);
+    const month = int(url.searchParams.get('month'), 6);
+    const year = int(url.searchParams.get('year'), 2026);
+    if (!registeredNorms().has(plate)) {
+      return err(404, 'NOT_FOUND', 'No transactions for that vehicle/day');
+    }
+    const detail = makeGojekGrid(month, year).rows.find((r) => r.plateNorm === plate)?.days[day]
+      ?.detail;
+    if (!detail) return err(404, 'NOT_FOUND', 'No transactions for that vehicle/day');
+    return ok(detail);
   }),
 
-  http.get('*/partner/portal/orders', ({ request }) => {
+  http.get('*/partner/portal/fleet/grab/grid', ({ request }) => {
     const url = new URL(request.url);
-    const page = int(url.searchParams.get('page'), 1);
-    const pageSize = int(url.searchParams.get('pageSize'), 50);
-    const start = (page - 1) * pageSize;
-    return ok(orders.slice(start, start + pageSize), { page, pageSize, total: orders.length });
+    const grid = makeGrabGrid(
+      int(url.searchParams.get('month'), 6),
+      int(url.searchParams.get('year'), 2026),
+    );
+    return ok(scopeGrabGrid(grid, registeredNorms()));
+  }),
+
+  http.get('*/partner/portal/fleet/grab/cell', ({ request }) => {
+    const url = new URL(request.url);
+    const compositeKey = url.searchParams.get('compositeKey') ?? '';
+    const grid = makeGrabGrid(
+      int(url.searchParams.get('month'), 6),
+      int(url.searchParams.get('year'), 2026),
+    );
+    const row = grid.rows.find((r) => r.compositeKey === compositeKey);
+    if (!row || !registeredNorms().has(row.plateNumber)) {
+      return err(404, 'NOT_FOUND', 'No data for that key');
+    }
+    return ok({
+      compositeKey,
+      driverName: row.driverName,
+      plateNumber: row.plateNumber,
+      phone: row.driverPhone,
+      onlineHours: row.summary.onlineHours,
+      bookings: row.summary.bookings,
+      rides: row.summary.rides,
+      cancelByDriver: row.summary.cancellations,
+      fulfillmentRate: row.summary.fulfillmentRate,
+      cancellationRate: row.summary.cancellationRate,
+      fare: row.summary.driverFare,
+      toll: row.summary.tollAndOthers,
+      incentive: row.summary.incentive,
+      earning: row.summary.earning,
+    });
   }),
 ];

@@ -77,12 +77,19 @@ describe('generated client ↔ MSW (single mock layer)', () => {
     }
   });
 
-  it('paginated orders expose meta through the envelope', async () => {
-    const { data } = await api.GET('/partner/portal/orders', {
-      params: { query: { page: 2, pageSize: 10 } },
-    });
+  it('pagination meta round-trips through the typed client (unwrapWithMeta)', async () => {
+    server.use(
+      http.get('*/partner/portal/plates', () =>
+        HttpResponse.json({
+          success: true,
+          data: [{ id: 1 }, { id: 2 }],
+          meta: { page: 2, pageSize: 10, total: 120 },
+        }),
+      ),
+    );
+    const { data } = await api.GET('/partner/portal/plates');
     const { data: rows, meta } = unwrapWithMeta(data);
-    expect(rows).toHaveLength(10);
+    expect(rows).toHaveLength(2);
     expect(meta).toEqual({ page: 2, pageSize: 10, total: 120 });
   });
 

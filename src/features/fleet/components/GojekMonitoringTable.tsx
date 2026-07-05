@@ -43,9 +43,12 @@ const rp = formatRupiah;
 type Props = {
   grid: FleetGrid;
   onCellClick: (plateNorm: string, day: number) => void;
-  onEditTarget: (plateNorm: string) => void;
-  onManageException: (plateNorm: string) => void;
-  onDriverHistory: (row: FleetRow) => void;
+  // Admin-only actions; omitted in read-only (partner portal) mode.
+  onEditTarget?: (plateNorm: string) => void;
+  onManageException?: (plateNorm: string) => void;
+  onDriverHistory?: (row: FleetRow) => void;
+  // Read-only mode hides the "Aksi" column (no import/exception/target editing).
+  readOnly?: boolean;
 };
 
 export function GojekMonitoringTable({
@@ -54,9 +57,14 @@ export function GojekMonitoringTable({
   onEditTarget,
   onManageException,
   onDriverHistory,
+  readOnly = false,
 }: Props) {
-  const lefts = useMemo(() => stickyLefts(IDENTITY), []);
-  const idW = useMemo(() => identityWidth(IDENTITY), []);
+  const identity = useMemo(
+    () => (readOnly ? IDENTITY.filter((c) => c.id !== 'aksi') : IDENTITY),
+    [readOnly],
+  );
+  const lefts = useMemo(() => stickyLefts(identity), [identity]);
+  const idW = useMemo(() => identityWidth(identity), [identity]);
   const rpSpans = useMemo(() => groupRowSpans(grid.rows, (r) => r.rentalPartner), [grid.rows]);
   const days = Array.from({ length: grid.daysInMonth }, (_, i) => i + 1);
   const monthLabel = monthYearLabelID(grid.month, grid.year);
@@ -67,14 +75,14 @@ export function GojekMonitoringTable({
         <thead>
           {/* Row 1: identity (rowspan 2) + Tanggal group + Summary group */}
           <tr>
-            {IDENTITY.map((c, i) => (
+            {identity.map((c, i) => (
               <th
                 key={c.id}
                 rowSpan={2}
                 className={cn(
                   'sticky top-0 z-30 border-b border-r border-indigo-300/40 px-2 py-2 text-center font-semibold',
                   HEAD_BG,
-                  c.id === 'aksi' && 'border-r-2 border-r-slate-300',
+                  i === identity.length - 1 && 'border-r-2 border-r-slate-300',
                 )}
                 style={{ left: lefts[i], width: c.width, minWidth: c.width }}
               >
@@ -163,43 +171,48 @@ export function GojekMonitoringTable({
                   {row.vehicleType || '-'}
                 </td>
                 <td
-                  className="sticky z-10 border-b border-r bg-white px-2 py-1 text-right tabular-nums group-hover:bg-slate-50 dark:bg-slate-950"
+                  className={cn(
+                    'sticky z-10 border-b bg-white px-2 py-1 text-right tabular-nums group-hover:bg-slate-50 dark:bg-slate-950',
+                    readOnly ? 'border-r-2 border-r-slate-300' : 'border-r',
+                  )}
                   style={{ left: lefts[5], width: IDENTITY[5].width }}
                 >
                   {nf(row.dailyTarget)}
                 </td>
-                <td
-                  className="sticky z-10 border-b border-r-2 border-r-slate-300 bg-white px-1 py-1 text-center group-hover:bg-slate-50 dark:bg-slate-950"
-                  style={{ left: lefts[6], width: IDENTITY[6].width }}
-                >
-                  <DropdownMenu>
-                    <DropdownMenuTrigger
-                      aria-label={`Aksi ${row.plateRaw}`}
-                      className="inline-flex size-6 items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-800"
-                    >
-                      <MoreHorizontal className="size-4" />
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => onEditTarget(row.plateNorm)}>
-                        {row.carId ? (
-                          <>
-                            <Pencil className="text-amber-500" /> Edit Detail &amp; Target
-                          </>
-                        ) : (
-                          <>
-                            <PlusCircle className="text-red-500" /> Set Target
-                          </>
-                        )}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onManageException(row.plateNorm)}>
-                        <CalendarClock className="text-indigo-500" /> Kelola Jadwal
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onDriverHistory(row)}>
-                        <History className="text-sky-500" /> Histori Driver
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </td>
+                {!readOnly && (
+                  <td
+                    className="sticky z-10 border-b border-r-2 border-r-slate-300 bg-white px-1 py-1 text-center group-hover:bg-slate-50 dark:bg-slate-950"
+                    style={{ left: lefts[6], width: IDENTITY[6].width }}
+                  >
+                    <DropdownMenu>
+                      <DropdownMenuTrigger
+                        aria-label={`Aksi ${row.plateRaw}`}
+                        className="inline-flex size-6 items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-800"
+                      >
+                        <MoreHorizontal className="size-4" />
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => onEditTarget?.(row.plateNorm)}>
+                          {row.carId ? (
+                            <>
+                              <Pencil className="text-amber-500" /> Edit Detail &amp; Target
+                            </>
+                          ) : (
+                            <>
+                              <PlusCircle className="text-red-500" /> Set Target
+                            </>
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onManageException?.(row.plateNorm)}>
+                          <CalendarClock className="text-indigo-500" /> Kelola Jadwal
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onDriverHistory?.(row)}>
+                          <History className="text-sky-500" /> Histori Driver
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </td>
+                )}
 
                 {days.map((d) => {
                   const cell = row.days[d];
@@ -249,7 +262,7 @@ export function GojekMonitoringTable({
           })}
           {grid.rows.length === 0 && (
             <tr>
-              <td colSpan={IDENTITY.length + days.length + SUMMARY.length} className="border-b px-3 py-10 text-center text-slate-500">
+              <td colSpan={identity.length + days.length + SUMMARY.length} className="border-b px-3 py-10 text-center text-slate-500">
                 Tidak ada data untuk periode / filter ini.
               </td>
             </tr>
@@ -264,7 +277,7 @@ export function GojekMonitoringTable({
               return (
                 <tr className="font-semibold">
                   <td
-                    colSpan={IDENTITY.length}
+                    colSpan={identity.length}
                     className="sticky bottom-0 left-0 z-20 border-b border-r-2 border-r-slate-300 bg-indigo-50 px-2 py-1.5 text-right dark:bg-indigo-950"
                   >
                     TOTAL HARI INI

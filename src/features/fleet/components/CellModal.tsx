@@ -6,26 +6,37 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { useGojekCellQuery } from '../hooks/useFleetQueries';
+import { useGojekCellQuery, usePartnerGojekCellQuery } from '../hooks/useFleetQueries';
 import { monthYearLabelID } from '@/lib/datetime';
 import { formatNumberID as nf } from '@/lib/money';
 
 // Faithful port of the legacy "Detail Transaksi" breakdown modal: per-item
 // display vs counted amounts, display-only badge, notes, and both totals.
+// `scope` picks the admin vs partner-scoped endpoint (same response shape).
 export function CellModal({
   plate,
   day,
   month,
   year,
   onClose,
+  scope = 'admin',
 }: {
   plate: string;
   day: number;
   month: number;
   year: number;
   onClose: () => void;
+  scope?: 'admin' | 'partner';
 }) {
-  const breakdown = useGojekCellQuery({ plate, day, month, year, enabled: true });
+  const adminQuery = useGojekCellQuery({ plate, day, month, year, enabled: scope === 'admin' });
+  const partnerQuery = usePartnerGojekCellQuery({
+    plate,
+    day,
+    month,
+    year,
+    enabled: scope === 'partner',
+  });
+  const breakdown = scope === 'partner' ? partnerQuery : adminQuery;
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>

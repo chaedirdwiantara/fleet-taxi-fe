@@ -46,3 +46,38 @@ export function useGrabDriverDetailQuery(p: {
     enabled: p.enabled,
   });
 }
+
+// ---- Partner portal variants (read-only, scoped server-side to own plates) ----
+
+export function usePartnerGrabGridQuery(p: { month: number; year: number }) {
+  return useQuery({
+    queryKey: qk.partner.fleet.grid({ platform: 'grab', ...p }),
+    queryFn: async (): Promise<GrabGrid> => {
+      const { data, error } = await api.GET('/partner/portal/fleet/grab/grid', {
+        params: { query: { month: p.month, year: p.year } },
+      });
+      if (error) throwEnvelope(error);
+      return unwrap(data) as GrabGrid;
+    },
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function usePartnerGrabDriverDetailQuery(p: {
+  compositeKey: string;
+  month: number;
+  year: number;
+  enabled: boolean;
+}) {
+  return useQuery({
+    queryKey: qk.partner.fleet.cell({ platform: 'grab', key: p.compositeKey, day: 1, month: p.month, year: p.year }),
+    queryFn: async (): Promise<GrabDriverDetail> => {
+      const { data, error } = await api.GET('/partner/portal/fleet/grab/cell', {
+        params: { query: { compositeKey: p.compositeKey, day: 1, month: p.month, year: p.year } },
+      });
+      if (error) throwEnvelope(error);
+      return unwrap(data) as GrabDriverDetail;
+    },
+    enabled: p.enabled,
+  });
+}

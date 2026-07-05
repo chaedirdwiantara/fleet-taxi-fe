@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { Link } from '@tanstack/react-router';
-import { Car, LayoutDashboard, ListOrdered, LogOut, Menu, Table2 } from 'lucide-react';
+import { Car, ClipboardList, LayoutDashboard, LogOut, Menu, Table2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import type { SessionUser } from '@/features/auth/hooks';
@@ -16,8 +16,9 @@ const NAV: Record<Audience, NavItem[]> = {
     { to: '/admin/fleet-monitoring-grab', label: 'Fleet Monitoring — Grab', icon: Car },
   ],
   partner: [
-    { to: '/partner/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { to: '/partner/orders', label: 'Orders', icon: ListOrdered },
+    { to: '/partner/fleet-monitoring', label: 'Fleet Monitoring — Gojek', icon: Table2 },
+    { to: '/partner/fleet-monitoring-grab', label: 'Fleet Monitoring — Grab', icon: Car },
+    { to: '/partner/daftarkan-plat', label: 'Daftarkan Plat', icon: ClipboardList },
   ],
 };
 

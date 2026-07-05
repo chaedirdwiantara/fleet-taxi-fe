@@ -1,77 +1,55 @@
-import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
-import {
-  api,
-  unwrap,
-  unwrapWithMeta,
-  ApiErrorException,
-  type ApiError,
-} from '@/lib/api-client/client';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { api, unwrap, ApiErrorException, type ApiError } from '@/lib/api-client/client';
 import { qk } from '@/lib/query-client';
-import type { ExportFormat, Order, PartnerDashboard } from './types';
+import type { PartnerPlate } from './types';
+
+// Daftarkan Plat — CRUD over the partner's own registered plates. Registering
+// or removing a plate changes what the scoped fleet grids show, so those
+// queries (['partner','fleet',...]) are invalidated on success.
 
 const throwEnvelope = (error: unknown): never => {
   throw new ApiErrorException((error as { error: ApiError }).error);
 };
 
-export function useDashboardQuery() {
+export function usePartnerPlatesQuery() {
   return useQuery({
-    queryKey: qk.partner.dashboard,
-    queryFn: async (): Promise<PartnerDashboard> => {
-      const { data, error } = await api.GET('/partner/portal/dashboard');
+    queryKey: qk.partner.plates,
+    queryFn: async (): Promise<PartnerPlate[]> => {
+      const { data, error } = await api.GET('/partner/portal/plates');
       if (error) throwEnvelope(error);
-      return unwrap(data) as PartnerDashboard;
+      return unwrap(data) as PartnerPlate[];
     },
   });
 }
 
-export function useOrdersQuery(p: { page: number; pageSize: number }) {
-  return useQuery({
-    queryKey: qk.partner.orders(p),
-    queryFn: async () => {
-      const { data, error } = await api.GET('/partner/portal/orders', {
-        params: { query: p },
-      });
-      if (error) throwEnvelope(error);
-      return unwrapWithMeta(data) as { data: Order[]; meta?: { page: number; pageSize: number; total: number } };
-    },
-    placeholderData: keepPreviousData,
-  });
-}
-
-export function useOrderQuery(id: string) {
-  return useQuery({
-    queryKey: qk.partner.order(id),
-    queryFn: async (): Promise<Order> => {
-      const { data, error } = await api.GET('/partner/portal/orders/{id}', {
-        params: { path: { id: Number(id) } },
-      });
-      if (error) throwEnvelope(error);
-      return unwrap(data) as Order;
-    },
-  });
-}
-
-/** Server-generated export (§6.2) — the client only downloads the blob. */
-export function useExportOrders() {
+export function useRegisterPlate() {
+  const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (format: ExportFormat) => {
-      const { data, error, response } = await api.GET('/partner/portal/orders/export', {
-        params: { query: { format } },
-        parseAs: 'blob',
+    mutationFn: async (body: { plateNumber: string; vehicleType?: string }) => {
+      const { data, error } = await api.POST('/partner/portal/plates', { body });
+      if (error) throwEnvelope(error);
+      return unwrap(data) as PartnerPlate;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: qk.partner.plates });
+      void qc.invalidateQueries({ queryKey: ['partner', 'fleet'] });
+    },
+  });
+}
+
+export function useDeletePlate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const { data, error } = await api.DELETE('/partner/portal/plates/{id}', {
+        params: { path: { id } },
       });
       if (error) throwEnvelope(error);
-      const blob = data as Blob;
-      const disposition = response.headers.get('Content-Disposition') ?? '';
-      const filename = /filename="?([^";]+)"?/.exec(disposition)?.[1] ?? `orders.${format}`;
-      return { blob, filename };
+      return unwrap(data);
     },
-    onSuccess: ({ blob, filename }) => {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.click();
-      URL.revokeObjectURL(url);
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: qk.partner.plates });
+      void qc.invalidateQueries({ queryKey: ['partner', 'fleet'] });
     },
   });
 }

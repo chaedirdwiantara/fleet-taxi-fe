@@ -229,9 +229,49 @@ export function makeGojekGrid(month: number, year: number, vehicleCount = 200) {
 export const gojekGrid = memoByPeriod((m, y) => makeGojekGrid(m, y));
 export const grabGrid = memoByPeriod((m, y) => makeGrabGrid(m, y));
 
-// Aggregates for the /admin dashboard (kept separate from the table).
-export function makeGojekGlobalSummary(month: number, year: number) {
-  const grid = gojekGrid(month, year);
+type GojekGridFixture = ReturnType<typeof makeGojekGrid>;
+type GrabGridFixture = ReturnType<typeof makeGrabGrid>;
+
+// Restrict a grid to a plate allowlist (partner scoping) and recompute totals,
+// so an empty allowlist yields Rp 0 everywhere — mirrors the backend behavior.
+export function scopeGojekGrid(grid: GojekGridFixture, norms: Set<string>): GojekGridFixture {
+  const rows = grid.rows.filter((r) => norms.has(r.plateNorm));
+  const dailyTotals: Record<number, number> = {};
+  for (let d = 1; d <= grid.daysInMonth; d++) {
+    dailyTotals[d] = rows.reduce((s, r) => s + (r.days[d]?.countedAmount ?? 0), 0);
+  }
+  return {
+    ...grid,
+    rows,
+    dailyTotals,
+    tableTotals: {
+      totalDeduction: rows.reduce((s, r) => s + r.summary.totalDeduction, 0),
+      totalDue: rows.reduce((s, r) => s + r.summary.calculatedTarget, 0),
+      outstanding: rows.reduce((s, r) => s + r.summary.outstanding, 0),
+    },
+    availableRentalPartners: [...new Set(rows.map((r) => r.rentalPartner))].sort(),
+    availablePlates: rows.map((r) => ({ plate: r.plateNorm, type: r.vehicleType })),
+  };
+}
+
+export function scopeGrabGrid(grid: GrabGridFixture, norms: Set<string>): GrabGridFixture {
+  const rows = grid.rows.filter((r) => norms.has(r.plateNumber));
+  return {
+    ...grid,
+    rows,
+    totals: {
+      earning: rows.reduce((s, r) => s + r.summary.earning, 0),
+      driverFare: rows.reduce((s, r) => s + r.summary.driverFare, 0),
+      incentive: rows.reduce((s, r) => s + r.summary.incentive, 0),
+    },
+    availableRentalPartners: [...new Set(rows.map((r) => r.rentalPartner))].sort(),
+    availableCities: [...new Set(rows.map((r) => r.city))].sort(),
+  };
+}
+
+// Aggregates for the dashboard, computed from a (possibly scoped) grid so the
+// admin and partner surfaces share one implementation.
+export function makeGojekGlobalSummary(grid: GojekGridFixture) {
   return {
     totalDeduction: grid.tableTotals.totalDeduction,
     totalDue: grid.tableTotals.totalDue,
@@ -239,10 +279,8 @@ export function makeGojekGlobalSummary(month: number, year: number) {
   };
 }
 
-// Chart series for the dashboard, synced to the same (month, year) grid:
-// daily setoran trend + setoran split per rental partner.
-export function makeGojekCharts(month: number, year: number) {
-  const grid = gojekGrid(month, year);
+// Chart series for the dashboard: daily setoran trend + split per rental partner.
+export function makeGojekCharts(grid: GojekGridFixture) {
   const daily = Array.from({ length: grid.daysInMonth }, (_, i) => ({
     day: i + 1,
     total: grid.dailyTotals[i + 1] ?? 0,
@@ -257,8 +295,7 @@ export function makeGojekCharts(month: number, year: number) {
   return { daily, byPartner };
 }
 
-export function makeDriverActivity(month: number, year: number, day?: number) {
-  const grid = gojekGrid(month, year);
+export function makeDriverActivity(grid: GojekGridFixture, day?: number) {
   const dim = grid.daysInMonth;
   const availableDays = Array.from({ length: dim }, (_, i) => i + 1);
   const maxDayInData = Math.min(dim, 28);

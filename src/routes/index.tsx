@@ -1,5 +1,12 @@
 import { createFileRoute, Navigate } from '@tanstack/react-router';
 import { useAdminSession, usePartnerSession } from '@/features/auth/hooks';
+import { currentMonthWIB, currentYearWIB } from '@/lib/datetime';
+
+const fleetSearchDefaults = {
+  month: currentMonthWIB(),
+  year: currentYearWIB(),
+  rentalPartner: [] as string[],
+};
 
 // Root: route by whichever session resolves. Admin console takes precedence;
 // otherwise a partner session; otherwise the admin login as the default entry.
@@ -20,6 +27,7 @@ function RootRedirect() {
   }
 
   if (admin.data) return <Navigate to="/admin" replace />;
-  if (partner.data) return <Navigate to="/partner/dashboard" replace />;
+  if (partner.data)
+    return <Navigate to="/partner/fleet-monitoring" search={fleetSearchDefaults} replace />;
   return <Navigate to="/admin/login" search={{}} replace />;
 }

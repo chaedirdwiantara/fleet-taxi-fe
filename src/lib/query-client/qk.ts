@@ -26,10 +26,17 @@ export const qk = {
       ['fleet', 'gojek', 'exceptions', p] as const,
   },
 
+  // Partner portal: registered plates (Daftarkan Plat) + own scoped fleet views.
   partner: {
     me: ['partner', 'me'] as const,
-    dashboard: ['partner', 'dashboard'] as const,
-    orders: (p: { page: number; pageSize: number }) => ['partner', 'orders', p] as const,
-    order: (id: string) => ['partner', 'order', id] as const,
+    plates: ['partner', 'plates'] as const,
+    fleet: {
+      grid: (p: { platform: Platform; month: number; year: number }) =>
+        ['partner', 'fleet', p.platform, 'grid', p] as const,
+      cell: (p: { platform: Platform; key: string; day: number; month: number; year: number }) =>
+        ['partner', 'fleet', p.platform, 'cell', p] as const,
+      summary: (p: { month: number; year: number; day?: number }) =>
+        ['partner', 'fleet', 'gojek', 'summary', p] as const,
+    },
   },
 } as const;

@@ -38,13 +38,20 @@ export function GrabMonitoringTable({
   grid,
   onDriverDetail,
   onEditDriver,
+  readOnly = false,
 }: {
   grid: GrabGrid;
   onDriverDetail: (compositeKey: string) => void;
-  onEditDriver: (row: GrabRow) => void;
+  onEditDriver?: (row: GrabRow) => void;
+  // Read-only mode hides the edit "Action" column (the eye/detail stays).
+  readOnly?: boolean;
 }) {
-  const lefts = useMemo(() => stickyLefts(IDENTITY), []);
-  const idW = useMemo(() => identityWidth(IDENTITY), []);
+  const identity = useMemo(
+    () => (readOnly ? IDENTITY.filter((c) => c.id !== 'action') : IDENTITY),
+    [readOnly],
+  );
+  const lefts = useMemo(() => stickyLefts(identity), [identity]);
+  const idW = useMemo(() => identityWidth(identity), [identity]);
   const rpSpans = useMemo(() => groupRowSpans(grid.rows, (r) => r.rentalPartner), [grid.rows]);
   const citySpans = useMemo(
     () => groupRowSpans(grid.rows, (r) => `${r.rentalPartner}|${r.city}`),
@@ -58,14 +65,14 @@ export function GrabMonitoringTable({
       <table className="border-separate border-spacing-0 text-xs" style={{ minWidth: idW + days.length * DAY_W + identityWidth(SUMMARY) }}>
         <thead>
           <tr>
-            {IDENTITY.map((c, i) => (
+            {identity.map((c, i) => (
               <th
                 key={c.id}
                 rowSpan={2}
                 className={cn(
                   'sticky top-0 z-30 border-b border-r border-indigo-300/40 px-2 py-2 text-center font-semibold',
                   HEAD_BG,
-                  c.id === 'action' && 'border-r-2 border-r-slate-300',
+                  i === identity.length - 1 && 'border-r-2 border-r-slate-300',
                 )}
                 style={{ left: lefts[i], width: c.width, minWidth: c.width }}
               >
@@ -132,19 +139,27 @@ export function GrabMonitoringTable({
                   </button>
                 </span>
               </td>
-              <td className="sticky z-10 border-b border-r bg-white px-2 py-1 text-center group-hover:bg-slate-50 dark:bg-slate-950" style={{ left: lefts[6], width: IDENTITY[6].width }}>
+              <td
+                className={cn(
+                  'sticky z-10 border-b bg-white px-2 py-1 text-center group-hover:bg-slate-50 dark:bg-slate-950',
+                  readOnly ? 'border-r-2 border-r-slate-300' : 'border-r',
+                )}
+                style={{ left: lefts[6], width: IDENTITY[6].width }}
+              >
                 <Badge variant={row.tiering === 'JAWARA' ? 'default' : 'secondary'}>{row.tiering}</Badge>
               </td>
-              <td className="sticky z-10 border-b border-r-2 border-r-slate-300 bg-white px-1 py-1 text-center group-hover:bg-slate-50 dark:bg-slate-950" style={{ left: lefts[7], width: IDENTITY[7].width }}>
-                <button
-                  type="button"
-                  aria-label={`Edit ${row.plateNumber}`}
-                  onClick={() => onEditDriver(row)}
-                  className="inline-flex size-6 items-center justify-center rounded text-amber-500 hover:bg-slate-200 dark:hover:bg-slate-800"
-                >
-                  <Pencil className="size-3.5" />
-                </button>
-              </td>
+              {!readOnly && (
+                <td className="sticky z-10 border-b border-r-2 border-r-slate-300 bg-white px-1 py-1 text-center group-hover:bg-slate-50 dark:bg-slate-950" style={{ left: lefts[7], width: IDENTITY[7].width }}>
+                  <button
+                    type="button"
+                    aria-label={`Edit ${row.plateNumber}`}
+                    onClick={() => onEditDriver?.(row)}
+                    className="inline-flex size-6 items-center justify-center rounded text-amber-500 hover:bg-slate-200 dark:hover:bg-slate-800"
+                  >
+                    <Pencil className="size-3.5" />
+                  </button>
+                </td>
+              )}
 
               {days.map((d) => {
                 const val = row.days[d]?.earning ?? 0;
@@ -168,7 +183,7 @@ export function GrabMonitoringTable({
           ))}
           {grid.rows.length === 0 && (
             <tr>
-              <td colSpan={IDENTITY.length + days.length + SUMMARY.length} className="border-b px-3 py-10 text-center text-slate-500">
+              <td colSpan={identity.length + days.length + SUMMARY.length} className="border-b px-3 py-10 text-center text-slate-500">
                 Tidak ada data untuk periode / filter ini.
               </td>
             </tr>

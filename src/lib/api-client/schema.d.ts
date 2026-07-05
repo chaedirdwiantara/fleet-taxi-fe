@@ -373,6 +373,126 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/partner/portal/plates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List own registered plates */
+        get: operations["listPartnerPlates"];
+        put?: never;
+        /** Register a plate (nomor + Type) */
+        post: operations["createPartnerPlate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/plates/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove one own registered plate */
+        delete: operations["deletePartnerPlate"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/fleet/gojek/grid": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Own Gojek pivot grid (scoped) */
+        get: operations["getPartnerGojekGrid"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/fleet/gojek/cell": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Own Gojek vehicle+day breakdown */
+        get: operations["getPartnerGojekCell"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/fleet/gojek/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Own Gojek dashboard aggregates */
+        get: operations["getPartnerGojekSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/fleet/grab/grid": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Own Grab earnings grid (scoped) */
+        get: operations["getPartnerGrabGrid"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/fleet/grab/cell": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Own Grab driver performance detail */
+        get: operations["getPartnerGrabCell"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -635,6 +755,16 @@ export interface components {
             } | null;
             /** Format: date-time */
             createdAt: string;
+        };
+        PartnerPlate: {
+            id: number;
+            plateNumber: string;
+            plateNumberNorm: string;
+            vehicleType?: string | null;
+        };
+        PartnerPlateCreate: {
+            plateNumber: string;
+            vehicleType?: string;
         };
     };
     responses: {
@@ -1385,6 +1515,234 @@ export interface operations {
                 };
             };
             401: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
+    listPartnerPlates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Registered plates */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["PartnerPlate"][];
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    createPartnerPlate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerPlateCreate"];
+            };
+        };
+        responses: {
+            /** @description Created plate */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["PartnerPlate"];
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    deletePartnerPlate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: Record<string, never>;
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getPartnerGojekGrid: {
+        parameters: {
+            query: {
+                month: number;
+                year: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Pivot grid */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: unknown;
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getPartnerGojekCell: {
+        parameters: {
+            query: {
+                /** @description row key: normalized plate or manual_<id> */
+                plate: string;
+                day: number;
+                month: number;
+                year: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Day breakdown */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: unknown;
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getPartnerGojekSummary: {
+        parameters: {
+            query: {
+                month: number;
+                year: number;
+                day?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Monthly aggregates */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: Record<string, never>;
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getPartnerGrabGrid: {
+        parameters: {
+            query: {
+                month: number;
+                year: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Grab grid */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: unknown;
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getPartnerGrabCell: {
+        parameters: {
+            query: {
+                /** @description plate|city|driver */
+                compositeKey: string;
+                day?: number;
+                month: number;
+                year: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Driver detail */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: unknown;
+                    };
+                };
+            };
             default: components["responses"]["Error"];
         };
     };

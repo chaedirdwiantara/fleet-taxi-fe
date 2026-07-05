@@ -6,7 +6,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { formatRupiah } from '@/lib/money';
-import { useGrabDriverDetailQuery } from './hooks';
+import { useGrabDriverDetailQuery, usePartnerGrabDriverDetailQuery } from './hooks';
 
 // Legacy Grab "eye" modal — whole-month performance detail for one driver.
 function Row({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
@@ -23,13 +23,27 @@ export function GrabCellModal({
   month,
   year,
   onClose,
+  scope = 'admin',
 }: {
   compositeKey: string;
   month: number;
   year: number;
   onClose: () => void;
+  scope?: 'admin' | 'partner';
 }) {
-  const detail = useGrabDriverDetailQuery({ compositeKey, month, year, enabled: true });
+  const adminQuery = useGrabDriverDetailQuery({
+    compositeKey,
+    month,
+    year,
+    enabled: scope === 'admin',
+  });
+  const partnerQuery = usePartnerGrabDriverDetailQuery({
+    compositeKey,
+    month,
+    year,
+    enabled: scope === 'partner',
+  });
+  const detail = scope === 'partner' ? partnerQuery : adminQuery;
   const [plate, city, driver] = compositeKey.split('|');
 
   return (

@@ -134,7 +134,8 @@ export function ImportPanel({ platform }: { platform: Platform }) {
             <div className="flex justify-between text-sm">
               <span>Memproses {active.filename}…</span>
               <span className="tabular-nums">
-                {active.processed.toLocaleString('id-ID')} / {active.totalRows.toLocaleString('id-ID')} baris
+                {(active.processed ?? 0).toLocaleString('id-ID')} /{' '}
+                {(active.totalRows ?? 0).toLocaleString('id-ID')} baris
               </span>
             </div>
             <Progress value={active.percent} />
@@ -142,7 +143,7 @@ export function ImportPanel({ platform }: { platform: Platform }) {
         )}
         {active?.status === 'done' && (
           <p className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">
-            Import selesai — {active.totalRows.toLocaleString('id-ID')} baris masuk.
+            Import selesai — {(active.totalRows ?? 0).toLocaleString('id-ID')} baris masuk.
           </p>
         )}
         {active?.status === 'failed' && (
@@ -169,7 +170,7 @@ export function ImportPanel({ platform }: { platform: Platform }) {
                   <td className="max-w-40 truncate" title={batch.filename}>{batch.filename}</td>
                   <td>{batch.periodMonth}/{batch.periodYear}</td>
                   <td><StatusBadge status={batch.status} /></td>
-                  <td className="text-right tabular-nums">{batch.totalRows.toLocaleString('id-ID')}</td>
+                  <td className="text-right tabular-nums">{(batch.totalRows ?? 0).toLocaleString('id-ID')}</td>
                   <td className="whitespace-nowrap text-xs text-muted-foreground">
                     {formatDateTimeWIB(batch.createdAt)}
                   </td>

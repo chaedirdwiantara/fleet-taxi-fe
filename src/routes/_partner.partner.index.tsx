@@ -1,8 +1,12 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
+import { currentMonthWIB, currentYearWIB } from '@/lib/datetime';
 
-// `/partner` → `/partner/dashboard` (routing map, frontend-kickoff.md §4).
+// `/partner` → `/partner/fleet-monitoring` (partner portal = fleet monitoring).
 export const Route = createFileRoute('/_partner/partner/')({
   beforeLoad: () => {
-    throw redirect({ to: '/partner/dashboard' });
+    throw redirect({
+      to: '/partner/fleet-monitoring',
+      search: { month: currentMonthWIB(), year: currentYearWIB(), rentalPartner: [] },
+    });
   },
 });
