@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Navigate, useLocation } from '@tanstack/react-router';
+import { ChangePasswordScreen } from './ChangePasswordScreen';
 import { usePartnerSession } from './hooks';
 
 // Gate for the partner portal. Unauthenticated partners are sent to the
@@ -21,5 +22,7 @@ export function RequirePartner({ children }: { children: ReactNode }) {
     if (location.pathname === '/partner/login') return null;
     return <Navigate to="/partner/login" search={{ redirect: location.pathname }} replace />;
   }
+  // Forced first-login password change gates the whole portal.
+  if (user.mustChangePassword) return <ChangePasswordScreen />;
   return <>{children}</>;
 }

@@ -10,7 +10,7 @@ import {
   scopeGrabGrid,
   importBatches,
 } from './fixtures/fleet';
-import { partnerMe, adminMe, seedPartnerPlates } from './fixtures/partner';
+import { partnerMe, adminMe, superAdminMe, seedPartnerPlates } from './fixtures/partner';
 
 // Single mock layer for dev (VITE_USE_MSW=true) and tests (frontend-kickoff.md §9).
 // All responses use the standard envelope from PROJECT-BRIEF.md §6.
@@ -31,7 +31,7 @@ const int = (v: string | null, fallback: number) => {
 // ---- Mock cookie-session state ----------------------------------------------
 // Emulates the backend's session: `me` is 401 until login. Persisted in
 // sessionStorage in the browser (survives HMR/reload); in-memory under Node.
-type MockUser = typeof partnerMe | typeof adminMe;
+type MockUser = typeof partnerMe | typeof adminMe | typeof superAdminMe;
 const SESSION_KEY = 'msw:session-user';
 let memoryUser: MockUser | null = null;
 
@@ -90,6 +90,50 @@ const registeredNorms = () => new Set(platesState.map((p) => p.plateNumberNorm))
 export const resetPartnerPlates = () => {
   platesState = seedPartnerPlates.map((p) => ({ ...p }));
   nextPlateId = 100;
+};
+
+// ---- Mock user-management state (super_admin: create/list users & partners) --
+type MockPartner = { id: number; code: string; name: string; type: string | null; isActive: boolean; createdAt: string };
+type MockManagedUser = {
+  id: number;
+  email: string;
+  fullName: string | null;
+  isActive: boolean;
+  mustChangePassword: boolean;
+  roles: string[];
+  createdAt: string;
+  lastLoginAt: string | null;
+  partner: { id: number; code: string; name: string; type: string | null } | null;
+};
+
+const seedPartners: MockPartner[] = [
+  { id: 7, code: 'BHISA', name: 'Bhisa Shuttle', type: 'shuttle', isActive: true, createdAt: '2026-05-01T03:00:00.000Z' },
+];
+const seedManagedUsers: MockManagedUser[] = [
+  { id: 1, email: 'admin@fleet-taxi.id', fullName: 'Fleet Admin', isActive: true, mustChangePassword: false, roles: ['admin'], createdAt: '2026-05-01T03:00:00.000Z', lastLoginAt: '2026-07-04T09:00:00.000Z', partner: null },
+  { id: 42, email: 'ops@bhisa.id', fullName: 'Bhisa Operations', isActive: true, mustChangePassword: false, roles: ['partner'], createdAt: '2026-05-02T03:00:00.000Z', lastLoginAt: null, partner: { id: 7, code: 'BHISA', name: 'Bhisa Shuttle', type: 'shuttle' } },
+];
+
+let partnersState: MockPartner[] = seedPartners.map((p) => ({ ...p }));
+let managedUsersState: MockManagedUser[] = seedManagedUsers.map((u) => ({ ...u }));
+let nextManagedUserId = 1000;
+let nextPartnerId = 1000;
+
+/** Reset user-management state to the seed (call between tests for isolation). */
+export const resetUserManagement = () => {
+  partnersState = seedPartners.map((p) => ({ ...p }));
+  managedUsersState = seedManagedUsers.map((u) => ({ ...u }));
+  nextManagedUserId = 1000;
+  nextPartnerId = 1000;
+};
+
+// super_admin gate for the mock user-management endpoints (mirrors CASL on the BE).
+const requireSuperAdmin = () => {
+  const user = getSessionUser();
+  if (!user || !user.roles.includes('super_admin')) {
+    return err(403, 'FORBIDDEN', 'Super admin required');
+  }
+  return null;
 };
 
 export const handlers = [
@@ -354,6 +398,135 @@ export const handlers = [
       return err(401, 'UNAUTHENTICATED', 'Partner login required');
     }
     return ok(user);
+  }),
+
+  // ---- First-login / self-service password change ---------------------------
+  http.post('*/auth/change-password', async ({ request }) => {
+    const user = getSessionUser();
+    if (!user) return err(401, 'UNAUTHENTICATED', 'Not authenticated');
+    const body = (await request.json()) as { currentPassword?: string; newPassword?: string };
+    if (!body.currentPassword || !body.newPassword) {
+      return err(422, 'VALIDATION_ERROR', 'currentPassword dan newPassword wajib diisi');
+    }
+    if (body.newPassword.length < 8) {
+      return err(400, 'VALIDATION_ERROR', 'newPassword minimal 8 karakter');
+    }
+    if (body.currentPassword === 'wrong') {
+      return err(401, 'UNAUTHENTICATED', 'Password saat ini salah');
+    }
+    const updated = { ...user, mustChangePassword: false };
+    setSessionUser(updated);
+    return ok(updated);
+  }),
+
+  // ---- Admin user management (super_admin only) -----------------------------
+  http.get('*/admin/users', ({ request }) => {
+    const denied = requireSuperAdmin();
+    if (denied) return denied;
+    const type = new URL(request.url).searchParams.get('type') === 'partner' ? 'partner' : 'admin';
+    const rows = managedUsersState.filter((u) => (type === 'partner' ? u.partner !== null : u.partner === null));
+    return ok(rows, { page: 1, pageSize: 50, total: rows.length });
+  }),
+
+  http.post('*/admin/users', async ({ request }) => {
+    const denied = requireSuperAdmin();
+    if (denied) return denied;
+    const body = (await request.json()) as { email?: string; fullName?: string; password?: string; roles?: string[] };
+    const email = (body.email ?? '').trim().toLowerCase();
+    if (!email || !body.fullName?.trim() || !body.roles?.length) {
+      return err(422, 'VALIDATION_ERROR', 'email, fullName, dan roles wajib diisi');
+    }
+    if ((body.password ?? '').length < 8) {
+      return err(400, 'VALIDATION_ERROR', 'password minimal 8 karakter');
+    }
+    if (managedUsersState.some((u) => u.email === email)) {
+      return err(409, 'CONFLICT', 'Email already in use');
+    }
+    const created: MockManagedUser = {
+      id: nextManagedUserId++,
+      email,
+      fullName: body.fullName.trim(),
+      isActive: true,
+      mustChangePassword: true,
+      roles: [...body.roles].sort(),
+      createdAt: '2026-07-05T04:00:00.000Z',
+      lastLoginAt: null,
+      partner: null,
+    };
+    managedUsersState.push(created);
+    return HttpResponse.json({ success: true, data: created }, { status: 201 });
+  }),
+
+  http.get('*/admin/partners', () => {
+    const denied = requireSuperAdmin();
+    if (denied) return denied;
+    return ok([...partnersState].sort((a, b) => a.code.localeCompare(b.code)));
+  }),
+
+  http.post('*/admin/partners', async ({ request }) => {
+    const denied = requireSuperAdmin();
+    if (denied) return denied;
+    const body = (await request.json()) as { code?: string; name?: string; type?: string };
+    const code = (body.code ?? '').trim().toUpperCase();
+    if (!code || !body.name?.trim()) {
+      return err(422, 'VALIDATION_ERROR', 'code dan name wajib diisi');
+    }
+    if (partnersState.some((p) => p.code === code)) {
+      return err(409, 'CONFLICT', 'Partner code already in use');
+    }
+    const created: MockPartner = {
+      id: nextPartnerId++,
+      code,
+      name: body.name.trim(),
+      type: body.type?.trim() || null,
+      isActive: true,
+      createdAt: '2026-07-05T04:00:00.000Z',
+    };
+    partnersState.push(created);
+    return HttpResponse.json({ success: true, data: created }, { status: 201 });
+  }),
+
+  http.post('*/admin/partners/:id/users', async ({ request, params }) => {
+    const denied = requireSuperAdmin();
+    if (denied) return denied;
+    const partner = partnersState.find((p) => String(p.id) === params.id);
+    if (!partner) return err(404, 'NOT_FOUND', 'Partner not found');
+    const body = (await request.json()) as { email?: string; fullName?: string; password?: string };
+    const email = (body.email ?? '').trim().toLowerCase();
+    if (!email || !body.fullName?.trim()) {
+      return err(422, 'VALIDATION_ERROR', 'email dan fullName wajib diisi');
+    }
+    if ((body.password ?? '').length < 8) {
+      return err(400, 'VALIDATION_ERROR', 'password minimal 8 karakter');
+    }
+    if (managedUsersState.some((u) => u.email === email)) {
+      return err(409, 'CONFLICT', 'Email already in use');
+    }
+    const created: MockManagedUser = {
+      id: nextManagedUserId++,
+      email,
+      fullName: body.fullName.trim(),
+      isActive: true,
+      mustChangePassword: true,
+      roles: ['partner'],
+      createdAt: '2026-07-05T04:00:00.000Z',
+      lastLoginAt: null,
+      partner: { id: partner.id, code: partner.code, name: partner.name, type: partner.type },
+    };
+    managedUsersState.push(created);
+    return HttpResponse.json({ success: true, data: created }, { status: 201 });
+  }),
+
+  http.post('*/admin/partners/:id/api-keys', async ({ params }) => {
+    const denied = requireSuperAdmin();
+    if (denied) return denied;
+    const partner = partnersState.find((p) => String(p.id) === params.id);
+    if (!partner) return err(404, 'NOT_FOUND', 'Partner not found');
+    const rawKey = `ftk_${'mockkey'.padEnd(40, '0')}`;
+    return HttpResponse.json(
+      { success: true, data: { id: nextManagedUserId++, keyPrefix: rawKey.slice(0, 12), rawKey } },
+      { status: 201 },
+    );
   }),
 
   // ---- Partner portal — Daftarkan Plat (registered plates) -----------------

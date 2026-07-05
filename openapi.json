@@ -1372,6 +1372,253 @@
         }
       }
     },
+    "/admin/users": {
+      "get": {
+        "operationId": "listAdminUsers",
+        "summary": "List admin/staff (type=admin) or partner-portal (type=partner) users",
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "enum": ["admin", "partner"], "default": "admin" }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 1 }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "default": 50 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Users",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["success", "data"],
+                  "properties": {
+                    "success": { "type": "boolean", "enum": [true] },
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/AdminUser" }
+                    },
+                    "meta": { "$ref": "#/components/schemas/Meta" }
+                  }
+                }
+              }
+            }
+          },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      },
+      "post": {
+        "operationId": "createAdminUser",
+        "summary": "Create an admin/staff user (super_admin only)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateAdminUser" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["success", "data"],
+                  "properties": {
+                    "success": { "type": "boolean", "enum": [true] },
+                    "data": { "$ref": "#/components/schemas/AdminUser" }
+                  }
+                }
+              }
+            }
+          },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/admin/partners": {
+      "get": {
+        "operationId": "listAdminPartners",
+        "summary": "List partners (for the picker)",
+        "responses": {
+          "200": {
+            "description": "Partners",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["success", "data"],
+                  "properties": {
+                    "success": { "type": "boolean", "enum": [true] },
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Partner" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      },
+      "post": {
+        "operationId": "createAdminPartner",
+        "summary": "Create a partner entity (super_admin only)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreatePartner" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created partner",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["success", "data"],
+                  "properties": {
+                    "success": { "type": "boolean", "enum": [true] },
+                    "data": { "$ref": "#/components/schemas/Partner" }
+                  }
+                }
+              }
+            }
+          },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/admin/partners/{id}/users": {
+      "post": {
+        "operationId": "createPartnerUser",
+        "summary": "Create a partner-portal user linked to this partner",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "format": "int64" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreatePartnerUser" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created partner user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["success", "data"],
+                  "properties": {
+                    "success": { "type": "boolean", "enum": [true] },
+                    "data": { "$ref": "#/components/schemas/AdminUser" }
+                  }
+                }
+              }
+            }
+          },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/admin/partners/{id}/api-keys": {
+      "post": {
+        "operationId": "createPartnerApiKey",
+        "summary": "Generate an external API key — rawKey returned ONCE",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "format": "int64" }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateApiKey" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created API key (rawKey shown once)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["success", "data"],
+                  "properties": {
+                    "success": { "type": "boolean", "enum": [true] },
+                    "data": { "$ref": "#/components/schemas/ApiKeyCreated" }
+                  }
+                }
+              }
+            }
+          },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
+    "/auth/change-password": {
+      "post": {
+        "operationId": "changePassword",
+        "summary": "Change the current session user's password (clears mustChangePassword)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ChangePassword" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated session user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["success", "data"],
+                  "properties": {
+                    "success": { "type": "boolean", "enum": [true] },
+                    "data": {}
+                  }
+                }
+              }
+            }
+          },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
     "/partner/portal/plates": {
       "get": {
         "operationId": "listPartnerPlates",
@@ -2709,6 +2956,133 @@
           "vehicleType": {
             "type": "string"
           }
+        }
+      },
+      "AdminUser": {
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "fullName",
+          "isActive",
+          "mustChangePassword",
+          "roles",
+          "createdAt",
+          "partner"
+        ],
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "email": { "type": "string" },
+          "fullName": { "type": "string", "nullable": true },
+          "isActive": { "type": "boolean" },
+          "mustChangePassword": { "type": "boolean" },
+          "roles": { "type": "array", "items": { "type": "string" } },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "lastLoginAt": { "type": "string", "format": "date-time", "nullable": true },
+          "partner": {
+            "type": "object",
+            "nullable": true,
+            "required": ["id", "code", "name", "type"],
+            "properties": {
+              "id": { "type": "integer", "format": "int64" },
+              "code": { "type": "string" },
+              "name": { "type": "string" },
+              "type": { "type": "string", "nullable": true }
+            }
+          }
+        }
+      },
+      "Partner": {
+        "type": "object",
+        "required": [
+          "id",
+          "code",
+          "name",
+          "isActive",
+          "createdAt"
+        ],
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "code": { "type": "string" },
+          "name": { "type": "string" },
+          "type": { "type": "string", "nullable": true },
+          "isActive": { "type": "boolean" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "CreateAdminUser": {
+        "type": "object",
+        "required": [
+          "email",
+          "fullName",
+          "password",
+          "roles"
+        ],
+        "properties": {
+          "email": { "type": "string", "format": "email" },
+          "fullName": { "type": "string" },
+          "password": { "type": "string", "minLength": 8 },
+          "roles": {
+            "type": "array",
+            "items": { "type": "string", "enum": ["admin", "finance", "super_admin"] }
+          }
+        }
+      },
+      "CreatePartnerUser": {
+        "type": "object",
+        "required": [
+          "email",
+          "fullName",
+          "password"
+        ],
+        "properties": {
+          "email": { "type": "string", "format": "email" },
+          "fullName": { "type": "string" },
+          "password": { "type": "string", "minLength": 8 }
+        }
+      },
+      "CreatePartner": {
+        "type": "object",
+        "required": [
+          "code",
+          "name"
+        ],
+        "properties": {
+          "code": { "type": "string" },
+          "name": { "type": "string" },
+          "type": { "type": "string" }
+        }
+      },
+      "CreateApiKey": {
+        "type": "object",
+        "properties": {
+          "label": { "type": "string" },
+          "scopes": { "type": "array", "items": { "type": "string" } },
+          "rateLimit": { "type": "integer" }
+        }
+      },
+      "ApiKeyCreated": {
+        "type": "object",
+        "required": [
+          "id",
+          "keyPrefix",
+          "rawKey"
+        ],
+        "properties": {
+          "id": { "type": "integer", "format": "int64" },
+          "keyPrefix": { "type": "string" },
+          "rawKey": { "type": "string" }
+        }
+      },
+      "ChangePassword": {
+        "type": "object",
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ],
+        "properties": {
+          "currentPassword": { "type": "string" },
+          "newPassword": { "type": "string", "minLength": 8 }
         }
       }
     }

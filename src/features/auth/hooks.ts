@@ -15,6 +15,9 @@ export type SessionUser = {
   fullName: string;
   roles: string[];
   partner: { id: number; code: string; name: string; type: string } | null;
+  // true when the account must change its password before using the app
+  // (set on admin-created accounts, cleared by /auth/change-password)
+  mustChangePassword?: boolean;
 };
 
 export type Role = 'super_admin' | 'admin' | 'partner';
@@ -107,6 +110,26 @@ export function usePartnerLogout() {
     onSuccess: () => {
       qc.clear();
       qc.setQueryData(qk.partnerSession, null);
+    },
+  });
+}
+
+// ---- First-login / self-service password change -------------------------------
+// Shared surface for both audiences (POST /auth/change-password). On success the
+// backend clears mustChangePassword and refreshes the session, so we invalidate
+// both session queries — whichever one is active re-fetches and the gate lifts.
+
+export function useChangePassword() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: { currentPassword: string; newPassword: string }) => {
+      const { data, error } = await api.POST('/auth/change-password', { body });
+      if (error) throwEnvelope(error);
+      return unwrap(data);
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: qk.adminSession });
+      void qc.invalidateQueries({ queryKey: qk.partnerSession });
     },
   });
 }

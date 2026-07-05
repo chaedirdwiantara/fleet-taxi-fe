@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Navigate, useLocation } from '@tanstack/react-router';
+import { ChangePasswordScreen } from './ChangePasswordScreen';
 import { useAdminSession } from './hooks';
 
 // Gate for the admin console. UX-only (the backend enforces real authz):
@@ -21,5 +22,7 @@ export function RequireAdmin({ children }: { children: ReactNode }) {
     if (location.pathname === '/admin/login') return null;
     return <Navigate to="/admin/login" search={{ redirect: location.pathname }} replace />;
   }
+  // Forced first-login password change gates the whole console.
+  if (user.mustChangePassword) return <ChangePasswordScreen />;
   return <>{children}</>;
 }

@@ -4,6 +4,7 @@ export const partnerMe = {
   fullName: 'Bhisa Operations',
   roles: ['partner'],
   partner: { id: 7, code: 'BHISA', name: 'Bhisa Shuttle', type: 'shuttle' },
+  mustChangePassword: false,
 };
 
 export const adminMe = {
@@ -12,6 +13,17 @@ export const adminMe = {
   fullName: 'Fleet Admin',
   roles: ['admin'],
   partner: null,
+  mustChangePassword: false,
+};
+
+// A super_admin session — the only audience allowed into /admin/user-management.
+export const superAdminMe = {
+  id: 2,
+  email: 'root@fleet-taxi.id',
+  fullName: 'Fleet Super Admin',
+  roles: ['super_admin'],
+  partner: null,
+  mustChangePassword: false,
 };
 
 // A couple of pre-registered plates for the mock partner so the scoped fleet

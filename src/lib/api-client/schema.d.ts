@@ -373,6 +373,93 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List admin/staff (type=admin) or partner-portal (type=partner) users */
+        get: operations["listAdminUsers"];
+        put?: never;
+        /** Create an admin/staff user (super_admin only) */
+        post: operations["createAdminUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/partners": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List partners (for the picker) */
+        get: operations["listAdminPartners"];
+        put?: never;
+        /** Create a partner entity (super_admin only) */
+        post: operations["createAdminPartner"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/partners/{id}/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a partner-portal user linked to this partner */
+        post: operations["createPartnerUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/partners/{id}/api-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Generate an external API key — rawKey returned ONCE */
+        post: operations["createPartnerApiKey"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/change-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Change the current session user's password (clears mustChangePassword) */
+        post: operations["changePassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/partner/portal/plates": {
         parameters: {
             query?: never;
@@ -765,6 +852,69 @@ export interface components {
         PartnerPlateCreate: {
             plateNumber: string;
             vehicleType?: string;
+        };
+        AdminUser: {
+            /** Format: int64 */
+            id: number;
+            email: string;
+            fullName: string | null;
+            isActive: boolean;
+            mustChangePassword: boolean;
+            roles: string[];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            lastLoginAt?: string | null;
+            partner: {
+                /** Format: int64 */
+                id: number;
+                code: string;
+                name: string;
+                type: string | null;
+            } | null;
+        };
+        Partner: {
+            /** Format: int64 */
+            id: number;
+            code: string;
+            name: string;
+            type?: string | null;
+            isActive: boolean;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        CreateAdminUser: {
+            /** Format: email */
+            email: string;
+            fullName: string;
+            password: string;
+            roles: ("admin" | "finance" | "super_admin")[];
+        };
+        CreatePartnerUser: {
+            /** Format: email */
+            email: string;
+            fullName: string;
+            password: string;
+        };
+        CreatePartner: {
+            code: string;
+            name: string;
+            type?: string;
+        };
+        CreateApiKey: {
+            label?: string;
+            scopes?: string[];
+            rateLimit?: number;
+        };
+        ApiKeyCreated: {
+            /** Format: int64 */
+            id: number;
+            keyPrefix: string;
+            rawKey: string;
+        };
+        ChangePassword: {
+            currentPassword: string;
+            newPassword: string;
         };
     };
     responses: {
@@ -1515,6 +1665,210 @@ export interface operations {
                 };
             };
             401: components["responses"]["Error"];
+            default: components["responses"]["Error"];
+        };
+    };
+    listAdminUsers: {
+        parameters: {
+            query?: {
+                type?: "admin" | "partner";
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Users */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["AdminUser"][];
+                        meta?: components["schemas"]["Meta"];
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    createAdminUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAdminUser"];
+            };
+        };
+        responses: {
+            /** @description Created user */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["AdminUser"];
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    listAdminPartners: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Partners */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["Partner"][];
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    createAdminPartner: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePartner"];
+            };
+        };
+        responses: {
+            /** @description Created partner */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["Partner"];
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    createPartnerUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePartnerUser"];
+            };
+        };
+        responses: {
+            /** @description Created partner user */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["AdminUser"];
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    createPartnerApiKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CreateApiKey"];
+            };
+        };
+        responses: {
+            /** @description Created API key (rawKey shown once) */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["ApiKeyCreated"];
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    changePassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangePassword"];
+            };
+        };
+        responses: {
+            /** @description Updated session user */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: unknown;
+                    };
+                };
+            };
             default: components["responses"]["Error"];
         };
     };
