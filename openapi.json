@@ -1,0 +1,2228 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "fleet-taxi-dashboard-api (STUB)",
+    "description": "Hand-maintained stub of PROJECT-BRIEF.md §6 until the backend publishes its real /docs-json. Replace this file with the live schema (https://api.fleet-taxi.id/docs-json) and re-run `pnpm gen:api` — contract changes always land in the backend first.",
+    "version": "0.1.0-stub"
+  },
+  "paths": {
+    "/admin/fleet/gojek/grid": {
+      "get": {
+        "operationId": "getGojekGrid",
+        "summary": "Gojek 31-day pivot grid",
+        "parameters": [
+          {
+            "name": "month",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 12
+            }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "rentalPartner",
+            "in": "query",
+            "required": false,
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "plate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pivot grid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {}
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/admin/fleet/gojek/cell": {
+      "get": {
+        "operationId": "getGojekCell",
+        "summary": "One vehicle+day breakdown (cell-click modal)",
+        "parameters": [
+          {
+            "name": "plate",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "plateNorm (or manual_<detailId> synthetic key)"
+          },
+          {
+            "name": "day",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 31
+            }
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 12
+            }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Day breakdown",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {}
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/admin/fleet/grab/grid": {
+      "get": {
+        "operationId": "getGrabGrid",
+        "summary": "Grab 31-day pivot grid (composite plate|city|driver)",
+        "parameters": [
+          {
+            "name": "month",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 12
+            }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "rentalPartner",
+            "in": "query",
+            "required": false,
+            "style": "form",
+            "explode": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "name": "plate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Pivot grid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {}
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/admin/fleet/grab/cell": {
+      "get": {
+        "operationId": "getGrabCell",
+        "summary": "One Grab vehicle+day breakdown",
+        "parameters": [
+          {
+            "name": "compositeKey",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "plate|city|driver"
+          },
+          {
+            "name": "day",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 31
+            }
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 12
+            }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Day breakdown",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {}
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/admin/fleet/{platform}/imports": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Platform"
+        }
+      ],
+      "get": {
+        "operationId": "listImports",
+        "summary": "List import batches",
+        "responses": {
+          "200": {
+            "description": "Import batches",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ImportBatch"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createImport",
+        "summary": "Upload CSV/XLSX for a period → enqueue async parse",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "file",
+                  "month",
+                  "year"
+                ],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "month": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 12
+                  },
+                  "year": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Batch created, parsing queued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "importId"
+                      ],
+                      "properties": {
+                        "importId": {
+                          "type": "integer",
+                          "format": "int64"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/admin/fleet/{platform}/imports/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Platform"
+        },
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "getImportStatus",
+        "summary": "Import status/progress (HTTP poll fallback for Socket.IO)",
+        "responses": {
+          "200": {
+            "description": "Import batch with progress",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/ImportBatch"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "rollbackImport",
+        "summary": "Rollback a whole import batch (queued)",
+        "responses": {
+          "202": {
+            "description": "Rollback queued",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "importId",
+                        "status"
+                      ],
+                      "properties": {
+                        "importId": {
+                          "type": "integer",
+                          "format": "int64"
+                        },
+                        "status": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/admin/fleet/{platform}/targets/{plate}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/Platform"
+        },
+        {
+          "name": "plate",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "getTarget",
+        "summary": "Read driver + target metadata",
+        "responses": {
+          "200": {
+            "description": "Target metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/FleetTarget"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateTarget",
+        "summary": "Edit driver + target metadata",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FleetTargetUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated target metadata",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/FleetTarget"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/admin/fleet/gojek/exceptions": {
+      "get": {
+        "operationId": "listExceptions",
+        "summary": "List exceptions for a period",
+        "parameters": [
+          {
+            "name": "month",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 12
+            }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Exceptions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/FleetException"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
+      "post": {
+        "operationId": "createException",
+        "summary": "Create/mark an exception (rental/maintenance/free-day)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FleetExceptionCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created exception",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/FleetException"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/admin/fleet/gojek/exceptions/{id}": {
+      "delete": {
+        "operationId": "deleteException",
+        "summary": "Delete an exception",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "deleted"
+                      ],
+                      "properties": {
+                        "deleted": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/admin/fleet/{platform}/performers": {
+      "get": {
+        "operationId": "getPerformers",
+        "summary": "Top/bottom performers for the period",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/Platform"
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 12
+            }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Top/bottom performers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {}
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/partner/portal/login": {
+      "post": {
+        "operationId": "partnerLogin",
+        "summary": "Partner portal login → sets HTTP-only session cookie",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "email",
+                  "password"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Logged in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/PartnerMe"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/partner/portal/logout": {
+      "post": {
+        "operationId": "partnerLogout",
+        "summary": "End session",
+        "responses": {
+          "200": {
+            "description": "Logged out",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "loggedOut"
+                      ],
+                      "properties": {
+                        "loggedOut": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/partner/portal/me": {
+      "get": {
+        "operationId": "partnerMe",
+        "summary": "Current partner user + partner profile",
+        "responses": {
+          "200": {
+            "description": "Session user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/PartnerMe"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/partner/portal/dashboard": {
+      "get": {
+        "operationId": "partnerDashboard",
+        "summary": "Partner metrics/summary widgets",
+        "responses": {
+          "200": {
+            "description": "Dashboard metrics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/PartnerDashboard"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/partner/portal/orders": {
+      "get": {
+        "operationId": "partnerOrders",
+        "summary": "List own orders (paginated, filterable)",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50
+            }
+          },
+          {
+            "name": "tripStatus",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Own orders",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data",
+                    "meta"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Order"
+                      }
+                    },
+                    "meta": {
+                      "$ref": "#/components/schemas/Meta"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/partner/portal/orders/export": {
+      "get": {
+        "operationId": "partnerOrdersExport",
+        "summary": "Export own orders as PDF or Excel (server-generated)",
+        "parameters": [
+          {
+            "name": "format",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pdf",
+                "xlsx"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Generated file",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/partner/portal/orders/{id}": {
+      "get": {
+        "operationId": "partnerOrderDetail",
+        "summary": "One own order detail",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Order detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/Order"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/admin/fleet/gojek/summary": {
+      "get": {
+        "operationId": "getGojekSummary",
+        "summary": "Monthly aggregates for the admin dashboard (global summary + driver activity)",
+        "parameters": [
+          {
+            "name": "month",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 12
+            }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "day",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 31
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Monthly aggregates",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/admin/auth/login": {
+      "post": {
+        "operationId": "adminLogin",
+        "summary": "Admin/super-admin login (separate surface from partner portal)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "email",
+                  "password"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Admin session user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {}
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/admin/auth/logout": {
+      "post": {
+        "operationId": "adminLogout",
+        "summary": "End admin session",
+        "responses": {
+          "200": {
+            "description": "Logged out",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {}
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/admin/auth/me": {
+      "get": {
+        "operationId": "adminMe",
+        "summary": "Current admin user (401 if not an admin session)",
+        "responses": {
+          "200": {
+            "description": "Admin user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {}
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "Platform": {
+        "name": "platform",
+        "in": "path",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "enum": [
+            "gojek",
+            "grab"
+          ]
+        }
+      }
+    },
+    "responses": {
+      "Error": {
+        "description": "Standard error envelope (PROJECT-BRIEF.md §6)",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ErrorEnvelope"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Meta": {
+        "type": "object",
+        "required": [
+          "page",
+          "pageSize",
+          "total"
+        ],
+        "properties": {
+          "page": {
+            "type": "integer"
+          },
+          "pageSize": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer"
+          }
+        }
+      },
+      "ErrorEnvelope": {
+        "type": "object",
+        "required": [
+          "success",
+          "error"
+        ],
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "enum": [
+              false
+            ]
+          },
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message"
+            ],
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "field",
+                    "message"
+                  ],
+                  "properties": {
+                    "field": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "DayCellValue": {
+        "type": "object",
+        "required": [
+          "day",
+          "amount"
+        ],
+        "properties": {
+          "day": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 31
+          },
+          "amount": {
+            "type": "integer",
+            "format": "int64",
+            "description": "integer rupiah, backend-computed"
+          },
+          "hasManualUncounted": {
+            "type": "boolean"
+          },
+          "hasException": {
+            "type": "boolean"
+          }
+        }
+      },
+      "FleetRowSummary": {
+        "type": "object",
+        "required": [
+          "dailyTarget",
+          "monthlyTarget",
+          "totalDeduction",
+          "outstanding"
+        ],
+        "properties": {
+          "dailyTarget": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "monthlyTarget": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalDeduction": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "outstanding": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "FleetRow": {
+        "type": "object",
+        "required": [
+          "plateNorm",
+          "plateRaw",
+          "driverName",
+          "days",
+          "summary"
+        ],
+        "properties": {
+          "plateNorm": {
+            "type": "string",
+            "description": "backend-normalized [A-Z0-9] pivot key (or manual_<detailId>)"
+          },
+          "plateRaw": {
+            "type": "string"
+          },
+          "driverName": {
+            "type": "string"
+          },
+          "rentalPartner": {
+            "type": "string",
+            "nullable": true
+          },
+          "days": {
+            "type": "object",
+            "description": "sparse map keyed by day 1..31",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/DayCellValue"
+            }
+          },
+          "summary": {
+            "$ref": "#/components/schemas/FleetRowSummary"
+          }
+        }
+      },
+      "FleetGrid": {
+        "type": "object",
+        "required": [
+          "month",
+          "year",
+          "daysInMonth",
+          "rows"
+        ],
+        "properties": {
+          "month": {
+            "type": "integer"
+          },
+          "year": {
+            "type": "integer"
+          },
+          "daysInMonth": {
+            "type": "integer"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FleetRow"
+            }
+          }
+        }
+      },
+      "CellBreakdownItem": {
+        "type": "object",
+        "required": [
+          "transactionDate",
+          "type",
+          "amount"
+        ],
+        "properties": {
+          "transactionDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "deduction",
+              "due",
+              "manual"
+            ]
+          },
+          "amount": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "referenceId": {
+            "type": "string",
+            "nullable": true
+          },
+          "isManualPaymentSetoran": {
+            "type": "integer",
+            "nullable": true,
+            "description": "1=counted, 0=uncounted (Tidak Masuk Setoran), null=n/a"
+          },
+          "manualPaymentNote": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "CellBreakdown": {
+        "type": "object",
+        "required": [
+          "plateNorm",
+          "day",
+          "total",
+          "items"
+        ],
+        "properties": {
+          "plateNorm": {
+            "type": "string"
+          },
+          "day": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CellBreakdownItem"
+            }
+          }
+        }
+      },
+      "GrabDayCell": {
+        "type": "object",
+        "required": [
+          "earning"
+        ],
+        "properties": {
+          "earning": {
+            "type": "integer",
+            "format": "int64",
+            "description": "total_earning_collected summed per day, integer rupiah"
+          }
+        }
+      },
+      "GrabRowSummary": {
+        "type": "object",
+        "required": [
+          "earning",
+          "incentive",
+          "driverFare",
+          "rides",
+          "onlineHours",
+          "bookings",
+          "cancellations",
+          "fulfillmentRate"
+        ],
+        "properties": {
+          "earning": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "incentive": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "driverFare": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "rides": {
+            "type": "integer"
+          },
+          "onlineHours": {
+            "type": "number"
+          },
+          "bookings": {
+            "type": "integer"
+          },
+          "cancellations": {
+            "type": "integer"
+          },
+          "fulfillmentRate": {
+            "type": "number"
+          }
+        }
+      },
+      "GrabRow": {
+        "type": "object",
+        "required": [
+          "compositeKey",
+          "plateNumber",
+          "city",
+          "driverName",
+          "days",
+          "summary"
+        ],
+        "properties": {
+          "compositeKey": {
+            "type": "string",
+            "description": "plate|city|driver"
+          },
+          "plateNumber": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "driverName": {
+            "type": "string"
+          },
+          "days": {
+            "type": "object",
+            "description": "sparse map keyed by day 1..31",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/GrabDayCell"
+            }
+          },
+          "summary": {
+            "$ref": "#/components/schemas/GrabRowSummary"
+          }
+        }
+      },
+      "GrabGrid": {
+        "type": "object",
+        "required": [
+          "month",
+          "year",
+          "daysInMonth",
+          "rows"
+        ],
+        "properties": {
+          "month": {
+            "type": "integer"
+          },
+          "year": {
+            "type": "integer"
+          },
+          "daysInMonth": {
+            "type": "integer"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GrabRow"
+            }
+          }
+        }
+      },
+      "GrabCellBreakdownItem": {
+        "type": "object",
+        "required": [
+          "date",
+          "totalEarningCollected"
+        ],
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "totalEarningCollected": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalIncentive": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "driverFare": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "tollAndOthers": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "totalRides": {
+            "type": "integer"
+          },
+          "totalBookings": {
+            "type": "integer"
+          },
+          "totalOnlineHours": {
+            "type": "number"
+          },
+          "cancelByDriver": {
+            "type": "integer"
+          },
+          "fullfilmentRate": {
+            "type": "number"
+          }
+        }
+      },
+      "GrabCellBreakdown": {
+        "type": "object",
+        "required": [
+          "compositeKey",
+          "day",
+          "total",
+          "items"
+        ],
+        "properties": {
+          "compositeKey": {
+            "type": "string"
+          },
+          "day": {
+            "type": "integer"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GrabCellBreakdownItem"
+            }
+          }
+        }
+      },
+      "ImportBatch": {
+        "type": "object",
+        "required": [
+          "id",
+          "filename",
+          "periodMonth",
+          "periodYear",
+          "status",
+          "totalRows",
+          "createdAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "periodMonth": {
+            "type": "integer"
+          },
+          "periodYear": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "processing",
+              "done",
+              "failed"
+            ]
+          },
+          "totalRows": {
+            "type": "integer"
+          },
+          "processed": {
+            "type": "integer",
+            "nullable": true
+          },
+          "percent": {
+            "type": "number",
+            "nullable": true
+          },
+          "importedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "error": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "FleetTarget": {
+        "type": "object",
+        "required": [
+          "vehiclePlate",
+          "vehiclePlateNorm"
+        ],
+        "properties": {
+          "vehiclePlate": {
+            "type": "string"
+          },
+          "vehiclePlateNorm": {
+            "type": "string"
+          },
+          "driverName": {
+            "type": "string",
+            "nullable": true
+          },
+          "vehicleType": {
+            "type": "string",
+            "nullable": true
+          },
+          "fleetTarget": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true,
+            "description": "integer rupiah daily target; null/0 → backend infers"
+          },
+          "rentalPartner": {
+            "type": "string",
+            "nullable": true
+          },
+          "deliveryBatch": {
+            "type": "string",
+            "nullable": true
+          },
+          "serviceArea": {
+            "type": "string",
+            "nullable": true
+          },
+          "regionId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "city": {
+            "type": "string",
+            "nullable": true,
+            "description": "grab only"
+          }
+        }
+      },
+      "FleetTargetUpdate": {
+        "type": "object",
+        "properties": {
+          "driverName": {
+            "type": "string"
+          },
+          "vehicleType": {
+            "type": "string"
+          },
+          "fleetTarget": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "rentalPartner": {
+            "type": "string"
+          },
+          "deliveryBatch": {
+            "type": "string"
+          },
+          "serviceArea": {
+            "type": "string"
+          },
+          "regionId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "city": {
+            "type": "string"
+          }
+        }
+      },
+      "FleetException": {
+        "type": "object",
+        "required": [
+          "id",
+          "vehiclePlate",
+          "exceptionDate",
+          "isBebasSetoran"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "vehiclePlate": {
+            "type": "string"
+          },
+          "exceptionDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "keterangan": {
+            "type": "string",
+            "nullable": true
+          },
+          "isBebasSetoran": {
+            "type": "boolean"
+          }
+        }
+      },
+      "FleetExceptionCreate": {
+        "type": "object",
+        "required": [
+          "vehiclePlate",
+          "exceptionDate"
+        ],
+        "properties": {
+          "vehiclePlate": {
+            "type": "string"
+          },
+          "exceptionDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "keterangan": {
+            "type": "string"
+          },
+          "isBebasSetoran": {
+            "type": "boolean",
+            "default": false
+          }
+        }
+      },
+      "Performer": {
+        "type": "object",
+        "required": [
+          "key",
+          "label",
+          "total"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "plateNorm (gojek) or compositeKey (grab)"
+          },
+          "label": {
+            "type": "string"
+          },
+          "driverName": {
+            "type": "string",
+            "nullable": true
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "PartnerMe": {
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "fullName",
+          "roles"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "email": {
+            "type": "string"
+          },
+          "fullName": {
+            "type": "string"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "partner": {
+            "type": "object",
+            "nullable": true,
+            "required": [
+              "id",
+              "code",
+              "name",
+              "type"
+            ],
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "code": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "PartnerDashboard": {
+        "type": "object",
+        "required": [
+          "totalOrders",
+          "ordersThisMonth",
+          "revenueThisMonth",
+          "ordersByDay",
+          "ordersByStatus"
+        ],
+        "properties": {
+          "totalOrders": {
+            "type": "integer"
+          },
+          "ordersThisMonth": {
+            "type": "integer"
+          },
+          "revenueThisMonth": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "ordersByDay": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "date",
+                "count"
+              ],
+              "properties": {
+                "date": {
+                  "type": "string",
+                  "format": "date"
+                },
+                "count": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "ordersByStatus": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "status",
+                "count"
+              ],
+              "properties": {
+                "status": {
+                  "type": "string"
+                },
+                "count": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      },
+      "Order": {
+        "type": "object",
+        "required": [
+          "id",
+          "orderNumber",
+          "tripStatus",
+          "pickupAt",
+          "basicPrice",
+          "createdAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "orderNumber": {
+            "type": "string"
+          },
+          "orderType": {
+            "type": "string",
+            "nullable": true
+          },
+          "tripStatus": {
+            "type": "string"
+          },
+          "pickupCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "destinationCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "carTypesId": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "pickupAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "basicPrice": {
+            "type": "integer",
+            "format": "int64",
+            "description": "integer rupiah"
+          },
+          "passengerDetails": {
+            "type": "object",
+            "nullable": true,
+            "additionalProperties": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      }
+    }
+  }
+}
