@@ -3,6 +3,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { Car, Gift, Wallet } from 'lucide-react';
 import { FilterBar } from '@/features/fleet/components/FilterBar';
 import { ImportPanel } from '@/features/fleet/components/ImportPanel';
+import { ImportHistoryDialog } from '@/features/fleet/components/ImportHistoryDialog';
 import { TargetEditor } from '@/features/fleet/components/TargetEditor';
 import { GradientStatRow } from '@/features/fleet/components/GradientStat';
 import { fleetSearchSchema, type FleetSearch } from '@/features/fleet/searchSchema';
@@ -47,7 +48,10 @@ function GrabGridPage() {
             Earning per kendaraan (plat · kota · driver) · {grid.data?.rows.length ?? '…'} baris
           </p>
         </div>
-        <ImportPanel platform="grab" />
+        <div className="flex flex-wrap items-center gap-2">
+          <ImportHistoryDialog platform="grab" />
+          <ImportPanel platform="grab" />
+        </div>
       </div>
 
       {grid.data && (

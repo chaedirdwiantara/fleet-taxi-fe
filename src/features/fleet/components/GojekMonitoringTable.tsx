@@ -44,7 +44,7 @@ type Props = {
   grid: FleetGrid;
   onCellClick: (plateNorm: string, day: number) => void;
   // Admin-only actions; omitted in read-only (partner portal) mode.
-  onEditTarget?: (plateNorm: string) => void;
+  onEditTarget?: (row: FleetRow) => void;
   onManageException?: (plateNorm: string) => void;
   onDriverHistory?: (row: FleetRow) => void;
   // Read-only mode hides the "Aksi" column (no import/exception/target editing).
@@ -159,9 +159,15 @@ export function GojekMonitoringTable({
                 <td
                   className="sticky z-10 truncate border-b border-r bg-white px-2 py-1 text-center font-semibold group-hover:bg-slate-50 dark:bg-slate-950"
                   style={{ left: lefts[3], width: IDENTITY[3].width, maxWidth: IDENTITY[3].width }}
-                  title={row.plateRaw}
+                  title={row.detailId !== null ? 'Manual Payment tanpa plat' : row.plateRaw}
                 >
-                  {row.plateRaw}
+                  {row.detailId !== null ? (
+                    <span className="rounded bg-[#9c27b0]/15 px-1.5 py-0.5 text-[10px] font-medium text-[#9c27b0] dark:bg-[#9c27b0]/25 dark:text-purple-300">
+                      Tanpa Plat
+                    </span>
+                  ) : (
+                    row.plateRaw
+                  )}
                 </td>
                 <td
                   className="sticky z-10 truncate border-b border-r bg-white px-2 py-1 text-center text-slate-600 group-hover:bg-slate-50 dark:bg-slate-950 dark:text-slate-300"
@@ -186,14 +192,18 @@ export function GojekMonitoringTable({
                   >
                     <DropdownMenu>
                       <DropdownMenuTrigger
-                        aria-label={`Aksi ${row.plateRaw}`}
+                        aria-label={`Aksi ${row.plateRaw || 'Tanpa Plat'}`}
                         className="inline-flex size-6 items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-800"
                       >
                         <MoreHorizontal className="size-4" />
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => onEditTarget?.(row.plateNorm)}>
-                          {row.carId ? (
+                        <DropdownMenuItem onClick={() => onEditTarget?.(row)}>
+                          {row.detailId !== null ? (
+                            <>
+                              <Pencil className="text-[#9c27b0]" /> Edit Manual Payment
+                            </>
+                          ) : row.carId ? (
                             <>
                               <Pencil className="text-amber-500" /> Edit Detail &amp; Target
                             </>
@@ -230,7 +240,7 @@ export function GojekMonitoringTable({
                     <td
                       key={d}
                       role={clickable ? 'button' : undefined}
-                      aria-label={clickable ? `${row.plateRaw} tanggal ${d}: ${label}` : undefined}
+                      aria-label={clickable ? `${row.plateRaw || 'Tanpa Plat'} tanggal ${d}: ${label}` : undefined}
                       className={cn(
                         'border-b border-r px-1 py-1 text-right tabular-nums',
                         toneClass(tone),

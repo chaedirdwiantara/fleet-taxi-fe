@@ -1,10 +1,9 @@
-import { useRef, useState } from 'react';
-import { Loader2, Trash2, Upload } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { Loader2, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Progress } from '@/components/ui/progress';
 import {
   Dialog,
   DialogContent,
@@ -14,56 +13,46 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { formatDateTimeWIB } from '@/lib/datetime';
 import { currentMonthWIB, currentYearWIB } from '@/lib/datetime';
 import { useImportProgress } from '@/lib/socket/useImportProgress';
-import type { Platform } from '@/lib/query-client';
-import {
-  useImportsQuery,
-  useImportStatusQuery,
-  useRollbackImport,
-  useUploadImport,
-  type ImportBatch,
-} from '../hooks/useImports';
+import { qk, type Platform } from '@/lib/query-client';
+import { useImportStatusQuery, useUploadImport } from '../hooks/useImports';
+import { ImportHistoryTable } from './ImportHistoryTable';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
 
-function StatusBadge({ status }: { status: ImportBatch['status'] }) {
-  const variant =
-    status === 'done' ? 'default' : status === 'failed' ? 'destructive' : 'secondary';
-  return <Badge variant={variant}>{status}</Badge>;
-}
-
-// Upload → async parse → progress (socket `import:*` events, HTTP poll
-// fallback) → list → destructive rollback (kickoff §6).
+// Upload → async parse → status. The server can't know the row count upfront
+// (streaming parse), so there is NO percentage — we show an honest "processing"
+// spinner that resolves to a success/failure message, mirroring the legacy
+// "Imported Successfully!" flow. Batch list + rollback live in ImportHistoryTable.
 export function ImportPanel({ platform }: { platform: Platform }) {
+  const qc = useQueryClient();
   const [activeImportId, setActiveImportId] = useState<number | null>(null);
   const [month, setMonth] = useState(currentMonthWIB());
   const [year, setYear] = useState(currentYearWIB());
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const imports = useImportsQuery(platform);
   const upload = useUploadImport(platform);
-  const rollback = useRollbackImport(platform);
   const activeStatus = useImportStatusQuery(platform, activeImportId);
-  useImportProgress(platform, activeImportId); // socket patches the cache
+  useImportProgress(platform, activeImportId); // socket patches the cache (fast path)
+
+  const status = activeStatus.data?.status;
+  // When the batch finishes — via EITHER the socket or the HTTP poll — refresh
+  // the pivot + the batch list so the new data shows without a manual reload.
+  useEffect(() => {
+    if (status === 'done' || status === 'failed') {
+      qc.invalidateQueries({ queryKey: qk.fleet.imports(platform) });
+      if (status === 'done') {
+        qc.invalidateQueries({ queryKey: ['fleet', platform, 'grid'] });
+      }
+    }
+  }, [status, platform, qc]);
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,15 +119,16 @@ export function ImportPanel({ platform }: { platform: Platform }) {
         )}
 
         {active && (active.status === 'processing' || active.status === 'pending') && (
-          <div className="space-y-1 rounded-md border p-3">
-            <div className="flex justify-between text-sm">
-              <span>Memproses {active.filename}…</span>
-              <span className="tabular-nums">
-                {(active.processed ?? 0).toLocaleString('id-ID')} /{' '}
-                {(active.totalRows ?? 0).toLocaleString('id-ID')} baris
-              </span>
+          <div className="flex items-center gap-3 rounded-md border bg-muted/30 p-3 text-sm">
+            <Loader2 className="size-4 shrink-0 animate-spin text-primary" aria-hidden />
+            <div>
+              <p className="font-medium">Memproses {active.filename}…</p>
+              <p className="text-muted-foreground">
+                {(active.processed ?? 0) > 0
+                  ? `${active.processed.toLocaleString('id-ID')} baris diproses — mohon tunggu.`
+                  : 'Mengunggah & memproses baris, mohon tunggu sebentar.'}
+              </p>
             </div>
-            <Progress value={active.percent} />
           </div>
         )}
         {active?.status === 'done' && (
@@ -152,72 +142,7 @@ export function ImportPanel({ platform }: { platform: Platform }) {
           </p>
         )}
 
-        <div className="max-h-72 overflow-auto rounded-md border">
-          <table className="w-full text-sm">
-            <thead className="sticky top-0 bg-background text-left text-xs text-muted-foreground">
-              <tr className="[&>th]:border-b [&>th]:px-3 [&>th]:py-2">
-                <th>File</th>
-                <th>Periode</th>
-                <th>Status</th>
-                <th className="text-right">Baris</th>
-                <th>Waktu</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {imports.data?.map((batch) => (
-                <tr key={batch.id} className="[&>td]:border-b [&>td]:px-3 [&>td]:py-2">
-                  <td className="max-w-40 truncate" title={batch.filename}>{batch.filename}</td>
-                  <td>{batch.periodMonth}/{batch.periodYear}</td>
-                  <td><StatusBadge status={batch.status} /></td>
-                  <td className="text-right tabular-nums">{(batch.totalRows ?? 0).toLocaleString('id-ID')}</td>
-                  <td className="whitespace-nowrap text-xs text-muted-foreground">
-                    {formatDateTimeWIB(batch.createdAt)}
-                  </td>
-                  <td className="text-right">
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon-sm"
-                          aria-label={`Rollback ${batch.filename}`}
-                          disabled={rollback.isPending}
-                        >
-                          <Trash2 className="text-destructive" aria-hidden />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Rollback batch import ini?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Ini menghapus permanen SEMUA baris dari batch “{batch.filename}”
-                            ({batch.periodMonth}/{batch.periodYear}). Grid akan dihitung ulang.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Batal</AlertDialogCancel>
-                          <AlertDialogAction
-                            className="bg-destructive text-white hover:bg-destructive/90"
-                            onClick={() => rollback.mutate(batch.id)}
-                          >
-                            Rollback
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </td>
-                </tr>
-              ))}
-              {imports.isSuccess && imports.data.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-3 py-6 text-center text-muted-foreground">
-                    Belum ada import.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <ImportHistoryTable platform={platform} />
       </DialogContent>
     </Dialog>
   );

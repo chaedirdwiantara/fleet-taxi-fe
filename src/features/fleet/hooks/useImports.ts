@@ -1,7 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, unwrap, ApiErrorException, type ApiError } from '@/lib/api-client/client';
 import { qk, type Platform } from '@/lib/query-client';
-import { realtimeEnabled } from '@/lib/socket';
 
 export type ImportBatch = {
   id: number;
@@ -12,9 +11,11 @@ export type ImportBatch = {
   totalRows: number;
   processed: number;
   percent: number;
-  importedBy: string;
+  importedBy: number | null;
+  uploaderName: string | null; // "Diunggah Oleh" — resolved server-side
   error: string | null;
   createdAt: string;
+  updatedAt: string;
 };
 
 const throwEnvelope = (error: unknown): never => {
@@ -45,13 +46,15 @@ export function useImportStatusQuery(platform: Platform, importId: number | null
       return unwrap(data) as ImportBatch;
     },
     enabled: importId !== null,
-    // HTTP poll fallback (kickoff §6): when the socket isn't available,
-    // poll status while the batch is still being processed.
+    // Always poll while the batch is still being processed. The socket (when
+    // reachable) patches the cache faster, but the poll is the GUARANTEED
+    // backstop: if `/rt` isn't delivering, the popup must still reach "done"
+    // instead of hanging on "processing" forever (both paths are idempotent).
     refetchInterval: (query) => {
-      if (realtimeEnabled()) return false;
       const status = query.state.data?.status;
-      return status === 'processing' || status === 'pending' ? 1200 : false;
+      return status === 'processing' || status === 'pending' ? 1500 : false;
     },
+    refetchIntervalInBackground: true,
   });
 }
 

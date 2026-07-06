@@ -12,7 +12,7 @@ export function DriverHistoryModal({ row, onClose }: { row: FleetRow; onClose: (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Histori Driver — {row.plateRaw}</DialogTitle>
+          <DialogTitle>Histori Driver — {row.plateRaw || 'Tanpa Plat'}</DialogTitle>
         </DialogHeader>
         <ol className="divide-y text-sm">
           {row.driverHistory.length === 0 && (

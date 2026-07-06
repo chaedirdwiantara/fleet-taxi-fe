@@ -183,6 +183,7 @@ function buildGojekRow(i: number, month: number, year: number, dim: number) {
     vehicleType: VEHICLE_TYPES[i % VEHICLE_TYPES.length],
     deliveryBatch: DELIVERY_BATCHES[i % DELIVERY_BATCHES.length],
     carId: i % 7 === 0 ? null : 1000 + i, // some vehicles have no target yet
+    detailId: null, // real plated row (not a manual-payment-tanpa-plat synthetic row)
     dailyTarget,
     days,
     summary: { totalDeduction, calculatedTarget, gap, outstanding },
@@ -430,7 +431,8 @@ export const importBatches = [
     totalRows: 10_240,
     processed: 10_240,
     percent: 100,
-    importedBy: 'admin@fleet-taxi.id',
+    importedBy: 1,
+    uploaderName: 'Admin Fleet',
     error: null,
     createdAt: '2026-06-02T03:15:00Z',
   },
@@ -443,7 +445,8 @@ export const importBatches = [
     totalRows: 12_000,
     processed: 4_800,
     percent: 40,
-    importedBy: 'admin@fleet-taxi.id',
+    importedBy: 1,
+    uploaderName: 'Admin Fleet',
     error: null,
     createdAt: '2026-07-03T08:00:00Z',
   },
