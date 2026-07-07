@@ -18,6 +18,9 @@ export type FleetRow = {
   vehicleType: string;
   deliveryBatch: string;
   carId: number | null; // null → "Set Target", else "Edit Detail & Target"
+  // Set only for "Manual Payment tanpa plat" rows (pivot key manual_<detailId>):
+  // the fleet_import_details.id so the Edit form can re-plate / toggle setoran.
+  detailId: number | null;
   dailyTarget: number; // "Setoran" column (inferred or fleet_target)
   days: Record<number, DayCellValue | undefined>; // sparse map keyed by day
   summary: {

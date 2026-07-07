@@ -37,6 +37,16 @@ export function useImportProgress(platform: Platform, importId: number | null) {
     };
     const onDone = (p: ImportDoneEvent) => {
       if (p.importId !== importId) return;
+      // Resolve the status query so the popup shows the success state (the
+      // legacy "Imported Successfully!"). Without this the popup would hang on
+      // "processing" even though the rows already landed.
+      qc.setQueryData(statusKey, (old: object | undefined) => ({
+        ...(old ?? {}),
+        status: 'done',
+        processed: p.rowsInserted,
+        totalRows: p.rowsInserted,
+        percent: 100,
+      }));
       qc.invalidateQueries({ queryKey: qk.fleet.imports(platform) });
       qc.invalidateQueries({ queryKey: ['fleet', platform, 'grid'] }); // refresh pivot
     };

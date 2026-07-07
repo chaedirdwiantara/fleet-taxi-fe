@@ -37,6 +37,24 @@ export function useRegisterPlate() {
   });
 }
 
+export function useUpdatePlate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { id: number; plateNumber: string; vehicleType?: string }) => {
+      const { data, error } = await api.PUT('/partner/portal/plates/{id}', {
+        params: { path: { id: input.id } },
+        body: { plateNumber: input.plateNumber, vehicleType: input.vehicleType },
+      });
+      if (error) throwEnvelope(error);
+      return unwrap(data) as PartnerPlate;
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: qk.partner.plates });
+      void qc.invalidateQueries({ queryKey: ['partner', 'fleet'] });
+    },
+  });
+}
+
 export function useDeletePlate() {
   const qc = useQueryClient();
   return useMutation({

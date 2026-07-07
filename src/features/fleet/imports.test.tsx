@@ -51,13 +51,19 @@ describe('useImportProgress (socket patches the Query cache, kickoff §8)', () =
     expect(client.getQueryData(qk.fleet.importStatus('gojek', '99'))).toBeUndefined();
   });
 
-  it('import:done invalidates the imports list and the grid', () => {
+  it('import:done resolves the status to done AND invalidates the list + grid', () => {
     const client = makeClient();
     const invalidate = vi.spyOn(client, 'invalidateQueries');
     renderHook(() => useImportProgress('gojek', 7), { wrapper: wrapperFor(client) });
 
     act(() => {
       socketHandlers.get('import:done')!({ importId: 7, rowsInserted: 8000, durationMs: 1200 });
+    });
+    // the popup must reach a terminal "done" state, not hang on "processing"
+    expect(client.getQueryData(qk.fleet.importStatus('gojek', '7'))).toMatchObject({
+      status: 'done',
+      totalRows: 8000,
+      percent: 100,
     });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: qk.fleet.imports('gojek') });
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['fleet', 'gojek', 'grid'] });

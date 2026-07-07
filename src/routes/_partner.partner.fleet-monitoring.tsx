@@ -4,6 +4,7 @@ import { Info } from 'lucide-react';
 import { GojekMonitoringTable } from '@/features/fleet/components/GojekMonitoringTable';
 import { CellLegend } from '@/features/fleet/components/CellLegend';
 import { CellModal } from '@/features/fleet/components/CellModal';
+import { DriverHistoryModal } from '@/features/fleet/components/DriverHistoryModal';
 import { SummaryCards } from '@/features/fleet/components/SummaryCards';
 import { FleetChartsPanel } from '@/features/fleet/components/FleetChartsPanel';
 import { DriverActivityPanel } from '@/features/fleet/components/DriverActivityPanel';
@@ -18,6 +19,7 @@ import {
   parseCellParam,
   type FleetSearch,
 } from '@/features/fleet/searchSchema';
+import type { FleetRow } from '@/features/fleet/types';
 
 // Partner portal Gojek monitoring — read-only, scoped server-side to the
 // partner's registered plates. Same components as the admin surface, minus the
@@ -31,6 +33,7 @@ function PartnerGojekPage() {
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
   const [day, setDay] = useState<number | undefined>(undefined);
+  const [historyRow, setHistoryRow] = useState<FleetRow | null>(null);
 
   const setPeriod = useCallback(
     (patch: Partial<FleetSearch>) => {
@@ -108,7 +111,12 @@ function PartnerGojekPage() {
       )}
       {grid.isSuccess && grid.data.rows.length > 0 && (
         <div className={grid.isFetching ? 'opacity-60 transition-opacity' : undefined}>
-          <GojekMonitoringTable grid={grid.data} onCellClick={openCell} readOnly />
+          <GojekMonitoringTable
+            grid={grid.data}
+            onCellClick={openCell}
+            onDriverHistory={setHistoryRow}
+            readOnly
+          />
         </div>
       )}
 
@@ -121,6 +129,9 @@ function PartnerGojekPage() {
           year={search.year}
           onClose={closeCell}
         />
+      )}
+      {historyRow && (
+        <DriverHistoryModal row={historyRow} onClose={() => setHistoryRow(null)} />
       )}
     </div>
   );

@@ -28,6 +28,8 @@ export const qk = {
       ['fleet', p.platform, 'summary', p] as const,
     target: (platform: Platform, plate: string) =>
       ['fleet', platform, 'target', plate] as const,
+    detail: (platform: Platform, detailId: number) =>
+      ['fleet', platform, 'detail', detailId] as const,
     exceptions: (p: { month: number; year: number }) =>
       ['fleet', 'gojek', 'exceptions', p] as const,
   },

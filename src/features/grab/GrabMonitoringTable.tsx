@@ -46,8 +46,13 @@ export function GrabMonitoringTable({
   // Read-only mode hides the edit "Action" column (the eye/detail stays).
   readOnly?: boolean;
 }) {
+  // Partner (readOnly) drops both the edit Action AND the cross-partner
+  // "Rental Partner" column (a partner only ever sees its own plates).
   const identity = useMemo(
-    () => (readOnly ? IDENTITY.filter((c) => c.id !== 'action') : IDENTITY),
+    () =>
+      readOnly
+        ? IDENTITY.filter((c) => c.id !== 'action' && c.id !== 'rentalPartner')
+        : IDENTITY,
     [readOnly],
   );
   const lefts = useMemo(() => stickyLefts(identity), [identity]);
@@ -59,6 +64,14 @@ export function GrabMonitoringTable({
   );
   const days = Array.from({ length: grid.daysInMonth }, (_, i) => i + 1);
   const monthLabel = monthYearLabelID(grid.month, grid.year);
+
+  // Per-column sticky offset/width driven by the shown identity columns.
+  const colAt = (id: IdentityCol['id']) => {
+    const i = identity.findIndex((c) => c.id === id);
+    if (i === -1) return null;
+    return { left: lefts[i], width: identity[i].width, isLast: i === identity.length - 1 };
+  };
+  const lastBorder = (isLast: boolean) => (isLast ? 'border-r-2 border-r-slate-300' : 'border-r');
 
   return (
     <div className="relative max-h-[78svh] overflow-auto rounded-lg border">
@@ -105,28 +118,37 @@ export function GrabMonitoringTable({
         </thead>
 
         <tbody>
-          {grid.rows.map((row, idx) => (
+          {grid.rows.map((row, idx) => {
+            const noCol = colAt('no')!;
+            const rpCol = colAt('rentalPartner');
+            const cityCol = colAt('city')!;
+            const plateCol = colAt('plate')!;
+            const modelCol = colAt('model')!;
+            const driverCol = colAt('driver')!;
+            const tieringCol = colAt('tiering')!;
+            const actionCol = colAt('action');
+            return (
             <tr key={row.compositeKey} className="group">
-              <td className="sticky z-10 border-b border-r bg-white px-2 py-1 text-center text-slate-500 group-hover:bg-slate-50 dark:bg-slate-950" style={{ left: lefts[0], width: IDENTITY[0].width }}>
+              <td className={cn('sticky z-10 border-b bg-white px-2 py-1 text-center text-slate-500 group-hover:bg-slate-50 dark:bg-slate-950', lastBorder(noCol.isLast))} style={{ left: noCol.left, width: noCol.width }}>
                 {idx + 1}
               </td>
-              {rpSpans[idx] !== undefined && (
-                <td rowSpan={rpSpans[idx]} className="sticky z-10 border-b border-r bg-slate-50 px-2 py-1 text-center align-middle font-semibold dark:bg-slate-900" style={{ left: lefts[1], width: IDENTITY[1].width }}>
+              {rpCol && rpSpans[idx] !== undefined && (
+                <td rowSpan={rpSpans[idx]} className="sticky z-10 border-b border-r bg-slate-50 px-2 py-1 text-center align-middle font-semibold dark:bg-slate-900" style={{ left: rpCol.left, width: rpCol.width }}>
                   {row.rentalPartner || '-'}
                 </td>
               )}
               {citySpans[idx] !== undefined && (
-                <td rowSpan={citySpans[idx]} className="sticky z-10 border-b border-r bg-slate-50/70 px-2 py-1 text-center align-middle dark:bg-slate-900/70" style={{ left: lefts[2], width: IDENTITY[2].width }}>
+                <td rowSpan={citySpans[idx]} className="sticky z-10 border-b border-r bg-slate-50/70 px-2 py-1 text-center align-middle dark:bg-slate-900/70" style={{ left: cityCol.left, width: cityCol.width }}>
                   {row.city}
                 </td>
               )}
-              <td className="sticky z-10 border-b border-r bg-white px-2 py-1 text-center font-semibold group-hover:bg-slate-50 dark:bg-slate-950" style={{ left: lefts[3], width: IDENTITY[3].width }}>
+              <td className={cn('sticky z-10 border-b bg-white px-2 py-1 text-center font-semibold group-hover:bg-slate-50 dark:bg-slate-950', lastBorder(plateCol.isLast))} style={{ left: plateCol.left, width: plateCol.width }}>
                 {row.plateNumber}
               </td>
-              <td className="sticky z-10 truncate border-b border-r bg-white px-2 py-1 text-center text-slate-600 group-hover:bg-slate-50 dark:bg-slate-950 dark:text-slate-300" style={{ left: lefts[4], width: IDENTITY[4].width, maxWidth: IDENTITY[4].width }} title={row.vehicleType}>
+              <td className={cn('sticky z-10 truncate border-b bg-white px-2 py-1 text-center text-slate-600 group-hover:bg-slate-50 dark:bg-slate-950 dark:text-slate-300', lastBorder(modelCol.isLast))} style={{ left: modelCol.left, width: modelCol.width, maxWidth: modelCol.width }} title={row.vehicleType}>
                 {row.vehicleType}
               </td>
-              <td className="sticky z-10 border-b border-r bg-white px-2 py-1 text-left group-hover:bg-slate-50 dark:bg-slate-950" style={{ left: lefts[5], width: IDENTITY[5].width, maxWidth: IDENTITY[5].width }}>
+              <td className={cn('sticky z-10 border-b bg-white px-2 py-1 text-left group-hover:bg-slate-50 dark:bg-slate-950', lastBorder(driverCol.isLast))} style={{ left: driverCol.left, width: driverCol.width, maxWidth: driverCol.width }}>
                 <span className="flex items-center gap-1">
                   <span className="truncate font-semibold">{row.driverName}</span>
                   <button
@@ -140,16 +162,13 @@ export function GrabMonitoringTable({
                 </span>
               </td>
               <td
-                className={cn(
-                  'sticky z-10 border-b bg-white px-2 py-1 text-center group-hover:bg-slate-50 dark:bg-slate-950',
-                  readOnly ? 'border-r-2 border-r-slate-300' : 'border-r',
-                )}
-                style={{ left: lefts[6], width: IDENTITY[6].width }}
+                className={cn('sticky z-10 border-b bg-white px-2 py-1 text-center group-hover:bg-slate-50 dark:bg-slate-950', lastBorder(tieringCol.isLast))}
+                style={{ left: tieringCol.left, width: tieringCol.width }}
               >
                 <Badge variant={row.tiering === 'JAWARA' ? 'default' : 'secondary'}>{row.tiering}</Badge>
               </td>
-              {!readOnly && (
-                <td className="sticky z-10 border-b border-r-2 border-r-slate-300 bg-white px-1 py-1 text-center group-hover:bg-slate-50 dark:bg-slate-950" style={{ left: lefts[7], width: IDENTITY[7].width }}>
+              {actionCol && (
+                <td className={cn('sticky z-10 border-b bg-white px-1 py-1 text-center group-hover:bg-slate-50 dark:bg-slate-950', lastBorder(actionCol.isLast))} style={{ left: actionCol.left, width: actionCol.width }}>
                   <button
                     type="button"
                     aria-label={`Edit ${row.plateNumber}`}
@@ -180,7 +199,8 @@ export function GrabMonitoringTable({
               <td className="border-b border-r bg-emerald-50/60 px-2 py-1 text-right tabular-nums dark:bg-emerald-950/40">{rp(row.summary.driverFare)}</td>
               <td className="border-b border-r bg-emerald-50/60 px-2 py-1 text-right tabular-nums dark:bg-emerald-950/40">{nf(row.summary.rides)}</td>
             </tr>
-          ))}
+            );
+          })}
           {grid.rows.length === 0 && (
             <tr>
               <td colSpan={identity.length + days.length + SUMMARY.length} className="border-b px-3 py-10 text-center text-slate-500">

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { createFileRoute } from '@tanstack/react-router';
-import { Loader2, Plus, Trash2 } from 'lucide-react';
+import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,6 +14,13 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -28,7 +35,9 @@ import {
   useDeletePlate,
   usePartnerPlatesQuery,
   useRegisterPlate,
+  useUpdatePlate,
 } from '@/features/partner/hooks';
+import type { PartnerPlate } from '@/features/partner/types';
 
 // "Daftarkan Plat" (legacy /partner/plates: nomor + Type). Registered plates
 // define which vehicles the partner sees on the Gojek/Grab monitoring pages.
@@ -43,6 +52,7 @@ function DaftarkanPlatPage() {
 
   const [plateNumber, setPlateNumber] = useState('');
   const [vehicleType, setVehicleType] = useState('');
+  const [editing, setEditing] = useState<PartnerPlate | null>(null);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -150,6 +160,15 @@ function DaftarkanPlatPage() {
                         {plate.vehicleType || '-'}
                       </TableCell>
                       <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label={`Edit ${plate.plateNumber}`}
+                          className="text-amber-600 hover:bg-amber-500/10"
+                          onClick={() => setEditing(plate)}
+                        >
+                          <Pencil className="size-4" />
+                        </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button
@@ -195,6 +214,80 @@ function DaftarkanPlatPage() {
           )}
         </CardContent>
       </Card>
+
+      <EditPlateDialog plate={editing} onClose={() => setEditing(null)} />
     </div>
+  );
+}
+
+function EditPlateDialog({ plate, onClose }: { plate: PartnerPlate | null; onClose: () => void }) {
+  return (
+    <Dialog open={plate != null} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Edit Plat</DialogTitle>
+        </DialogHeader>
+        {/* keyed remount → the form re-initializes from the freshly-picked plate */}
+        {plate && <EditPlateForm key={plate.id} plate={plate} onClose={onClose} />}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EditPlateForm({ plate, onClose }: { plate: PartnerPlate; onClose: () => void }) {
+  const update = useUpdatePlate();
+  const [plateNumber, setPlateNumber] = useState(plate.plateNumber);
+  const [vehicleType, setVehicleType] = useState(plate.vehicleType ?? '');
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!plateNumber.trim()) return;
+    update.mutate(
+      {
+        id: plate.id,
+        plateNumber: plateNumber.trim(),
+        vehicleType: vehicleType.trim() || undefined,
+      },
+      { onSuccess: onClose },
+    );
+  };
+
+  return (
+    <form onSubmit={submit} className="grid gap-3">
+      <div className="space-y-1.5">
+        <Label htmlFor="edit-plate">Nomor Plat</Label>
+        <Input
+          id="edit-plate"
+          value={plateNumber}
+          onChange={(e) => setPlateNumber(e.target.value)}
+          maxLength={20}
+          required
+        />
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="edit-type">Type (opsional)</Label>
+        <Input
+          id="edit-type"
+          value={vehicleType}
+          onChange={(e) => setVehicleType(e.target.value)}
+          placeholder="Premium - BYD M6"
+          maxLength={100}
+        />
+      </div>
+      {update.isError && (
+        <p className="text-sm text-destructive" role="alert">
+          {update.error.message}
+        </p>
+      )}
+      <DialogFooter>
+        <Button type="button" variant="outline" onClick={onClose}>
+          Batal
+        </Button>
+        <Button type="submit" disabled={update.isPending || !plateNumber.trim()}>
+          {update.isPending ? <Loader2 className="animate-spin" aria-hidden /> : null}
+          Simpan
+        </Button>
+      </DialogFooter>
+    </form>
   );
 }

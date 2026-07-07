@@ -302,6 +302,127 @@
         }
       }
     },
+    "/admin/fleet/gojek/details/{detailId}": {
+      "parameters": [
+        {
+          "name": "detailId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      ],
+      "get": {
+        "operationId": "getFleetDetail",
+        "summary": "One import detail row (prefill for the Edit form)",
+        "parameters": [
+          {
+            "name": "month",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 12
+            }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Import detail row",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/FleetDetail"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
+    "/admin/fleet/gojek/edit-driver": {
+      "post": {
+        "operationId": "editFleetDriver",
+        "summary": "Edit driver/plate on an import detail (assign plate to a manual-payment row, toggle setoran)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditDriver"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Number of detail rows updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "type": "object",
+                      "required": [
+                        "updated"
+                      ],
+                      "properties": {
+                        "updated": {
+                          "type": "integer"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      }
+    },
     "/admin/fleet/{platform}/imports": {
       "parameters": [
         {
@@ -1450,6 +1571,66 @@
         }
       }
     },
+    "/admin/users/{id}": {
+      "patch": {
+        "operationId": "updateAdminUser",
+        "summary": "Edit an account (name/email/roles/partner/active/password)",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateUser" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["success", "data"],
+                  "properties": {
+                    "success": { "type": "boolean", "enum": [true] },
+                    "data": { "$ref": "#/components/schemas/AdminUser" }
+                  }
+                }
+              }
+            }
+          },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      },
+      "delete": {
+        "operationId": "deleteAdminUser",
+        "summary": "Delete an account (self / last super_admin blocked)",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["success", "data"],
+                  "properties": {
+                    "success": { "type": "boolean", "enum": [true] },
+                    "data": { "type": "object" }
+                  }
+                }
+              }
+            }
+          },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
     "/admin/partners": {
       "get": {
         "operationId": "listAdminPartners",
@@ -1705,6 +1886,60 @@
       }
     },
     "/partner/portal/plates/{id}": {
+      "put": {
+        "operationId": "updatePartnerPlate",
+        "summary": "Edit one own registered plate (nomor + Type)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerPlateCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated plate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/PartnerPlate"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
       "delete": {
         "operationId": "deletePartnerPlate",
         "summary": "Remove one own registered plate",
@@ -2580,6 +2815,11 @@
             "nullable": true
           },
           "importedBy": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "uploaderName": {
             "type": "string",
             "nullable": true
           },
@@ -2588,6 +2828,10 @@
             "nullable": true
           },
           "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
             "type": "string",
             "format": "date-time"
           }
@@ -2641,6 +2885,89 @@
             "type": "string",
             "nullable": true,
             "description": "grab only"
+          }
+        }
+      },
+      "FleetDetail": {
+        "type": "object",
+        "required": [
+          "id",
+          "isManualPayment"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "driverName": {
+            "type": "string",
+            "nullable": true
+          },
+          "vehiclePlate": {
+            "type": "string",
+            "nullable": true
+          },
+          "vehiclePlateNorm": {
+            "type": "string",
+            "nullable": true
+          },
+          "type": {
+            "type": "string",
+            "nullable": true
+          },
+          "isManualPayment": {
+            "type": "boolean"
+          },
+          "isManualPaymentSetoran": {
+            "type": "integer",
+            "nullable": true,
+            "description": "1 = Masuk, 0 = Tidak Masuk, null = n/a"
+          },
+          "manualPaymentNote": {
+            "type": "string",
+            "nullable": true
+          },
+          "periodMonth": {
+            "type": "integer"
+          },
+          "periodYear": {
+            "type": "integer"
+          }
+        }
+      },
+      "EditDriver": {
+        "type": "object",
+        "properties": {
+          "detailId": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Single-detail edit (manual-payment-tanpa-plat row)"
+          },
+          "plate": {
+            "type": "string",
+            "description": "By-plate edit across a period (existing normalized plate)"
+          },
+          "month": {
+            "type": "integer"
+          },
+          "year": {
+            "type": "integer"
+          },
+          "driverName": {
+            "type": "string"
+          },
+          "vehiclePlate": {
+            "type": "string"
+          },
+          "isManualPaymentSetoran": {
+            "type": "integer",
+            "enum": [
+              0,
+              1
+            ]
+          },
+          "manualPaymentNote": {
+            "type": "string"
           }
         }
       },
@@ -2990,6 +3317,17 @@
               "type": { "type": "string", "nullable": true }
             }
           }
+        }
+      },
+      "UpdateUser": {
+        "type": "object",
+        "properties": {
+          "email": { "type": "string" },
+          "fullName": { "type": "string" },
+          "isActive": { "type": "boolean" },
+          "roles": { "type": "array", "items": { "type": "string" } },
+          "partnerId": { "type": "integer", "format": "int64" },
+          "password": { "type": "string" }
         }
       },
       "Partner": {

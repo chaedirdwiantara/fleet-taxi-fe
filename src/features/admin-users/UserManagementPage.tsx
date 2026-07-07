@@ -1,5 +1,16 @@
 import { useState } from 'react';
-import { Copy, KeyRound, Loader2, Plus, ShieldAlert } from 'lucide-react';
+import { Copy, KeyRound, Loader2, Pencil, Plus, ShieldAlert, Trash2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,9 +39,11 @@ import {
   useCreateApiKey,
   useCreatePartner,
   useCreatePartnerUser,
+  useDeleteAdminUser,
   usePartnersQuery,
+  useUpdateAdminUser,
 } from '@/features/admin-users/hooks';
-import type { AdminUser, ApiKeyCreated, StaffRole } from '@/features/admin-users/types';
+import type { AdminUser, ApiKeyCreated, Partner, StaffRole } from '@/features/admin-users/types';
 import { formatDateTimeWIB } from '@/lib/datetime';
 
 type Tab = 'admin' | 'partner';
@@ -228,7 +241,11 @@ function UserAdminTab() {
           </CardTitle>
         </CardHeader>
         <CardContent className="px-4">
-          <UsersTable query={users} columns={['nama', 'email', 'role', 'status', 'mcp', 'dibuat']} />
+          <UsersTable
+            query={users}
+            columns={['nama', 'email', 'role', 'status', 'mcp', 'dibuat', 'aksi']}
+            type="admin"
+          />
         </CardContent>
       </Card>
     </div>
@@ -480,7 +497,12 @@ function UserPartnerTab() {
           </CardTitle>
         </CardHeader>
         <CardContent className="px-4">
-          <UsersTable query={users} columns={['nama', 'email', 'role', 'partner', 'status', 'dibuat']} />
+          <UsersTable
+            query={users}
+            columns={['nama', 'email', 'partner', 'status', 'dibuat', 'aksi']}
+            type="partner"
+            partners={partners.data ?? []}
+          />
         </CardContent>
       </Card>
 
@@ -491,7 +513,7 @@ function UserPartnerTab() {
 
 // ---- Shared user table ------------------------------------------------------
 
-type Column = 'nama' | 'email' | 'role' | 'partner' | 'status' | 'mcp' | 'dibuat';
+type Column = 'nama' | 'email' | 'role' | 'partner' | 'status' | 'mcp' | 'dibuat' | 'aksi';
 
 const COLUMN_LABEL: Record<Column, string> = {
   nama: 'Nama',
@@ -501,11 +523,14 @@ const COLUMN_LABEL: Record<Column, string> = {
   status: 'Status',
   mcp: 'Ganti Password',
   dibuat: 'Tanggal Dibuat',
+  aksi: 'Aksi',
 };
 
 function UsersTable({
   query,
   columns,
+  type,
+  partners,
 }: {
   query: {
     isPending: boolean;
@@ -515,7 +540,12 @@ function UsersTable({
     error?: Error | null;
   };
   columns: Column[];
+  type: 'admin' | 'partner';
+  partners?: Partner[];
 }) {
+  const { data: session } = useAdminSession();
+  const currentUserId = session?.id;
+
   if (query.isPending) return <p className="text-sm text-muted-foreground">Memuat…</p>;
   if (query.isError)
     return <p className="text-sm text-destructive">Gagal memuat: {query.error?.message}</p>;
@@ -528,7 +558,9 @@ function UsersTable({
         <TableHeader>
           <TableRow>
             {columns.map((c) => (
-              <TableHead key={c}>{COLUMN_LABEL[c]}</TableHead>
+              <TableHead key={c} className={c === 'aksi' ? 'text-right' : undefined}>
+                {COLUMN_LABEL[c]}
+              </TableHead>
             ))}
           </TableRow>
         </TableHeader>
@@ -536,8 +568,22 @@ function UsersTable({
           {(query.data ?? []).map((u) => (
             <TableRow key={u.id}>
               {columns.map((c) => (
-                <TableCell key={c} className={c === 'nama' ? 'font-medium' : undefined}>
-                  <UserCell user={u} column={c} />
+                <TableCell
+                  key={c}
+                  className={
+                    c === 'nama' ? 'font-medium' : c === 'aksi' ? 'text-right' : undefined
+                  }
+                >
+                  {c === 'aksi' ? (
+                    <UserActions
+                      user={u}
+                      type={type}
+                      partners={partners ?? []}
+                      isSelf={u.id === currentUserId}
+                    />
+                  ) : (
+                    <UserCell user={u} column={c} />
+                  )}
                 </TableCell>
               ))}
             </TableRow>
@@ -545,6 +591,259 @@ function UsersTable({
         </TableBody>
       </Table>
     </div>
+  );
+}
+
+// ---- per-row edit + delete --------------------------------------------------
+
+function UserActions({
+  user,
+  type,
+  partners,
+  isSelf,
+}: {
+  user: AdminUser;
+  type: 'admin' | 'partner';
+  partners: Partner[];
+  isSelf: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const del = useDeleteAdminUser(type);
+
+  return (
+    <div className="flex items-center justify-end gap-1">
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        aria-label={`Edit ${user.email}`}
+        className="text-amber-600 hover:bg-amber-500/10"
+        onClick={() => setEditing(true)}
+      >
+        <Pencil className="size-4" />
+      </Button>
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={`Hapus ${user.email}`}
+            className="text-destructive hover:bg-destructive/10"
+            disabled={isSelf || del.isPending}
+            title={isSelf ? 'Tidak bisa menghapus akun sendiri' : undefined}
+          >
+            <Trash2 className="size-4" />
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus akun ini?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Akun <strong>{user.email}</strong> akan dihapus permanen dan tidak bisa login lagi.
+              Riwayat import yang diunggahnya tetap tersimpan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {del.isError && (
+            <p className="text-sm text-destructive" role="alert">
+              {del.error.message}
+            </p>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                del.mutate(user.id);
+              }}
+              className="bg-destructive text-white hover:bg-destructive/90"
+            >
+              Hapus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <EditUserDialog
+        open={editing}
+        onClose={() => setEditing(false)}
+        user={user}
+        type={type}
+        partners={partners}
+      />
+    </div>
+  );
+}
+
+function EditUserDialog({
+  open,
+  onClose,
+  user,
+  type,
+  partners,
+}: {
+  open: boolean;
+  onClose: () => void;
+  user: AdminUser;
+  type: 'admin' | 'partner';
+  partners: Partner[];
+}) {
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Edit Akun</DialogTitle>
+          <DialogDescription>{user.email}</DialogDescription>
+        </DialogHeader>
+        {/* keyed remount so the form re-seeds from the freshly-opened user */}
+        {open && (
+          <EditUserForm key={user.id} user={user} type={type} partners={partners} onClose={onClose} />
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EditUserForm({
+  user,
+  type,
+  partners,
+  onClose,
+}: {
+  user: AdminUser;
+  type: 'admin' | 'partner';
+  partners: Partner[];
+  onClose: () => void;
+}) {
+  const update = useUpdateAdminUser(type);
+  const [fullName, setFullName] = useState(user.fullName ?? '');
+  const [email, setEmail] = useState(user.email);
+  const [isActive, setIsActive] = useState(user.isActive);
+  const [password, setPassword] = useState('');
+  const staffRole = (STAFF_ROLES.find((r) => user.roles.includes(r.value))?.value ??
+    'admin') as StaffRole;
+  const [role, setRole] = useState<StaffRole>(staffRole);
+  const [partnerId, setPartnerId] = useState<string>(user.partner ? String(user.partner.id) : '');
+
+  const passwordTooShort = password.length > 0 && password.length < 8;
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || !fullName.trim() || passwordTooShort) return;
+    update.mutate(
+      {
+        id: user.id,
+        patch: {
+          email: email.trim(),
+          fullName: fullName.trim(),
+          isActive,
+          ...(type === 'admin' ? { roles: [role] } : {}),
+          ...(type === 'partner' && partnerId ? { partnerId: Number(partnerId) } : {}),
+          ...(password ? { password } : {}),
+        },
+      },
+      { onSuccess: onClose },
+    );
+  };
+
+  return (
+    <form onSubmit={submit} className="grid gap-3" noValidate>
+      <div className="space-y-1.5">
+        <Label htmlFor="eu-name">Nama Lengkap</Label>
+        <Input id="eu-name" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="eu-email">Email</Label>
+        <Input
+          id="eu-email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+      </div>
+
+      {type === 'admin' && (
+        <div className="space-y-1.5">
+          <Label htmlFor="eu-role">Role</Label>
+          <Select value={role} onValueChange={(v) => setRole(v as StaffRole)}>
+            <SelectTrigger id="eu-role" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {STAFF_ROLES.map((r) => (
+                <SelectItem key={r.value} value={r.value}>
+                  {r.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      {type === 'partner' && (
+        <div className="space-y-1.5">
+          <Label htmlFor="eu-partner">Partner (organisasi)</Label>
+          <Select value={partnerId} onValueChange={setPartnerId}>
+            <SelectTrigger id="eu-partner" className="w-full">
+              <SelectValue placeholder="Pilih partner…" />
+            </SelectTrigger>
+            <SelectContent>
+              {partners.map((p) => (
+                <SelectItem key={p.id} value={String(p.id)}>
+                  {p.code} — {p.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      <div className="space-y-1.5">
+        <Label htmlFor="eu-status">Status</Label>
+        <Select value={isActive ? 'active' : 'inactive'} onValueChange={(v) => setIsActive(v === 'active')}>
+          <SelectTrigger id="eu-status" className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="active">Aktif</SelectItem>
+            <SelectItem value="inactive">Nonaktif</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="eu-password">Reset Password (opsional)</Label>
+        <Input
+          id="eu-password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          autoComplete="new-password"
+          placeholder="Kosongkan jika tidak diubah"
+          aria-invalid={passwordTooShort}
+        />
+        <p className="text-xs text-muted-foreground">
+          Jika diisi, pengguna wajib menggantinya saat login berikutnya (min. 8 karakter).
+        </p>
+      </div>
+
+      {update.isError && (
+        <p className="text-sm text-destructive" role="alert">
+          {update.error.message}
+        </p>
+      )}
+      <DialogFooter>
+        <Button type="button" variant="outline" onClick={onClose}>
+          Batal
+        </Button>
+        <Button
+          type="submit"
+          disabled={update.isPending || !email.trim() || !fullName.trim() || passwordTooShort}
+        >
+          {update.isPending ? <Loader2 className="animate-spin" aria-hidden /> : null}
+          Simpan
+        </Button>
+      </DialogFooter>
+    </form>
   );
 }
 

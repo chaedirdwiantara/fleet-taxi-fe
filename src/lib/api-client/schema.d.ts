@@ -72,6 +72,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/fleet/gojek/details/{detailId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                detailId: number;
+            };
+            cookie?: never;
+        };
+        /** One import detail row (prefill for the Edit form) */
+        get: operations["getFleetDetail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/fleet/gojek/edit-driver": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Edit driver/plate on an import detail (assign plate to a manual-payment row, toggle setoran) */
+        post: operations["editFleetDriver"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/fleet/{platform}/imports": {
         parameters: {
             query?: never;
@@ -391,6 +427,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/users/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete an account (self / last super_admin blocked) */
+        delete: operations["deleteAdminUser"];
+        options?: never;
+        head?: never;
+        /** Edit an account (name/email/roles/partner/active/password) */
+        patch: operations["updateAdminUser"];
+        trace?: never;
+    };
     "/admin/partners": {
         parameters: {
             query?: never;
@@ -486,7 +540,8 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put?: never;
+        /** Edit one own registered plate (nomor + Type) */
+        put: operations["updatePartnerPlate"];
         post?: never;
         /** Remove one own registered plate */
         delete: operations["deletePartnerPlate"];
@@ -731,10 +786,14 @@ export interface components {
             totalRows: number;
             processed?: number | null;
             percent?: number | null;
-            importedBy?: string | null;
+            /** Format: int64 */
+            importedBy?: number | null;
+            uploaderName?: string | null;
             error?: string | null;
             /** Format: date-time */
             createdAt: string;
+            /** Format: date-time */
+            updatedAt?: string;
         };
         FleetTarget: {
             vehiclePlate: string;
@@ -753,6 +812,36 @@ export interface components {
             regionId?: number | null;
             /** @description grab only */
             city?: string | null;
+        };
+        FleetDetail: {
+            /** Format: int64 */
+            id: number;
+            driverName?: string | null;
+            vehiclePlate?: string | null;
+            vehiclePlateNorm?: string | null;
+            type?: string | null;
+            isManualPayment: boolean;
+            /** @description 1 = Masuk, 0 = Tidak Masuk, null = n/a */
+            isManualPaymentSetoran?: number | null;
+            manualPaymentNote?: string | null;
+            periodMonth?: number;
+            periodYear?: number;
+        };
+        EditDriver: {
+            /**
+             * Format: int64
+             * @description Single-detail edit (manual-payment-tanpa-plat row)
+             */
+            detailId?: number;
+            /** @description By-plate edit across a period (existing normalized plate) */
+            plate?: string;
+            month?: number;
+            year?: number;
+            driverName?: string;
+            vehiclePlate?: string;
+            /** @enum {integer} */
+            isManualPaymentSetoran?: 0 | 1;
+            manualPaymentNote?: string;
         };
         FleetTargetUpdate: {
             driverName?: string;
@@ -872,6 +961,15 @@ export interface components {
                 name: string;
                 type: string | null;
             } | null;
+        };
+        UpdateUser: {
+            email?: string;
+            fullName?: string;
+            isActive?: boolean;
+            roles?: string[];
+            /** Format: int64 */
+            partnerId?: number;
+            password?: string;
         };
         Partner: {
             /** Format: int64 */
@@ -1053,6 +1151,67 @@ export interface operations {
                         /** @enum {boolean} */
                         success: true;
                         data: unknown;
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    getFleetDetail: {
+        parameters: {
+            query?: {
+                month?: number;
+                year?: number;
+            };
+            header?: never;
+            path: {
+                detailId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Import detail row */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["FleetDetail"];
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    editFleetDriver: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditDriver"];
+            };
+        };
+        responses: {
+            /** @description Number of detail rows updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: {
+                            updated: number;
+                        };
                     };
                 };
             };
@@ -1727,6 +1886,64 @@ export interface operations {
             default: components["responses"]["Error"];
         };
     };
+    deleteAdminUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: Record<string, never>;
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateAdminUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateUser"];
+            };
+        };
+        responses: {
+            /** @description Updated user */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["AdminUser"];
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
     listAdminPartners: {
         parameters: {
             query?: never;
@@ -1911,6 +2128,37 @@ export interface operations {
         };
         responses: {
             /** @description Created plate */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["PartnerPlate"];
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updatePartnerPlate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerPlateCreate"];
+            };
+        };
+        responses: {
+            /** @description Updated plate */
             200: {
                 headers: {
                     [name: string]: unknown;

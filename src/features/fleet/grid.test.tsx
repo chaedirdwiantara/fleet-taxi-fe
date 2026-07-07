@@ -78,6 +78,64 @@ describe('GojekMonitoringTable (faithful legacy pivot)', () => {
     await user.click(menuBtn);
     const editItem = await screen.findByRole('menuitem', { name: /Target/ });
     await user.click(editItem);
-    expect(onEditTarget).toHaveBeenCalledWith(grid.rows[0].plateNorm);
+    // the handler receives the whole row (needed to know detailId / carId)
+    expect(onEditTarget).toHaveBeenCalledWith(grid.rows[0]);
+  });
+
+  it('renders a "Manual Payment tanpa plat" row as a Tanpa Plat badge with an Edit Manual Payment action', async () => {
+    const user = userEvent.setup();
+    const base = makeGojekGrid(6, 2026, 3) as unknown as FleetGrid;
+    // synthesize an unplated manual-payment row (backend key manual_<detailId>)
+    const manualRow: FleetGrid['rows'][number] = {
+      ...base.rows[0],
+      plateNorm: 'manual_9001',
+      plateRaw: '',
+      carId: null,
+      detailId: 9001,
+    };
+    const manualGrid: FleetGrid = { ...base, rows: [manualRow, ...base.rows.slice(1)] };
+    const onEditTarget = vi.fn();
+    render(
+      <GojekMonitoringTable
+        grid={manualGrid}
+        onCellClick={vi.fn()}
+        onEditTarget={onEditTarget}
+        onManageException={vi.fn()}
+        onDriverHistory={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Tanpa Plat')).toBeInTheDocument();
+    // the Aksi trigger falls back to "Tanpa Plat" when the plate is blank
+    await user.click(screen.getByLabelText('Aksi Tanpa Plat'));
+    const editItem = await screen.findByRole('menuitem', { name: /Edit Manual Payment/ });
+    await user.click(editItem);
+    expect(onEditTarget).toHaveBeenCalledWith(manualRow);
+  });
+
+  it('partner (readOnly) variant drops Rental Partner + Region and keeps a Histori-only Aksi', async () => {
+    const user = userEvent.setup();
+    const onDriverHistory = vi.fn();
+    render(
+      <GojekMonitoringTable
+        grid={grid}
+        onCellClick={vi.fn()}
+        onEditTarget={vi.fn()}
+        onManageException={vi.fn()}
+        onDriverHistory={onDriverHistory}
+        readOnly
+      />,
+    );
+    // cross-partner/admin columns are gone in the partner view
+    expect(screen.queryByText('Rental Partner')).not.toBeInTheDocument();
+    expect(screen.queryByText('Region')).not.toBeInTheDocument();
+    // but the Aksi column stays (per the legacy partner layout)
+    expect(screen.getByText('Aksi')).toBeInTheDocument();
+
+    await user.click(screen.getAllByLabelText(/^Aksi /)[0]);
+    expect(await screen.findByRole('menuitem', { name: /Histori Driver/ })).toBeInTheDocument();
+    // read-only: no admin actions even though the callbacks were passed
+    expect(screen.queryByRole('menuitem', { name: /Target/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /Kelola/ })).not.toBeInTheDocument();
   });
 });

@@ -8,8 +8,9 @@ import { CellLegend } from '@/features/fleet/components/CellLegend';
 import { CellModal } from '@/features/fleet/components/CellModal';
 import { DriverHistoryModal } from '@/features/fleet/components/DriverHistoryModal';
 import { ImportPanel } from '@/features/fleet/components/ImportPanel';
+import { ImportHistoryDialog } from '@/features/fleet/components/ImportHistoryDialog';
 import { ExceptionPanel } from '@/features/fleet/components/ExceptionPanel';
-import { TargetEditor } from '@/features/fleet/components/TargetEditor';
+import { DriverEditor } from '@/features/fleet/components/DriverEditor';
 import { useGojekGridQuery } from '@/features/fleet/hooks/useFleetQueries';
 import {
   fleetSearchSchema,
@@ -27,7 +28,7 @@ export const Route = createFileRoute('/_admin/admin/fleet-monitoring')({
 function GojekGridPage() {
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
-  const [editPlate, setEditPlate] = useState<string | null>(null);
+  const [editRow, setEditRow] = useState<FleetRow | null>(null);
   const [historyRow, setHistoryRow] = useState<FleetRow | null>(null);
   const [exceptionOpen, setExceptionOpen] = useState(false);
   const [exceptionPlate, setExceptionPlate] = useState<string | undefined>(undefined);
@@ -88,6 +89,7 @@ function GojekGridPage() {
           <Button variant="outline" onClick={() => openException()}>
             <CalendarOff aria-hidden /> Exceptions
           </Button>
+          <ImportHistoryDialog platform="gojek" />
           <ImportPanel platform="gojek" />
         </div>
       </div>
@@ -104,7 +106,7 @@ function GojekGridPage() {
           <GojekMonitoringTable
             grid={grid.data}
             onCellClick={openCell}
-            onEditTarget={setEditPlate}
+            onEditTarget={setEditRow}
             onManageException={openException}
             onDriverHistory={setHistoryRow}
           />
@@ -123,8 +125,14 @@ function GojekGridPage() {
       {historyRow && (
         <DriverHistoryModal row={historyRow} onClose={() => setHistoryRow(null)} />
       )}
-      {editPlate && (
-        <TargetEditor platform="gojek" plate={editPlate} onClose={() => setEditPlate(null)} />
+      {editRow && (
+        <DriverEditor
+          platform="gojek"
+          row={editRow}
+          month={search.month}
+          year={search.year}
+          onClose={() => setEditRow(null)}
+        />
       )}
       <ExceptionPanel
         month={search.month}
