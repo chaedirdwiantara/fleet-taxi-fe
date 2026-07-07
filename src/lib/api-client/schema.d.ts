@@ -427,6 +427,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/users/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete an account (self / last super_admin blocked) */
+        delete: operations["deleteAdminUser"];
+        options?: never;
+        head?: never;
+        /** Edit an account (name/email/roles/partner/active/password) */
+        patch: operations["updateAdminUser"];
+        trace?: never;
+    };
     "/admin/partners": {
         parameters: {
             query?: never;
@@ -522,7 +540,8 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put?: never;
+        /** Edit one own registered plate (nomor + Type) */
+        put: operations["updatePartnerPlate"];
         post?: never;
         /** Remove one own registered plate */
         delete: operations["deletePartnerPlate"];
@@ -942,6 +961,15 @@ export interface components {
                 name: string;
                 type: string | null;
             } | null;
+        };
+        UpdateUser: {
+            email?: string;
+            fullName?: string;
+            isActive?: boolean;
+            roles?: string[];
+            /** Format: int64 */
+            partnerId?: number;
+            password?: string;
         };
         Partner: {
             /** Format: int64 */
@@ -1858,6 +1886,64 @@ export interface operations {
             default: components["responses"]["Error"];
         };
     };
+    deleteAdminUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: Record<string, never>;
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updateAdminUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateUser"];
+            };
+        };
+        responses: {
+            /** @description Updated user */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["AdminUser"];
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
     listAdminPartners: {
         parameters: {
             query?: never;
@@ -2042,6 +2128,37 @@ export interface operations {
         };
         responses: {
             /** @description Created plate */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        success: true;
+                        data: components["schemas"]["PartnerPlate"];
+                    };
+                };
+            };
+            default: components["responses"]["Error"];
+        };
+    };
+    updatePartnerPlate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PartnerPlateCreate"];
+            };
+        };
+        responses: {
+            /** @description Updated plate */
             200: {
                 headers: {
                     [name: string]: unknown;

@@ -128,6 +128,17 @@ const normPlate = (s: string) => s.toUpperCase().replace(/[^A-Z0-9]/g, '');
 let platesState: MockPlate[] = seedPartnerPlates.map((p) => ({ ...p }));
 let nextPlateId = 100;
 const registeredNorms = () => new Set(platesState.map((p) => p.plateNumberNorm));
+// Overlay the Type a partner entered in Daftarkan Plat onto scoped grid rows
+// (matches the backend PortalFleetService overlay).
+const overlayPlateTypes = <T extends { rows: { plateNorm: string; vehicleType: string }[] }>(
+  grid: T,
+): T => {
+  const byNorm = new Map(platesState.filter((p) => p.vehicleType).map((p) => [p.plateNumberNorm, p.vehicleType!]));
+  for (const row of grid.rows) {
+    if (!row.vehicleType && byNorm.has(row.plateNorm)) row.vehicleType = byNorm.get(row.plateNorm)!;
+  }
+  return grid;
+};
 
 /** Reset registered plates to the seed (call between tests for isolation). */
 export const resetPartnerPlates = () => {
@@ -523,6 +534,48 @@ export const handlers = [
     return HttpResponse.json({ success: true, data: created }, { status: 201 });
   }),
 
+  http.patch('*/admin/users/:id', async ({ params, request }) => {
+    const denied = requireSuperAdmin();
+    if (denied) return denied;
+    const user = managedUsersState.find((u) => String(u.id) === params.id);
+    if (!user) return err(404, 'NOT_FOUND', 'User not found');
+    const body = (await request.json()) as {
+      email?: string;
+      fullName?: string;
+      isActive?: boolean;
+      roles?: string[];
+      partnerId?: number;
+      password?: string;
+    };
+    const email = body.email?.trim().toLowerCase();
+    if (email && email !== user.email && managedUsersState.some((u) => u.email === email)) {
+      return err(409, 'CONFLICT', 'Email already in use');
+    }
+    if (email) user.email = email;
+    if (body.fullName !== undefined) user.fullName = body.fullName.trim();
+    if (body.isActive !== undefined) user.isActive = body.isActive;
+    if (body.roles) user.roles = [...body.roles].sort();
+    if (body.partnerId !== undefined) {
+      const p = partnersState.find((pp) => pp.id === body.partnerId);
+      if (p) user.partner = { id: p.id, code: p.code, name: p.name, type: p.type };
+    }
+    if (body.password) user.mustChangePassword = true;
+    return ok({ ...user });
+  }),
+
+  http.delete('*/admin/users/:id', ({ params }) => {
+    const denied = requireSuperAdmin();
+    if (denied) return denied;
+    const idx = managedUsersState.findIndex((u) => String(u.id) === params.id);
+    if (idx === -1) return err(404, 'NOT_FOUND', 'User not found');
+    const session = getSessionUser();
+    if (session && managedUsersState[idx].id === session.id) {
+      return err(400, 'VALIDATION_ERROR', 'Tidak bisa menghapus akun sendiri');
+    }
+    managedUsersState.splice(idx, 1);
+    return ok({ deleted: true });
+  }),
+
   http.get('*/admin/partners', () => {
     const denied = requireSuperAdmin();
     if (denied) return denied;
@@ -617,6 +670,21 @@ export const handlers = [
     return HttpResponse.json({ success: true, data: created }, { status: 201 });
   }),
 
+  http.put('*/partner/portal/plates/:id', async ({ params, request }) => {
+    const plate = platesState.find((p) => String(p.id) === params.id);
+    if (!plate) return err(404, 'NOT_FOUND', 'Plat tidak ditemukan');
+    const body = (await request.json()) as { plateNumber?: string; vehicleType?: string };
+    const norm = normPlate(body.plateNumber ?? '');
+    if (!norm) return err(400, 'VALIDATION_ERROR', 'Nomor plat tidak valid');
+    if (norm !== plate.plateNumberNorm && platesState.some((p) => p.plateNumberNorm === norm)) {
+      return err(409, 'CONFLICT', 'Plat sudah terdaftar');
+    }
+    plate.plateNumber = (body.plateNumber ?? '').trim();
+    plate.plateNumberNorm = norm;
+    plate.vehicleType = body.vehicleType?.trim() || null;
+    return ok({ ...plate });
+  }),
+
   http.delete('*/partner/portal/plates/:id', ({ params }) => {
     const idx = platesState.findIndex((p) => String(p.id) === params.id);
     if (idx === -1) return err(404, 'NOT_FOUND', 'Plat tidak ditemukan');
@@ -631,7 +699,7 @@ export const handlers = [
       int(url.searchParams.get('month'), 6),
       int(url.searchParams.get('year'), 2026),
     );
-    return ok(scopeGojekGrid(grid, registeredNorms()));
+    return ok(overlayPlateTypes(scopeGojekGrid(grid, registeredNorms())));
   }),
 
   http.get('*/partner/portal/fleet/gojek/summary', ({ request }) => {

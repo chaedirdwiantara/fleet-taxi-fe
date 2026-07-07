@@ -83,6 +83,45 @@ export function useCreatePartnerUser() {
   });
 }
 
+export type UpdateUserInput = {
+  email?: string;
+  fullName?: string;
+  isActive?: boolean;
+  roles?: StaffRole[];
+  partnerId?: number;
+  password?: string;
+};
+
+/** Edit an account. `type` picks which list to refresh (admin vs partner tab). */
+export function useUpdateAdminUser(type: 'admin' | 'partner') {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { id: number; patch: UpdateUserInput }): Promise<AdminUser> => {
+      const { data, error } = await api.PATCH('/admin/users/{id}', {
+        params: { path: { id: input.id } },
+        body: input.patch,
+      });
+      if (error) throwEnvelope(error);
+      return unwrap(data) as AdminUser;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.admin.users(type) }),
+  });
+}
+
+export function useDeleteAdminUser(type: 'admin' | 'partner') {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const { data, error } = await api.DELETE('/admin/users/{id}', {
+        params: { path: { id } },
+      });
+      if (error) throwEnvelope(error);
+      return unwrap(data);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.admin.users(type) }),
+  });
+}
+
 export function useCreateApiKey() {
   return useMutation({
     mutationFn: async (input: {

@@ -1571,6 +1571,66 @@
         }
       }
     },
+    "/admin/users/{id}": {
+      "patch": {
+        "operationId": "updateAdminUser",
+        "summary": "Edit an account (name/email/roles/partner/active/password)",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateUser" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated user",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["success", "data"],
+                  "properties": {
+                    "success": { "type": "boolean", "enum": [true] },
+                    "data": { "$ref": "#/components/schemas/AdminUser" }
+                  }
+                }
+              }
+            }
+          },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      },
+      "delete": {
+        "operationId": "deleteAdminUser",
+        "summary": "Delete an account (self / last super_admin blocked)",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["success", "data"],
+                  "properties": {
+                    "success": { "type": "boolean", "enum": [true] },
+                    "data": { "type": "object" }
+                  }
+                }
+              }
+            }
+          },
+          "default": { "$ref": "#/components/responses/Error" }
+        }
+      }
+    },
     "/admin/partners": {
       "get": {
         "operationId": "listAdminPartners",
@@ -1826,6 +1886,60 @@
       }
     },
     "/partner/portal/plates/{id}": {
+      "put": {
+        "operationId": "updatePartnerPlate",
+        "summary": "Edit one own registered plate (nomor + Type)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartnerPlateCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated plate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/PartnerPlate"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "$ref": "#/components/responses/Error"
+          }
+        }
+      },
       "delete": {
         "operationId": "deletePartnerPlate",
         "summary": "Remove one own registered plate",
@@ -3203,6 +3317,17 @@
               "type": { "type": "string", "nullable": true }
             }
           }
+        }
+      },
+      "UpdateUser": {
+        "type": "object",
+        "properties": {
+          "email": { "type": "string" },
+          "fullName": { "type": "string" },
+          "isActive": { "type": "boolean" },
+          "roles": { "type": "array", "items": { "type": "string" } },
+          "partnerId": { "type": "integer", "format": "int64" },
+          "password": { "type": "string" }
         }
       },
       "Partner": {
