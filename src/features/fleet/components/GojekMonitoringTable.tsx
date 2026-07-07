@@ -17,14 +17,26 @@ import { groupRowSpans, identityWidth, stickyLefts, type IdentityCol } from './s
 // blue header, frozen identity columns, rental-partner rowspan grouping,
 // 8-tone day cells, Total Deduction / Due / Gap / Outstanding, and a TOTAL row.
 // Rendered in the modern shadcn shell; horizontally scrollable on mobile.
+//
+// Two column layouts share this component:
+//  • admin   → No · Rental Partner · Region · Plate · Type · Setoran · Aksi
+//  • partner → No · Plate · Type · Setoran · Aksi   (own plates only; no
+//    Rental Partner / Region — those are cross-partner/admin concepts)
 
-const IDENTITY: IdentityCol[] = [
+const IDENTITY_ADMIN: IdentityCol[] = [
   { id: 'no', label: 'No', width: 44 },
   { id: 'rentalPartner', label: 'Rental Partner', width: 130 },
   { id: 'region', label: 'Region', width: 90 },
   { id: 'plate', label: 'Plate', width: 110 },
   { id: 'type', label: 'Type', width: 140 },
   { id: 'setoran', label: 'Setoran', width: 92 },
+  { id: 'aksi', label: 'Aksi', width: 56 },
+];
+const IDENTITY_PARTNER: IdentityCol[] = [
+  { id: 'no', label: 'No', width: 44 },
+  { id: 'plate', label: 'Plate', width: 120 },
+  { id: 'type', label: 'Type', width: 150 },
+  { id: 'setoran', label: 'Setoran', width: 100 },
   { id: 'aksi', label: 'Aksi', width: 56 },
 ];
 const DAY_W = 62;
@@ -47,7 +59,8 @@ type Props = {
   onEditTarget?: (row: FleetRow) => void;
   onManageException?: (plateNorm: string) => void;
   onDriverHistory?: (row: FleetRow) => void;
-  // Read-only mode hides the "Aksi" column (no import/exception/target editing).
+  // Read-only = partner portal: drops Rental Partner / Region, and the Aksi
+  // column keeps only the read-only "Histori Driver" action.
   readOnly?: boolean;
 };
 
@@ -59,15 +72,22 @@ export function GojekMonitoringTable({
   onDriverHistory,
   readOnly = false,
 }: Props) {
-  const identity = useMemo(
-    () => (readOnly ? IDENTITY.filter((c) => c.id !== 'aksi') : IDENTITY),
-    [readOnly],
-  );
+  const identity = useMemo(() => (readOnly ? IDENTITY_PARTNER : IDENTITY_ADMIN), [readOnly]);
   const lefts = useMemo(() => stickyLefts(identity), [identity]);
   const idW = useMemo(() => identityWidth(identity), [identity]);
   const rpSpans = useMemo(() => groupRowSpans(grid.rows, (r) => r.rentalPartner), [grid.rows]);
   const days = Array.from({ length: grid.daysInMonth }, (_, i) => i + 1);
   const monthLabel = monthYearLabelID(grid.month, grid.year);
+
+  // Per-column sticky offset/width, driven by which identity columns are shown
+  // (so partner vs admin layouts reindex correctly).
+  const colAt = (id: IdentityCol['id']) => {
+    const i = identity.findIndex((c) => c.id === id);
+    if (i === -1) return null;
+    return { left: lefts[i], width: identity[i].width, isLast: i === identity.length - 1 };
+  };
+  const stickyBase = 'sticky z-10 border-b bg-white group-hover:bg-slate-50 dark:bg-slate-950';
+  const lastBorder = (isLast: boolean) => (isLast ? 'border-r-2 border-r-slate-300' : 'border-r');
 
   return (
     <div className="relative max-h-[78svh] overflow-auto rounded-lg border">
@@ -133,32 +153,41 @@ export function GojekMonitoringTable({
           {grid.rows.map((row, idx) => {
             const gap = row.summary.gap;
             const outstanding = row.summary.outstanding;
+            const noCol = colAt('no')!;
+            const rpCol = colAt('rentalPartner');
+            const regionCol = colAt('region');
+            const plateCol = colAt('plate')!;
+            const typeCol = colAt('type')!;
+            const setoranCol = colAt('setoran')!;
+            const aksiCol = colAt('aksi');
             return (
               <tr key={row.plateNorm} className="group">
                 <td
-                  className="sticky z-10 border-b border-r bg-white px-2 py-1 text-center text-slate-500 group-hover:bg-slate-50 dark:bg-slate-950"
-                  style={{ left: lefts[0], width: IDENTITY[0].width }}
+                  className={cn(stickyBase, 'px-2 py-1 text-center text-slate-500', lastBorder(noCol.isLast))}
+                  style={{ left: noCol.left, width: noCol.width }}
                 >
                   {idx + 1}
                 </td>
-                {rpSpans[idx] !== undefined && (
+                {rpCol && rpSpans[idx] !== undefined && (
                   <td
                     rowSpan={rpSpans[idx]}
                     className="sticky z-10 border-b border-r bg-slate-50 px-2 py-1 text-center align-middle font-semibold dark:bg-slate-900"
-                    style={{ left: lefts[1], width: IDENTITY[1].width }}
+                    style={{ left: rpCol.left, width: rpCol.width }}
                   >
                     {row.rentalPartner || '-'}
                   </td>
                 )}
+                {regionCol && (
+                  <td
+                    className="sticky z-10 border-b border-r bg-slate-50/70 px-2 py-1 text-center dark:bg-slate-900/70"
+                    style={{ left: regionCol.left, width: regionCol.width }}
+                  >
+                    {row.regionName}
+                  </td>
+                )}
                 <td
-                  className="sticky z-10 border-b border-r bg-slate-50/70 px-2 py-1 text-center dark:bg-slate-900/70"
-                  style={{ left: lefts[2], width: IDENTITY[2].width }}
-                >
-                  {row.regionName}
-                </td>
-                <td
-                  className="sticky z-10 truncate border-b border-r bg-white px-2 py-1 text-center font-semibold group-hover:bg-slate-50 dark:bg-slate-950"
-                  style={{ left: lefts[3], width: IDENTITY[3].width, maxWidth: IDENTITY[3].width }}
+                  className={cn(stickyBase, 'truncate px-2 py-1 text-center font-semibold', lastBorder(plateCol.isLast))}
+                  style={{ left: plateCol.left, width: plateCol.width, maxWidth: plateCol.width }}
                   title={row.detailId !== null ? 'Manual Payment tanpa plat' : row.plateRaw}
                 >
                   {row.detailId !== null ? (
@@ -170,25 +199,22 @@ export function GojekMonitoringTable({
                   )}
                 </td>
                 <td
-                  className="sticky z-10 truncate border-b border-r bg-white px-2 py-1 text-center text-slate-600 group-hover:bg-slate-50 dark:bg-slate-950 dark:text-slate-300"
-                  style={{ left: lefts[4], width: IDENTITY[4].width, maxWidth: IDENTITY[4].width }}
+                  className={cn(stickyBase, 'truncate px-2 py-1 text-center text-slate-600 dark:text-slate-300', lastBorder(typeCol.isLast))}
+                  style={{ left: typeCol.left, width: typeCol.width, maxWidth: typeCol.width }}
                   title={row.vehicleType}
                 >
                   {row.vehicleType || '-'}
                 </td>
                 <td
-                  className={cn(
-                    'sticky z-10 border-b bg-white px-2 py-1 text-right tabular-nums group-hover:bg-slate-50 dark:bg-slate-950',
-                    readOnly ? 'border-r-2 border-r-slate-300' : 'border-r',
-                  )}
-                  style={{ left: lefts[5], width: IDENTITY[5].width }}
+                  className={cn(stickyBase, 'px-2 py-1 text-right tabular-nums', lastBorder(setoranCol.isLast))}
+                  style={{ left: setoranCol.left, width: setoranCol.width }}
                 >
                   {nf(row.dailyTarget)}
                 </td>
-                {!readOnly && (
+                {aksiCol && (
                   <td
-                    className="sticky z-10 border-b border-r-2 border-r-slate-300 bg-white px-1 py-1 text-center group-hover:bg-slate-50 dark:bg-slate-950"
-                    style={{ left: lefts[6], width: IDENTITY[6].width }}
+                    className={cn(stickyBase, 'px-1 py-1 text-center', lastBorder(aksiCol.isLast))}
+                    style={{ left: aksiCol.left, width: aksiCol.width }}
                   >
                     <DropdownMenu>
                       <DropdownMenuTrigger
@@ -198,27 +224,33 @@ export function GojekMonitoringTable({
                         <MoreHorizontal className="size-4" />
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => onEditTarget?.(row)}>
-                          {row.detailId !== null ? (
-                            <>
-                              <Pencil className="text-[#9c27b0]" /> Edit Manual Payment
-                            </>
-                          ) : row.carId ? (
-                            <>
-                              <Pencil className="text-amber-500" /> Edit Detail &amp; Target
-                            </>
-                          ) : (
-                            <>
-                              <PlusCircle className="text-red-500" /> Set Target
-                            </>
-                          )}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onManageException?.(row.plateNorm)}>
-                          <CalendarClock className="text-indigo-500" /> Kelola Jadwal
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => onDriverHistory?.(row)}>
-                          <History className="text-sky-500" /> Histori Driver
-                        </DropdownMenuItem>
+                        {!readOnly && onEditTarget && (
+                          <DropdownMenuItem onClick={() => onEditTarget(row)}>
+                            {row.detailId !== null ? (
+                              <>
+                                <Pencil className="text-[#9c27b0]" /> Edit Manual Payment
+                              </>
+                            ) : row.carId ? (
+                              <>
+                                <Pencil className="text-amber-500" /> Edit Detail &amp; Target
+                              </>
+                            ) : (
+                              <>
+                                <PlusCircle className="text-red-500" /> Set Target
+                              </>
+                            )}
+                          </DropdownMenuItem>
+                        )}
+                        {!readOnly && onManageException && (
+                          <DropdownMenuItem onClick={() => onManageException(row.plateNorm)}>
+                            <CalendarClock className="text-indigo-500" /> Kelola Jadwal
+                          </DropdownMenuItem>
+                        )}
+                        {onDriverHistory && (
+                          <DropdownMenuItem onClick={() => onDriverHistory(row)}>
+                            <History className="text-sky-500" /> Histori Driver
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </td>

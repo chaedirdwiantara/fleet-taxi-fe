@@ -112,4 +112,30 @@ describe('GojekMonitoringTable (faithful legacy pivot)', () => {
     await user.click(editItem);
     expect(onEditTarget).toHaveBeenCalledWith(manualRow);
   });
+
+  it('partner (readOnly) variant drops Rental Partner + Region and keeps a Histori-only Aksi', async () => {
+    const user = userEvent.setup();
+    const onDriverHistory = vi.fn();
+    render(
+      <GojekMonitoringTable
+        grid={grid}
+        onCellClick={vi.fn()}
+        onEditTarget={vi.fn()}
+        onManageException={vi.fn()}
+        onDriverHistory={onDriverHistory}
+        readOnly
+      />,
+    );
+    // cross-partner/admin columns are gone in the partner view
+    expect(screen.queryByText('Rental Partner')).not.toBeInTheDocument();
+    expect(screen.queryByText('Region')).not.toBeInTheDocument();
+    // but the Aksi column stays (per the legacy partner layout)
+    expect(screen.getByText('Aksi')).toBeInTheDocument();
+
+    await user.click(screen.getAllByLabelText(/^Aksi /)[0]);
+    expect(await screen.findByRole('menuitem', { name: /Histori Driver/ })).toBeInTheDocument();
+    // read-only: no admin actions even though the callbacks were passed
+    expect(screen.queryByRole('menuitem', { name: /Target/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /Kelola/ })).not.toBeInTheDocument();
+  });
 });
