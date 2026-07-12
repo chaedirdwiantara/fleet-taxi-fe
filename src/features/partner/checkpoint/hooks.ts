@@ -200,6 +200,24 @@ export function useDeleteMedia(id: number) {
   });
 }
 
+/** Deletes a DRAFT checkpoint (the BE rejects completed ones with 409). */
+export function useDeleteCheckpoint() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const { data, error } = await api.DELETE('/partner/portal/checkpoints/{id}', {
+        params: { path: { id } },
+      });
+      if (error) throwEnvelope(error);
+      return unwrap(data);
+    },
+    onSuccess: (_, id) => {
+      qc.removeQueries({ queryKey: qk.partner.checkpoint.detail(id) });
+      void qc.invalidateQueries({ queryKey: ['partner', 'checkpoint', 'list'] });
+    },
+  });
+}
+
 export interface UploadMediaInput {
   kind: MediaKind;
   pointKey?: PointKey;

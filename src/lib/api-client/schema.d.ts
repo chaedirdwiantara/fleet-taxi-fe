@@ -687,7 +687,8 @@ export interface paths {
         get: operations["PortalCheckpointsController_detail"];
         put?: never;
         post?: never;
-        delete?: never;
+        /** Delete a DRAFT checkpoint (completed berita acara are immutable — 409) */
+        delete: operations["PortalCheckpointsController_remove"];
         options?: never;
         head?: never;
         /** Update draft checkpoint header fields */
@@ -2164,6 +2165,25 @@ export interface operations {
         };
     };
     PortalCheckpointsController_detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalCheckpointsController_remove: {
         parameters: {
             query?: never;
             header?: never;

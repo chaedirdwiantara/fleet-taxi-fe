@@ -8,6 +8,7 @@ import {
   useComparisonQuery,
   useCompleteCheckpoint,
   useCreateCheckpoint,
+  useDeleteCheckpoint,
   useUpdatePoint,
 } from './hooks';
 import { resetCheckpoints, resetPartnerPlates } from '@/mocks/handlers';
@@ -138,6 +139,26 @@ describe('checkpoint — dokumentasi serah terima', () => {
       const err = result.current.error as { details?: { field: string }[] } | null;
       // 10 unassessed + 10 photoless + 2 signatures
       expect(err?.details).toHaveLength(22);
+    });
+  });
+
+  it('deletes a draft but refuses a completed checkpoint', async () => {
+    const { result: remove } = renderHook(() => useDeleteCheckpoint(), {
+      wrapper: wrapperFor(makeClient()),
+    });
+    // seed id 2 = draft → deletable
+    await act(async () => {
+      await remove.current.mutateAsync(2);
+    });
+    const { result: list } = renderHook(() => useCheckpointsQuery({ page: 1 }), {
+      wrapper: wrapperFor(makeClient()),
+    });
+    await waitFor(() => expect(list.current.isSuccess).toBe(true));
+    expect(list.current.data!.meta?.total).toBe(1);
+
+    // seed id 1 = completed berita acara → 409
+    await act(async () => {
+      await expect(remove.current.mutateAsync(1)).rejects.toMatchObject({ code: 'CONFLICT' });
     });
   });
 

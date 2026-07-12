@@ -900,6 +900,16 @@ export const handlers = [
     },
   ),
 
+  http.delete('*/partner/portal/checkpoints/:id', ({ params }) => {
+    const cp = findCheckpoint(params.id);
+    if (!cp) return err(404, 'NOT_FOUND', 'Checkpoint tidak ditemukan');
+    if (cp.status !== 'draft') {
+      return err(409, 'CONFLICT', 'Checkpoint sudah diselesaikan dan tidak bisa dihapus');
+    }
+    checkpointsState.splice(checkpointsState.indexOf(cp), 1);
+    return ok({ deleted: true });
+  }),
+
   http.delete('*/partner/portal/checkpoints/:id/media/:mediaId', ({ params }) => {
     const cp = findCheckpoint(params.id);
     if (!cp) return err(404, 'NOT_FOUND', 'Checkpoint tidak ditemukan');
