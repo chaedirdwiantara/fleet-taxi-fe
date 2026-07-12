@@ -5,7 +5,8 @@ import {
   makeGojekGlobalSummary,
   makeGojekCharts,
   makeDriverActivity,
-  makePerformers,
+  makeGojekPerformers,
+  makeGrabPerformers,
   scopeGojekGrid,
   scopeGrabGrid,
   importBatches,
@@ -73,49 +74,6 @@ const exceptionState: MockException[] = [
   { id: 2, vehiclePlate: 'B1007XYZ', exceptionDate: '2026-06-12', keterangan: 'rental', isBebasSetoran: false },
 ];
 let nextExceptionId = 100;
-
-// A "Manual Payment tanpa plat" synthetic row (backend key manual_<detailId>):
-// blank plate → "Tanpa Plat" badge, purple display-only cell, Edit Manual Payment.
-const manualNoPlateRow = {
-  plateNorm: 'manual_90001',
-  plateRaw: '',
-  driverName: 'AGUS WIJAYA',
-  rentalPartner: '',
-  regionName: '-',
-  vehicleType: '',
-  deliveryBatch: '',
-  carId: null,
-  detailId: 90001,
-  dailyTarget: 488_000,
-  days: {
-    8: {
-      day: 8,
-      displayAmount: 81_600,
-      countedAmount: 0,
-      isManualPayment: true,
-      hasDisplayOnlyManualPayment: true,
-      exception: null,
-      detail: {
-        plateNorm: 'manual_90001',
-        day: 8,
-        displayTotal: 81_600,
-        countedTotal: 0,
-        hasDisplayOnlyManualPayment: true,
-        items: [
-          {
-            label: 'Manual Payment (Tidak Masuk Setoran)',
-            displayAmount: 81_600,
-            countedAmount: 0,
-            note: 'promo cashback',
-            isDisplayOnly: true,
-          },
-        ],
-      },
-    },
-  },
-  summary: { totalDeduction: 0, calculatedTarget: 0, gap: 0, outstanding: 0 },
-  driverHistory: ['AGUS WIJAYA'],
-};
 
 // ---- Mock partner-plate registration state (Daftarkan Plat) ------------------
 type MockPlate = {
@@ -192,17 +150,18 @@ const requireSuperAdmin = () => {
 
 export const handlers = [
   // ---- Admin fleet — grids -------------------------------------------------
+  // The admin Gojek surface mirrors the partner registrations (Daftarkan Plat):
+  // only plates registered by at least one partner appear, and every aggregate
+  // derives from those rows — matches the backend AdminFleetService.
   http.get('*/admin/fleet/gojek/grid', ({ request }) => {
     const url = new URL(request.url);
     const month = int(url.searchParams.get('month'), 6);
     const year = int(url.searchParams.get('year'), 2026);
-    const grid = makeGojekGrid(month, year);
+    const grid = overlayPlateTypes(scopeGojekGrid(makeGojekGrid(month, year), registeredNorms()));
     // The SERVER returns the filtered pivot (kickoff §5) — emulate that here.
     const partners = url.searchParams.getAll('rentalPartner');
     const plate = url.searchParams.get('plate')?.toUpperCase().replace(/[^A-Z0-9]/g, '');
-    // Inject one "Manual Payment tanpa plat" synthetic row so the dashboard shows
-    // the purple cell + "Tanpa Plat" badge + Edit Manual Payment action.
-    let rows = [manualNoPlateRow, ...grid.rows];
+    let rows = grid.rows;
     if (partners.length) rows = rows.filter((r) => partners.includes(r.rentalPartner));
     if (plate) rows = rows.filter((r) => r.plateNorm.includes(plate));
     return ok({ ...grid, rows });
@@ -214,7 +173,7 @@ export const handlers = [
     const month = int(url.searchParams.get('month'), 6);
     const year = int(url.searchParams.get('year'), 2026);
     const dayParam = url.searchParams.get('day');
-    const grid = makeGojekGrid(month, year);
+    const grid = scopeGojekGrid(makeGojekGrid(month, year), registeredNorms());
     return ok({
       globalSummary: makeGojekGlobalSummary(grid),
       driverActivity: makeDriverActivity(grid, dayParam ? Number(dayParam) : undefined),
@@ -242,6 +201,10 @@ export const handlers = [
     const day = int(url.searchParams.get('day'), 1);
     const month = int(url.searchParams.get('month'), 6);
     const year = int(url.searchParams.get('year'), 2026);
+    // Same scoping as the grid: a plate no partner registered has no admin cell.
+    if (!registeredNorms().has(plate)) {
+      return err(404, 'NOT_FOUND', 'No transactions for that vehicle/day');
+    }
     // Return the SAME breakdown the pivot cell was built from (brief §2.A).
     const grid = makeGojekGrid(month, year);
     const row = grid.rows.find((r) => r.plateNorm === plate);
@@ -416,10 +379,11 @@ export const handlers = [
 
   http.get('*/admin/fleet/:platform/performers', ({ request, params }) => {
     const url = new URL(request.url);
-    const platform = params.platform === 'grab' ? 'grab' : 'gojek';
-    return ok(
-      makePerformers(platform, int(url.searchParams.get('month'), 6), int(url.searchParams.get('year'), 2026)),
-    );
+    const month = int(url.searchParams.get('month'), 6);
+    const year = int(url.searchParams.get('year'), 2026);
+    if (params.platform === 'grab') return ok(makeGrabPerformers(month, year));
+    // Gojek performers rank the same partner-registered rows the table shows.
+    return ok(makeGojekPerformers(scopeGojekGrid(makeGojekGrid(month, year), registeredNorms())));
   }),
 
   // ---- Partner portal --------------------------------------------------------

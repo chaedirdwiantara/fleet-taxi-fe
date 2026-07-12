@@ -62,6 +62,9 @@ type Props = {
   // Read-only = partner portal: drops Rental Partner / Region, and the Aksi
   // column keeps only the read-only "Histori Driver" action.
   readOnly?: boolean;
+  // Surface-specific empty-state copy (e.g. the admin grid explains that only
+  // partner-registered plates appear).
+  emptyMessage?: string;
 };
 
 export function GojekMonitoringTable({
@@ -71,6 +74,7 @@ export function GojekMonitoringTable({
   onManageException,
   onDriverHistory,
   readOnly = false,
+  emptyMessage = 'Tidak ada data untuk periode / filter ini.',
 }: Props) {
   const identity = useMemo(() => (readOnly ? IDENTITY_PARTNER : IDENTITY_ADMIN), [readOnly]);
   const lefts = useMemo(() => stickyLefts(identity), [identity]);
@@ -304,8 +308,11 @@ export function GojekMonitoringTable({
           })}
           {grid.rows.length === 0 && (
             <tr>
-              <td colSpan={identity.length + days.length + SUMMARY.length} className="border-b px-3 py-10 text-center text-slate-500">
-                Tidak ada data untuk periode / filter ini.
+              <td colSpan={identity.length + days.length + SUMMARY.length} className="border-b px-3 py-10 text-slate-500">
+                {/* sticky: keeps the message inside the visible viewport of the
+                    horizontally scrollable pivot instead of centering it across
+                    the full ~3000px table width */}
+                <div className="sticky left-3 w-fit max-w-[calc(100%-1.5rem)]">{emptyMessage}</div>
               </td>
             </tr>
           )}
