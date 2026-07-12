@@ -4,6 +4,215 @@
  */
 
 export interface paths {
+    "/health": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Liveness probe */
+        get: operations["HealthController_live"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List admin/staff (type=admin) or partner-portal (type=partner) users */
+        get: operations["AdminUsersController_list"];
+        put?: never;
+        /** Create an admin/staff user (super_admin only) */
+        post: operations["AdminUsersController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/users/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete an account (self / last super_admin blocked) */
+        delete: operations["AdminUsersController_remove"];
+        options?: never;
+        head?: never;
+        /** Edit an account (name/email/roles/partner/active/password) */
+        patch: operations["AdminUsersController_update"];
+        trace?: never;
+    };
+    "/admin/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Admin login — sets the session cookie (admin audience only) */
+        post: operations["AuthController_login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Log out of the admin audience (keeps a partner session) */
+        post: operations["AuthController_logout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/auth/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Current admin session user (401 for a non-admin session) */
+        get: operations["AuthController_me"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/change-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Change the current session user’s password (clears mustChangePassword) */
+        post: operations["ChangePasswordController_changePassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/partners": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List partners (for the "pick existing partner" dropdown) */
+        get: operations["AdminPartnersController_list"];
+        put?: never;
+        /** Create a partner entity (super_admin only) */
+        post: operations["AdminPartnersController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/partners/{id}/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a partner-portal user linked to this partner */
+        post: operations["AdminPartnersController_createUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/partners/{id}/api-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Generate an external API key for this partner — rawKey returned ONCE */
+        post: operations["AdminPartnersController_createApiKey"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/fleet/{platform}/imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List import batches */
+        get: operations["ImportController_list"];
+        put?: never;
+        /** Upload a CSV/XLSX for a period — parsed asynchronously */
+        post: operations["ImportController_upload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/fleet/{platform}/imports/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Import status/progress (also streamed via Socket.IO /rt) */
+        get: operations["ImportController_getById"];
+        put?: never;
+        post?: never;
+        /** Rollback a whole import batch (queued) */
+        delete: operations["ImportController_rollback"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/fleet/gojek/grid": {
         parameters: {
             query?: never;
@@ -11,8 +220,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Gojek 31-day pivot grid */
-        get: operations["getGojekGrid"];
+        /** 31-day deposit pivot grid (rows = vehicles) */
+        get: operations["GojekController_grid"];
         put?: never;
         post?: never;
         delete?: never;
@@ -28,42 +237,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** One vehicle+day breakdown (cell-click modal) */
-        get: operations["getGojekCell"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/fleet/grab/grid": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Grab 31-day pivot grid (composite plate|city|driver) */
-        get: operations["getGrabGrid"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/fleet/grab/cell": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** One Grab vehicle+day breakdown */
-        get: operations["getGrabCell"];
+        /** One vehicle+day transaction breakdown (cell-click modal) */
+        get: operations["GojekController_cell"];
         put?: never;
         post?: never;
         delete?: never;
@@ -76,13 +251,11 @@ export interface paths {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                detailId: number;
-            };
+            path?: never;
             cookie?: never;
         };
         /** One import detail row (prefill for the Edit form) */
-        get: operations["getFleetDetail"];
+        get: operations["GojekController_detail"];
         put?: never;
         post?: never;
         delete?: never;
@@ -101,68 +274,40 @@ export interface paths {
         get?: never;
         put?: never;
         /** Edit driver/plate on an import detail (assign plate to a manual-payment row, toggle setoran) */
-        post: operations["editFleetDriver"];
+        post: operations["GojekController_editDriver"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/admin/fleet/{platform}/imports": {
+    "/admin/fleet/gojek/summary": {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                platform: components["parameters"]["Platform"];
-            };
+            path?: never;
             cookie?: never;
         };
-        /** List import batches */
-        get: operations["listImports"];
-        put?: never;
-        /** Upload CSV/XLSX for a period → enqueue async parse */
-        post: operations["createImport"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/fleet/{platform}/imports/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                platform: components["parameters"]["Platform"];
-                id: number;
-            };
-            cookie?: never;
-        };
-        /** Import status/progress (HTTP poll fallback for Socket.IO) */
-        get: operations["getImportStatus"];
+        /** Dashboard aggregates: summary cards + driver activity + charts */
+        get: operations["GojekController_summary"];
         put?: never;
         post?: never;
-        /** Rollback a whole import batch (queued) */
-        delete: operations["rollbackImport"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/admin/fleet/{platform}/targets/{plate}": {
+    "/admin/fleet/gojek/performers": {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                platform: components["parameters"]["Platform"];
-                plate: string;
-            };
+            path?: never;
             cookie?: never;
         };
-        /** Read driver + target metadata */
-        get: operations["getTarget"];
-        /** Edit driver + target metadata */
-        put: operations["updateTarget"];
+        /** Top/bottom 10 drivers by outstanding */
+        get: operations["GojekController_performers"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -178,10 +323,10 @@ export interface paths {
             cookie?: never;
         };
         /** List exceptions for a period */
-        get: operations["listExceptions"];
+        get: operations["GojekController_exceptions"];
         put?: never;
-        /** Create/mark an exception (rental/maintenance/free-day) */
-        post: operations["createException"];
+        /** Mark an exception (rental / maintenance / free-day) */
+        post: operations["GojekController_createException"];
         delete?: never;
         options?: never;
         head?: never;
@@ -199,21 +344,73 @@ export interface paths {
         put?: never;
         post?: never;
         /** Delete an exception */
-        delete: operations["deleteException"];
+        delete: operations["GojekController_deleteException"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/admin/fleet/{platform}/performers": {
+    "/admin/fleet/{platform}/targets/{plate}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Top/bottom performers for the period */
-        get: operations["getPerformers"];
+        /** Read driver/target metadata for a plate */
+        get: operations["TargetsController_get"];
+        /** Create/update driver/target metadata (upsert by plate) */
+        put: operations["TargetsController_upsert"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/fleet/grab/grid": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 31-day earnings pivot grid (composite key plate|city|driver) */
+        get: operations["GrabController_grid"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/fleet/grab/cell": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whole-month performance detail for one driver (eye modal) */
+        get: operations["GrabController_cell"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/fleet/grab/performers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Top/bottom 10 by total earning collected */
+        get: operations["GrabController_performers"];
         put?: never;
         post?: never;
         delete?: never;
@@ -231,8 +428,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Partner portal login → sets HTTP-only session cookie */
-        post: operations["partnerLogin"];
+        /** Partner portal login — sets the session cookie */
+        post: operations["PortalController_login"];
         delete?: never;
         options?: never;
         head?: never;
@@ -248,8 +445,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** End session */
-        post: operations["partnerLogout"];
+        post: operations["PortalController_logout"];
         delete?: never;
         options?: never;
         head?: never;
@@ -264,7 +460,7 @@ export interface paths {
             cookie?: never;
         };
         /** Current partner user + partner profile */
-        get: operations["partnerMe"];
+        get: operations["PortalController_me"];
         put?: never;
         post?: never;
         delete?: never;
@@ -280,8 +476,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Partner metrics/summary widgets */
-        get: operations["partnerDashboard"];
+        /** Partner metrics/summary widgets (own data only) */
+        get: operations["PortalController_dashboard"];
         put?: never;
         post?: never;
         delete?: never;
@@ -298,7 +494,7 @@ export interface paths {
             cookie?: never;
         };
         /** List own orders (paginated, filterable) */
-        get: operations["partnerOrders"];
+        get: operations["PortalController_orders"];
         put?: never;
         post?: never;
         delete?: never;
@@ -314,8 +510,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Export own orders as PDF or Excel (server-generated) */
-        get: operations["partnerOrdersExport"];
+        /** Export own orders (?format=pdf|xlsx) */
+        get: operations["PortalController_export"];
         put?: never;
         post?: never;
         delete?: never;
@@ -331,183 +527,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** One own order detail */
-        get: operations["partnerOrderDetail"];
+        /** One own order detail (403 for another partner’s order) */
+        get: operations["PortalController_order"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/fleet/gojek/summary": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Monthly aggregates for the admin dashboard (global summary + driver activity) */
-        get: operations["getGojekSummary"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/auth/login": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Admin/super-admin login (separate surface from partner portal) */
-        post: operations["adminLogin"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/auth/logout": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** End admin session */
-        post: operations["adminLogout"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/auth/me": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Current admin user (401 if not an admin session) */
-        get: operations["adminMe"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/users": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List admin/staff (type=admin) or partner-portal (type=partner) users */
-        get: operations["listAdminUsers"];
-        put?: never;
-        /** Create an admin/staff user (super_admin only) */
-        post: operations["createAdminUser"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/users/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Delete an account (self / last super_admin blocked) */
-        delete: operations["deleteAdminUser"];
-        options?: never;
-        head?: never;
-        /** Edit an account (name/email/roles/partner/active/password) */
-        patch: operations["updateAdminUser"];
-        trace?: never;
-    };
-    "/admin/partners": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List partners (for the picker) */
-        get: operations["listAdminPartners"];
-        put?: never;
-        /** Create a partner entity (super_admin only) */
-        post: operations["createAdminPartner"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/partners/{id}/users": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Create a partner-portal user linked to this partner */
-        post: operations["createPartnerUser"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/partners/{id}/api-keys": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Generate an external API key — rawKey returned ONCE */
-        post: operations["createPartnerApiKey"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/auth/change-password": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Change the current session user's password (clears mustChangePassword) */
-        post: operations["changePassword"];
         delete?: never;
         options?: never;
         head?: never;
@@ -521,11 +544,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List own registered plates */
-        get: operations["listPartnerPlates"];
+        /** List own registered plates (Daftarkan Plat) */
+        get: operations["PortalPlatesController_list"];
         put?: never;
-        /** Register a plate (nomor + Type) */
-        post: operations["createPartnerPlate"];
+        /** Register a plate (nomor + Type) for the partner */
+        post: operations["PortalPlatesController_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -541,10 +564,10 @@ export interface paths {
         };
         get?: never;
         /** Edit one own registered plate (nomor + Type) */
-        put: operations["updatePartnerPlate"];
+        put: operations["PortalPlatesController_update"];
         post?: never;
         /** Remove one own registered plate */
-        delete: operations["deletePartnerPlate"];
+        delete: operations["PortalPlatesController_remove"];
         options?: never;
         head?: never;
         patch?: never;
@@ -557,8 +580,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Own Gojek pivot grid (scoped) */
-        get: operations["getPartnerGojekGrid"];
+        /** Own Gojek 31-day deposit grid (scoped to registered plates) */
+        get: operations["PortalFleetController_gojekGrid"];
         put?: never;
         post?: never;
         delete?: never;
@@ -575,7 +598,7 @@ export interface paths {
             cookie?: never;
         };
         /** Own Gojek vehicle+day breakdown */
-        get: operations["getPartnerGojekCell"];
+        get: operations["PortalFleetController_gojekCell"];
         put?: never;
         post?: never;
         delete?: never;
@@ -591,8 +614,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Own Gojek dashboard aggregates */
-        get: operations["getPartnerGojekSummary"];
+        /** Own Gojek dashboard aggregates (cards + driver activity + charts) */
+        get: operations["PortalFleetController_gojekSummary"];
         put?: never;
         post?: never;
         delete?: never;
@@ -608,8 +631,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Own Grab earnings grid (scoped) */
-        get: operations["getPartnerGrabGrid"];
+        /** Own Grab earnings grid (scoped to registered plates) */
+        get: operations["PortalFleetController_grabGrid"];
         put?: never;
         post?: never;
         delete?: never;
@@ -625,8 +648,60 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Own Grab driver performance detail */
-        get: operations["getPartnerGrabCell"];
+        /** Own Grab driver whole-month performance detail */
+        get: operations["PortalFleetController_grabCell"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/v1/pricelist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Route/car pricelist for the authenticated partner */
+        get: operations["PricelistController_quote"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/v1/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Order history for the authenticated partner */
+        get: operations["PartnerOrdersController_list"];
+        put?: never;
+        /** Create an order (replaces legacy GET /partner/v1/order/create) */
+        post: operations["PartnerOrdersController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/v1/orders/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One order's detail (own orders only — 404 for any other order) */
+        get: operations["PartnerOrdersController_detail"];
         put?: never;
         post?: never;
         delete?: never;
@@ -639,409 +714,195 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        Meta: {
-            page: number;
-            pageSize: number;
-            total: number;
-        };
-        ErrorEnvelope: {
-            /** @enum {boolean} */
-            success: false;
-            error: {
-                code: string;
-                message: string;
-                details?: {
-                    field: string;
-                    message: string;
-                }[];
-            };
-        };
-        DayCellValue: {
-            day: number;
-            /**
-             * Format: int64
-             * @description integer rupiah, backend-computed
-             */
-            amount: number;
-            hasManualUncounted?: boolean;
-            hasException?: boolean;
-        };
-        FleetRowSummary: {
-            /** Format: int64 */
-            dailyTarget: number;
-            /** Format: int64 */
-            monthlyTarget: number;
-            /** Format: int64 */
-            totalDeduction: number;
-            /** Format: int64 */
-            outstanding: number;
-        };
-        FleetRow: {
-            /** @description backend-normalized [A-Z0-9] pivot key (or manual_<detailId>) */
-            plateNorm: string;
-            plateRaw: string;
-            driverName: string;
-            rentalPartner?: string | null;
-            /** @description sparse map keyed by day 1..31 */
-            days: {
-                [key: string]: components["schemas"]["DayCellValue"];
-            };
-            summary: components["schemas"]["FleetRowSummary"];
-        };
-        FleetGrid: {
-            month: number;
-            year: number;
-            daysInMonth: number;
-            rows: components["schemas"]["FleetRow"][];
-        };
-        CellBreakdownItem: {
-            /** Format: date */
-            transactionDate: string;
-            /** @enum {string} */
-            type: "deduction" | "due" | "manual";
-            /** Format: int64 */
-            amount: number;
-            referenceId?: string | null;
-            /** @description 1=counted, 0=uncounted (Tidak Masuk Setoran), null=n/a */
-            isManualPaymentSetoran?: number | null;
-            manualPaymentNote?: string | null;
-        };
-        CellBreakdown: {
-            plateNorm: string;
-            day: number;
-            /** Format: int64 */
-            total: number;
-            items: components["schemas"]["CellBreakdownItem"][];
-        };
-        GrabDayCell: {
-            /**
-             * Format: int64
-             * @description total_earning_collected summed per day, integer rupiah
-             */
-            earning: number;
-        };
-        GrabRowSummary: {
-            /** Format: int64 */
-            earning: number;
-            /** Format: int64 */
-            incentive: number;
-            /** Format: int64 */
-            driverFare: number;
-            rides: number;
-            onlineHours: number;
-            bookings: number;
-            cancellations: number;
-            fulfillmentRate: number;
-        };
-        GrabRow: {
-            /** @description plate|city|driver */
-            compositeKey: string;
-            plateNumber: string;
-            city: string;
-            driverName: string;
-            /** @description sparse map keyed by day 1..31 */
-            days: {
-                [key: string]: components["schemas"]["GrabDayCell"];
-            };
-            summary: components["schemas"]["GrabRowSummary"];
-        };
-        GrabGrid: {
-            month: number;
-            year: number;
-            daysInMonth: number;
-            rows: components["schemas"]["GrabRow"][];
-        };
-        GrabCellBreakdownItem: {
-            /** Format: date */
-            date: string;
-            /** Format: int64 */
-            totalEarningCollected: number;
-            /** Format: int64 */
-            totalIncentive?: number;
-            /** Format: int64 */
-            driverFare?: number;
-            /** Format: int64 */
-            tollAndOthers?: number;
-            totalRides?: number;
-            totalBookings?: number;
-            totalOnlineHours?: number;
-            cancelByDriver?: number;
-            fullfilmentRate?: number;
-        };
-        GrabCellBreakdown: {
-            compositeKey: string;
-            day: number;
-            /** Format: int64 */
-            total: number;
-            items: components["schemas"]["GrabCellBreakdownItem"][];
-        };
-        ImportBatch: {
-            /** Format: int64 */
-            id: number;
-            filename: string;
-            periodMonth: number;
-            periodYear: number;
-            /** @enum {string} */
-            status: "pending" | "processing" | "done" | "failed";
-            totalRows: number;
-            processed?: number | null;
-            percent?: number | null;
-            /** Format: int64 */
-            importedBy?: number | null;
-            uploaderName?: string | null;
-            error?: string | null;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt?: string;
-        };
-        FleetTarget: {
-            vehiclePlate: string;
-            vehiclePlateNorm: string;
-            driverName?: string | null;
-            vehicleType?: string | null;
-            /**
-             * Format: int64
-             * @description integer rupiah daily target; null/0 → backend infers
-             */
-            fleetTarget?: number | null;
-            rentalPartner?: string | null;
-            deliveryBatch?: string | null;
-            serviceArea?: string | null;
-            /** Format: int64 */
-            regionId?: number | null;
-            /** @description grab only */
-            city?: string | null;
-        };
-        FleetDetail: {
-            /** Format: int64 */
-            id: number;
-            driverName?: string | null;
-            vehiclePlate?: string | null;
-            vehiclePlateNorm?: string | null;
-            type?: string | null;
-            isManualPayment: boolean;
-            /** @description 1 = Masuk, 0 = Tidak Masuk, null = n/a */
-            isManualPaymentSetoran?: number | null;
-            manualPaymentNote?: string | null;
-            periodMonth?: number;
-            periodYear?: number;
-        };
-        EditDriver: {
-            /**
-             * Format: int64
-             * @description Single-detail edit (manual-payment-tanpa-plat row)
-             */
-            detailId?: number;
-            /** @description By-plate edit across a period (existing normalized plate) */
-            plate?: string;
-            month?: number;
-            year?: number;
-            driverName?: string;
-            vehiclePlate?: string;
-            /** @enum {integer} */
-            isManualPaymentSetoran?: 0 | 1;
-            manualPaymentNote?: string;
-        };
-        FleetTargetUpdate: {
-            driverName?: string;
-            vehicleType?: string;
-            /** Format: int64 */
-            fleetTarget?: number;
-            rentalPartner?: string;
-            deliveryBatch?: string;
-            serviceArea?: string;
-            /** Format: int64 */
-            regionId?: number;
-            city?: string;
-        };
-        FleetException: {
-            /** Format: int64 */
-            id: number;
-            vehiclePlate: string;
-            /** Format: date */
-            exceptionDate: string;
-            keterangan?: string | null;
-            isBebasSetoran: boolean;
-        };
-        FleetExceptionCreate: {
-            vehiclePlate: string;
-            /** Format: date */
-            exceptionDate: string;
-            keterangan?: string;
-            /** @default false */
-            isBebasSetoran: boolean;
-        };
-        Performer: {
-            /** @description plateNorm (gojek) or compositeKey (grab) */
-            key: string;
-            label: string;
-            driverName?: string | null;
-            /** Format: int64 */
-            total: number;
-        };
-        PartnerMe: {
-            /** Format: int64 */
-            id: number;
+        CreateAdminUserDto: {
+            /** @example finance@fleet-taxi.id */
             email: string;
+            /** @example Budi Finance */
             fullName: string;
-            roles: string[];
-            partner?: {
-                /** Format: int64 */
-                id: number;
-                code: string;
-                name: string;
-                type: string;
-            } | null;
-        };
-        PartnerDashboard: {
-            totalOrders: number;
-            ordersThisMonth: number;
-            /** Format: int64 */
-            revenueThisMonth: number;
-            ordersByDay: {
-                /** Format: date */
-                date: string;
-                count: number;
-            }[];
-            ordersByStatus: {
-                status: string;
-                count: number;
-            }[];
-        };
-        Order: {
-            /** Format: int64 */
-            id: number;
-            orderNumber: string;
-            orderType?: string | null;
-            tripStatus: string;
-            pickupCode?: string | null;
-            destinationCode?: string | null;
-            /** Format: int64 */
-            carTypesId?: number | null;
-            /** Format: date-time */
-            pickupAt: string;
-            /**
-             * Format: int64
-             * @description integer rupiah
-             */
-            basicPrice: number;
-            passengerDetails?: {
-                [key: string]: unknown;
-            } | null;
-            /** Format: date-time */
-            createdAt: string;
-        };
-        PartnerPlate: {
-            id: number;
-            plateNumber: string;
-            plateNumberNorm: string;
-            vehicleType?: string | null;
-        };
-        PartnerPlateCreate: {
-            plateNumber: string;
-            vehicleType?: string;
-        };
-        AdminUser: {
-            /** Format: int64 */
-            id: number;
-            email: string;
-            fullName: string | null;
-            isActive: boolean;
-            mustChangePassword: boolean;
-            roles: string[];
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            lastLoginAt?: string | null;
-            partner: {
-                /** Format: int64 */
-                id: number;
-                code: string;
-                name: string;
-                type: string | null;
-            } | null;
-        };
-        UpdateUser: {
-            email?: string;
-            fullName?: string;
-            isActive?: boolean;
-            roles?: string[];
-            /** Format: int64 */
-            partnerId?: number;
-            password?: string;
-        };
-        Partner: {
-            /** Format: int64 */
-            id: number;
-            code: string;
-            name: string;
-            type?: string | null;
-            isActive: boolean;
-            /** Format: date-time */
-            createdAt: string;
-        };
-        CreateAdminUser: {
-            /** Format: email */
-            email: string;
-            fullName: string;
+            /** @example initial-password */
             password: string;
+            /**
+             * @description One or more staff roles (admin, finance, super_admin)
+             * @example [
+             *       "admin"
+             *     ]
+             */
             roles: ("admin" | "finance" | "super_admin")[];
         };
-        CreatePartnerUser: {
-            /** Format: email */
+        UpdateUserDto: {
+            email?: string;
+            fullName?: string;
+            /** @description Enable/disable login */
+            isActive?: boolean;
+            /** @description Admin/staff roles */
+            roles?: ("admin" | "finance" | "super_admin")[];
+            /** @description Move a partner-portal user to another partner org */
+            partnerId?: number;
+            /** @description Reset password (forces change on next login) */
+            password?: string;
+        };
+        LoginDto: {
+            /** @example admin@fleet-taxi.id */
             email: string;
-            fullName: string;
+            /** @example ******** */
             password: string;
         };
-        CreatePartner: {
-            code: string;
-            name: string;
-            type?: string;
-        };
-        CreateApiKey: {
-            label?: string;
-            scopes?: string[];
-            rateLimit?: number;
-        };
-        ApiKeyCreated: {
-            /** Format: int64 */
-            id: number;
-            keyPrefix: string;
-            rawKey: string;
-        };
-        ChangePassword: {
+        ChangePasswordDto: {
+            /** @example current-password */
             currentPassword: string;
+            /** @example new-strong-password */
             newPassword: string;
         };
-    };
-    responses: {
-        /** @description Standard error envelope (PROJECT-BRIEF.md §6) */
-        Error: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/json": components["schemas"]["ErrorEnvelope"];
-            };
+        CreatePartnerDto: {
+            /**
+             * @description Unique partner code (stored uppercase)
+             * @example BHISA
+             */
+            code: string;
+            /** @example Bhisa Shuttle */
+            name: string;
+            /**
+             * @description shuttle | hotel | ...
+             * @example shuttle
+             */
+            type?: string;
+        };
+        CreatePartnerUserDto: {
+            /** @example portal@bhisa.example */
+            email: string;
+            /** @example Bhisa Portal User */
+            fullName: string;
+            /** @example initial-password */
+            password: string;
+        };
+        CreateApiKeyDto: {
+            /** @example Production integration key */
+            label?: string;
+            /**
+             * @description Scopes granted to the key
+             * @example [
+             *       "pricelist",
+             *       "order:create",
+             *       "order:read"
+             *     ]
+             */
+            scopes?: string[];
+            /**
+             * @description Requests per minute
+             * @example 60
+             */
+            rateLimit?: number;
+        };
+        EditDriverDto: {
+            /** @description fleet_import_details.id (manual-row / single-detail edit) */
+            detailId?: number;
+            /** @description Existing normalized plate (by-plate edit across a period) */
+            plate?: string;
+            /** @description Partition period month (1..12) */
+            month?: number;
+            /** @description Partition period year */
+            year?: number;
+            driverName?: string;
+            /** @description New plate to assign (normalized server-side) */
+            vehiclePlate?: string;
+            /** @description 1 = Masuk Setoran, 0 = Tidak Masuk Setoran (manual payment only) */
+            isManualPaymentSetoran?: number;
+            /** @description Reason shown when Tidak Masuk Setoran */
+            manualPaymentNote?: string;
+        };
+        CreateExceptionDto: {
+            /** @example B1234XY */
+            vehiclePlate: string;
+            /**
+             * @description YYYY-MM-DD
+             * @example 2026-07-10
+             */
+            exceptionDate: string;
+            /** @example Perbaikan bengkel */
+            keterangan?: string;
+            /**
+             * @description true = bebas setoran (reduces target days)
+             * @default false
+             */
+            isBebasSetoran: boolean;
+        };
+        UpsertTargetDto: {
+            /** @description Daily target in integer rupiah (Gojek) */
+            fleetTarget?: number;
+            rentalPartner?: string;
+            /** @description Gojek only */
+            deliveryBatch?: string;
+            /** @description Gojek only */
+            serviceArea?: string;
+            vehicleType?: string;
+            /** @description Gojek only */
+            regionId?: number;
+            /** @description Grab only */
+            city?: string;
+        };
+        CreatePlateDto: {
+            /**
+             * @description Nomor plat (as entered)
+             * @example B 1793 SCP
+             */
+            plateNumber: string;
+            /**
+             * @description Type (jenis kendaraan)
+             * @example Premium - BYD M6
+             */
+            vehicleType?: string;
+        };
+        CreatePartnerOrderDto: {
+            /**
+             * @description Pool code (whitelisted)
+             * @example BHISA_CAWANG
+             */
+            pickupCode: string;
+            /** @example EVISTA_HALIM */
+            destinationCode: string;
+            /** @example 1 */
+            carTypesId: number;
+            /**
+             * @description ISO 8601, or "YYYY-MM-DD HH:mm:ss" interpreted as Asia/Jakarta
+             * @example 2026-07-10 09:00:00
+             */
+            pickupAt: string;
+            /** @description Free-form passenger details object (stored as JSON; size-bounded) */
+            passengerDetails?: Record<string, never>;
         };
     };
-    parameters: {
-        Platform: "gojek" | "grab";
-    };
+    responses: never;
+    parameters: never;
     requestBodies: never;
     headers: never;
     pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    getGojekGrid: {
+    HealthController_live: {
         parameters: {
-            query: {
-                month: number;
-                year: number;
-                rentalPartner?: string[];
-                plate?: string;
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminUsersController_list: {
+        parameters: {
+            query?: {
+                /** @description admin = staff users (no partner); partner = partner-portal users */
+                type?: "admin" | "partner";
+                page?: string;
+                pageSize?: string;
             };
             header?: never;
             path?: never;
@@ -1049,30 +910,356 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Pivot grid */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: unknown;
-                    };
-                };
+                content?: never;
             };
-            default: components["responses"]["Error"];
         };
     };
-    getGojekCell: {
+    AdminUsersController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAdminUserDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminUsersController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminUsersController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateUserDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuthController_login: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuthController_logout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AuthController_me: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ChangePasswordController_changePassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangePasswordDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminPartnersController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminPartnersController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePartnerDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminPartnersController_createUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePartnerUserDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminPartnersController_createApiKey: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateApiKeyDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ImportController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                platform: "gojek" | "grab";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ImportController_upload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                platform: "gojek" | "grab";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                    /** @example 7 */
+                    month: number;
+                    /** @example 2026 */
+                    year: number;
+                };
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ImportController_getById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                platform: "gojek" | "grab";
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ImportController_rollback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                platform: "gojek" | "grab";
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GojekController_grid: {
         parameters: {
             query: {
-                /** @description plateNorm (or manual_<detailId> synthetic key) */
+                month: number;
+                year: number;
+                plate?: string;
+                rentalPartner?: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GojekController_cell: {
+        parameters: {
+            query: {
+                month: number;
+                year: number;
+                /** @description Row key: normalized plate or manual_<detailId> */
                 plate: string;
                 day: number;
-                month: number;
-                year: number;
             };
             header?: never;
             path?: never;
@@ -1080,84 +1267,15 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Day breakdown */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: unknown;
-                    };
-                };
+                content?: never;
             };
-            default: components["responses"]["Error"];
         };
     };
-    getGrabGrid: {
-        parameters: {
-            query: {
-                month: number;
-                year: number;
-                rentalPartner?: string[];
-                plate?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Pivot grid */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: unknown;
-                    };
-                };
-            };
-            default: components["responses"]["Error"];
-        };
-    };
-    getGrabCell: {
-        parameters: {
-            query: {
-                /** @description plate|city|driver */
-                compositeKey: string;
-                day: number;
-                month: number;
-                year: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Day breakdown */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: unknown;
-                    };
-                };
-            };
-            default: components["responses"]["Error"];
-        };
-    };
-    getFleetDetail: {
+    GojekController_detail: {
         parameters: {
             query?: {
                 month?: number;
@@ -1171,23 +1289,15 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Import detail row */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: components["schemas"]["FleetDetail"];
-                    };
-                };
+                content?: never;
             };
-            default: components["responses"]["Error"];
         };
     };
-    editFleetDriver: {
+    GojekController_editDriver: {
         parameters: {
             query?: never;
             header?: never;
@@ -1196,216 +1306,40 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["EditDriver"];
+                "application/json": components["schemas"]["EditDriverDto"];
             };
         };
         responses: {
-            /** @description Number of detail rows updated */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: {
-                            updated: number;
-                        };
-                    };
-                };
+                content?: never;
             };
-            default: components["responses"]["Error"];
         };
     };
-    listImports: {
+    GojekController_summary: {
         parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                platform: components["parameters"]["Platform"];
+            query: {
+                month: number;
+                year: number;
+                day?: number;
             };
+            header?: never;
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Import batches */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: components["schemas"]["ImportBatch"][];
-                        meta?: components["schemas"]["Meta"];
-                    };
-                };
+                content?: never;
             };
-            default: components["responses"]["Error"];
         };
     };
-    createImport: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                platform: components["parameters"]["Platform"];
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": {
-                    /** Format: binary */
-                    file: string;
-                    month: number;
-                    year: number;
-                };
-            };
-        };
-        responses: {
-            /** @description Batch created, parsing queued */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: {
-                            /** Format: int64 */
-                            importId: number;
-                        };
-                    };
-                };
-            };
-            default: components["responses"]["Error"];
-        };
-    };
-    getImportStatus: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                platform: components["parameters"]["Platform"];
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Import batch with progress */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: components["schemas"]["ImportBatch"];
-                    };
-                };
-            };
-            default: components["responses"]["Error"];
-        };
-    };
-    rollbackImport: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                platform: components["parameters"]["Platform"];
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Rollback queued */
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: {
-                            /** Format: int64 */
-                            importId: number;
-                            status: string;
-                        };
-                    };
-                };
-            };
-            default: components["responses"]["Error"];
-        };
-    };
-    getTarget: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                platform: components["parameters"]["Platform"];
-                plate: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Target metadata */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: components["schemas"]["FleetTarget"];
-                    };
-                };
-            };
-            default: components["responses"]["Error"];
-        };
-    };
-    updateTarget: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                platform: components["parameters"]["Platform"];
-                plate: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["FleetTargetUpdate"];
-            };
-        };
-        responses: {
-            /** @description Updated target metadata */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: components["schemas"]["FleetTarget"];
-                    };
-                };
-            };
-            default: components["responses"]["Error"];
-        };
-    };
-    listExceptions: {
+    GojekController_performers: {
         parameters: {
             query: {
                 month: number;
@@ -1417,23 +1351,35 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Exceptions */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: components["schemas"]["FleetException"][];
-                    };
-                };
+                content?: never;
             };
-            default: components["responses"]["Error"];
         };
     };
-    createException: {
+    GojekController_exceptions: {
+        parameters: {
+            query: {
+                month: number;
+                year: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GojekController_createException: {
         parameters: {
             query?: never;
             header?: never;
@@ -1442,27 +1388,19 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["FleetExceptionCreate"];
+                "application/json": components["schemas"]["CreateExceptionDto"];
             };
         };
         responses: {
-            /** @description Created exception */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: components["schemas"]["FleetException"];
-                    };
-                };
+                content?: never;
             };
-            default: components["responses"]["Error"];
         };
     };
-    deleteException: {
+    GojekController_deleteException: {
         parameters: {
             query?: never;
             header?: never;
@@ -1473,56 +1411,124 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Deleted */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: {
-                            deleted: boolean;
-                        };
-                    };
-                };
+                content?: never;
             };
-            default: components["responses"]["Error"];
         };
     };
-    getPerformers: {
+    TargetsController_get: {
         parameters: {
-            query: {
-                month: number;
-                year: number;
-                limit?: number;
-            };
+            query?: never;
             header?: never;
             path: {
-                platform: components["parameters"]["Platform"];
+                platform: "gojek" | "grab";
+                plate: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Top/bottom performers */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: unknown;
-                    };
-                };
+                content?: never;
             };
-            default: components["responses"]["Error"];
         };
     };
-    partnerLogin: {
+    TargetsController_upsert: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                platform: "gojek" | "grab";
+                plate: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpsertTargetDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GrabController_grid: {
+        parameters: {
+            query: {
+                month: number;
+                year: number;
+                plate?: string;
+                rentalPartner?: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GrabController_cell: {
+        parameters: {
+            query: {
+                month: number;
+                year: number;
+                /** @description plate|city|driver */
+                compositeKey: string;
+                day?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GrabController_performers: {
+        parameters: {
+            query: {
+                month: number;
+                year: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalController_login: {
         parameters: {
             query?: never;
             header?: never;
@@ -1531,31 +1537,19 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": {
-                    /** Format: email */
-                    email: string;
-                    password: string;
-                };
+                "application/json": components["schemas"]["LoginDto"];
             };
         };
         responses: {
-            /** @description Logged in */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: components["schemas"]["PartnerMe"];
-                    };
-                };
+                content?: never;
             };
-            default: components["responses"]["Error"];
         };
     };
-    partnerLogout: {
+    PortalController_logout: {
         parameters: {
             query?: never;
             header?: never;
@@ -1564,25 +1558,15 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Logged out */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: {
-                            loggedOut: boolean;
-                        };
-                    };
-                };
+                content?: never;
             };
-            default: components["responses"]["Error"];
         };
     };
-    partnerMe: {
+    PortalController_me: {
         parameters: {
             query?: never;
             header?: never;
@@ -1591,23 +1575,15 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Session user */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: components["schemas"]["PartnerMe"];
-                    };
-                };
+                content?: never;
             };
-            default: components["responses"]["Error"];
         };
     };
-    partnerDashboard: {
+    PortalController_dashboard: {
         parameters: {
             query?: never;
             header?: never;
@@ -1616,29 +1592,20 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Dashboard metrics */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: components["schemas"]["PartnerDashboard"];
-                    };
-                };
+                content?: never;
             };
-            default: components["responses"]["Error"];
         };
     };
-    partnerOrders: {
+    PortalController_orders: {
         parameters: {
             query?: {
                 page?: number;
                 pageSize?: number;
                 tripStatus?: string;
-                q?: string;
             };
             header?: never;
             path?: never;
@@ -1646,27 +1613,18 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Own orders */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: components["schemas"]["Order"][];
-                        meta: components["schemas"]["Meta"];
-                    };
-                };
+                content?: never;
             };
-            default: components["responses"]["Error"];
         };
     };
-    partnerOrdersExport: {
+    PortalController_export: {
         parameters: {
             query: {
-                format: "pdf" | "xlsx";
+                format: "xlsx" | "pdf";
             };
             header?: never;
             path?: never;
@@ -1674,20 +1632,15 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Generated file */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/pdf": string;
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
-                };
+                content?: never;
             };
-            default: components["responses"]["Error"];
         };
     };
-    partnerOrderDetail: {
+    PortalController_order: {
         parameters: {
             query?: never;
             header?: never;
@@ -1698,23 +1651,138 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Order detail */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: components["schemas"]["Order"];
-                    };
-                };
+                content?: never;
             };
-            default: components["responses"]["Error"];
         };
     };
-    getGojekSummary: {
+    PortalPlatesController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalPlatesController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePlateDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalPlatesController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePlateDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalPlatesController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalFleetController_gojekGrid: {
+        parameters: {
+            query: {
+                month: number;
+                year: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalFleetController_gojekCell: {
+        parameters: {
+            query: {
+                month: number;
+                year: number;
+                /** @description Row key: normalized plate or manual_<detailId> */
+                plate: string;
+                day: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalFleetController_gojekSummary: {
         parameters: {
             query: {
                 month: number;
@@ -1727,110 +1795,80 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Monthly aggregates */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: Record<string, never>;
-                    };
-                };
+                content?: never;
             };
-            default: components["responses"]["Error"];
         };
     };
-    adminLogin: {
+    PortalFleetController_grabGrid: {
         parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    /** Format: email */
-                    email: string;
-                    password: string;
-                };
+            query: {
+                month: number;
+                year: number;
             };
-        };
-        responses: {
-            /** @description Admin session user */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: unknown;
-                    };
-                };
-            };
-            default: components["responses"]["Error"];
-        };
-    };
-    adminLogout: {
-        parameters: {
-            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Logged out */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: unknown;
-                    };
-                };
+                content?: never;
             };
-            default: components["responses"]["Error"];
         };
     };
-    adminMe: {
+    PortalFleetController_grabCell: {
         parameters: {
-            query?: never;
+            query: {
+                month: number;
+                year: number;
+                /** @description plate|city|driver */
+                compositeKey: string;
+                day?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Admin user */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: unknown;
-                    };
-                };
+                content?: never;
             };
-            401: components["responses"]["Error"];
-            default: components["responses"]["Error"];
         };
     };
-    listAdminUsers: {
+    PricelistController_quote: {
+        parameters: {
+            query: {
+                pickupCode: string;
+                destinationCode: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PartnerOrdersController_list: {
         parameters: {
             query?: {
-                type?: "admin" | "partner";
                 page?: number;
                 pageSize?: number;
             };
@@ -1840,24 +1878,15 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Users */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: components["schemas"]["AdminUser"][];
-                        meta?: components["schemas"]["Meta"];
-                    };
-                };
+                content?: never;
             };
-            default: components["responses"]["Error"];
         };
     };
-    createAdminUser: {
+    PartnerOrdersController_create: {
         parameters: {
             query?: never;
             header?: never;
@@ -1866,27 +1895,19 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreateAdminUser"];
+                "application/json": components["schemas"]["CreatePartnerOrderDto"];
             };
         };
         responses: {
-            /** @description Created user */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: components["schemas"]["AdminUser"];
-                    };
-                };
+                content?: never;
             };
-            default: components["responses"]["Error"];
         };
     };
-    deleteAdminUser: {
+    PartnerOrdersController_detail: {
         parameters: {
             query?: never;
             header?: never;
@@ -1897,455 +1918,12 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Deleted */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: Record<string, never>;
-                    };
-                };
+                content?: never;
             };
-            default: components["responses"]["Error"];
-        };
-    };
-    updateAdminUser: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateUser"];
-            };
-        };
-        responses: {
-            /** @description Updated user */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: components["schemas"]["AdminUser"];
-                    };
-                };
-            };
-            default: components["responses"]["Error"];
-        };
-    };
-    listAdminPartners: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Partners */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: components["schemas"]["Partner"][];
-                    };
-                };
-            };
-            default: components["responses"]["Error"];
-        };
-    };
-    createAdminPartner: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreatePartner"];
-            };
-        };
-        responses: {
-            /** @description Created partner */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: components["schemas"]["Partner"];
-                    };
-                };
-            };
-            default: components["responses"]["Error"];
-        };
-    };
-    createPartnerUser: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreatePartnerUser"];
-            };
-        };
-        responses: {
-            /** @description Created partner user */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: components["schemas"]["AdminUser"];
-                    };
-                };
-            };
-            default: components["responses"]["Error"];
-        };
-    };
-    createPartnerApiKey: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["CreateApiKey"];
-            };
-        };
-        responses: {
-            /** @description Created API key (rawKey shown once) */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: components["schemas"]["ApiKeyCreated"];
-                    };
-                };
-            };
-            default: components["responses"]["Error"];
-        };
-    };
-    changePassword: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ChangePassword"];
-            };
-        };
-        responses: {
-            /** @description Updated session user */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: unknown;
-                    };
-                };
-            };
-            default: components["responses"]["Error"];
-        };
-    };
-    listPartnerPlates: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Registered plates */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: components["schemas"]["PartnerPlate"][];
-                    };
-                };
-            };
-            default: components["responses"]["Error"];
-        };
-    };
-    createPartnerPlate: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PartnerPlateCreate"];
-            };
-        };
-        responses: {
-            /** @description Created plate */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: components["schemas"]["PartnerPlate"];
-                    };
-                };
-            };
-            default: components["responses"]["Error"];
-        };
-    };
-    updatePartnerPlate: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PartnerPlateCreate"];
-            };
-        };
-        responses: {
-            /** @description Updated plate */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: components["schemas"]["PartnerPlate"];
-                    };
-                };
-            };
-            default: components["responses"]["Error"];
-        };
-    };
-    deletePartnerPlate: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Deleted */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: Record<string, never>;
-                    };
-                };
-            };
-            default: components["responses"]["Error"];
-        };
-    };
-    getPartnerGojekGrid: {
-        parameters: {
-            query: {
-                month: number;
-                year: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Pivot grid */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: unknown;
-                    };
-                };
-            };
-            default: components["responses"]["Error"];
-        };
-    };
-    getPartnerGojekCell: {
-        parameters: {
-            query: {
-                /** @description row key: normalized plate or manual_<id> */
-                plate: string;
-                day: number;
-                month: number;
-                year: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Day breakdown */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: unknown;
-                    };
-                };
-            };
-            default: components["responses"]["Error"];
-        };
-    };
-    getPartnerGojekSummary: {
-        parameters: {
-            query: {
-                month: number;
-                year: number;
-                day?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Monthly aggregates */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: Record<string, never>;
-                    };
-                };
-            };
-            default: components["responses"]["Error"];
-        };
-    };
-    getPartnerGrabGrid: {
-        parameters: {
-            query: {
-                month: number;
-                year: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Grab grid */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: unknown;
-                    };
-                };
-            };
-            default: components["responses"]["Error"];
-        };
-    };
-    getPartnerGrabCell: {
-        parameters: {
-            query: {
-                /** @description plate|city|driver */
-                compositeKey: string;
-                day?: number;
-                month: number;
-                year: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Driver detail */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {boolean} */
-                        success: true;
-                        data: unknown;
-                    };
-                };
-            };
-            default: components["responses"]["Error"];
         };
     };
 }

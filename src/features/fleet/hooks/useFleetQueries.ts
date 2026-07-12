@@ -64,9 +64,11 @@ export function usePerformersQuery(p: { platform: 'gojek' | 'grab'; month: numbe
   return useQuery({
     queryKey: qk.fleet.performers(p),
     queryFn: async (): Promise<Performers> => {
-      const { data, error } = await api.GET('/admin/fleet/{platform}/performers', {
-        params: { path: { platform: p.platform }, query: { month: p.month, year: p.year } },
-      });
+      const query = { month: p.month, year: p.year };
+      const { data, error } =
+        p.platform === 'gojek'
+          ? await api.GET('/admin/fleet/gojek/performers', { params: { query } })
+          : await api.GET('/admin/fleet/grab/performers', { params: { query } });
       if (error) throwEnvelope(error);
       return unwrap(data) as Performers;
     },

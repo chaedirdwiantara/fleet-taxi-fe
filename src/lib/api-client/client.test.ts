@@ -53,7 +53,7 @@ describe('generated client ↔ MSW (single mock layer)', () => {
       params: { path: { platform: 'gojek' } },
     });
     expect(error).toBeUndefined();
-    const batches = unwrap(data);
+    const batches = unwrap(data) as { filename: string; status: string }[];
     expect(batches.length).toBeGreaterThan(0);
     expect(batches[0]).toMatchObject({ filename: expect.any(String), status: expect.any(String) });
   });
