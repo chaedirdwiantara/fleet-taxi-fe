@@ -21,6 +21,7 @@ import {
   type MockCheckpoint,
   type MockCheckpointMedia,
 } from './fixtures/partner';
+import { seedRentals, seedCogsDefaults, type SeedRental } from './fixtures/rental';
 
 // Single mock layer for dev (VITE_USE_MSW=true) and tests (frontend-kickoff.md §9).
 // All responses use the standard envelope from PROJECT-BRIEF.md §6.
@@ -197,6 +198,77 @@ const checkpointSummary = (c: MockCheckpoint) => ({
     0,
   ),
 });
+// ---- Mock rental-monitoring state (partner portal) ---------------------------
+// The mock plays the backend's role here: it derives days/gross/cogs/nett/
+// omset and the paid/unpaid summary — the FE only displays those numbers.
+let rentalsState: SeedRental[] = seedRentals.map((r) => ({ ...r }));
+let nextRentalId = 100;
+let cogsDefaultsState = seedCogsDefaults.map((c) => ({ ...c }));
+
+/** Reset rentals + COGS presets to the seed (call between tests). */
+export const resetPartnerRentals = () => {
+  rentalsState = seedRentals.map((r) => ({ ...r }));
+  nextRentalId = 100;
+  cogsDefaultsState = seedCogsDefaults.map((c) => ({ ...c }));
+};
+
+const DAY_MS = 86_400_000;
+const rentalDays = (start: string, end: string) =>
+  Math.max(1, Math.round((Date.parse(end) - Date.parse(start)) / DAY_MS) + 1);
+
+const presentRental = (r: SeedRental, period?: { month: number; year: number }) => {
+  const days = rentalDays(r.startDate, r.endDate);
+  const gross = r.pricePerDay * days;
+  const cogsTotal = r.cogsPerDay * days;
+  const omset = gross + r.additionalCost;
+  const nettProfit = omset - cogsTotal;
+  let displayStartDate = r.startDate;
+  let displayEndDate = r.endDate;
+  if (period) {
+    const prefix = `${period.year}-${String(period.month).padStart(2, '0')}`;
+    const monthStart = `${prefix}-01`;
+    const monthEnd = `${prefix}-${String(new Date(period.year, period.month, 0).getDate()).padStart(2, '0')}`;
+    if (displayStartDate < monthStart) displayStartDate = monthStart;
+    if (displayEndDate > monthEnd) displayEndDate = monthEnd;
+  }
+  return { ...r, displayStartDate, displayEndDate, days, gross, cogsTotal, nettProfit, omset };
+};
+
+type RentalUpsertBody = Partial<
+  Omit<SeedRental, 'id' | 'pricePerDay' | 'createdAt' | 'updatedAt'> & {
+    price: number;
+    priceUnit: 'hari' | 'bulan';
+  }
+>;
+
+const rentalFromBody = (body: RentalUpsertBody, id: number, createdAt: string): SeedRental | null => {
+  if (!body.plateNumber || !body.startDate || !body.endDate || body.price == null || body.cogsPerDay == null) {
+    return null;
+  }
+  const pricePerDay = body.priceUnit === 'bulan' ? Math.round(body.price / 30) : body.price;
+  return {
+    id,
+    plateNumber: body.plateNumber,
+    vehicleType: body.vehicleType ?? null,
+    region: body.region ?? null,
+    startDate: body.startDate,
+    endDate: body.endDate,
+    pricePerDay,
+    cogsPerDay: body.cogsPerDay,
+    cogsType: body.cogsType ?? null,
+    additionalCost: body.additionalCost ?? 0,
+    additionalCostDescription: body.additionalCostDescription ?? null,
+    deposit: body.deposit ?? 0,
+    rentalType: body.rentalType ?? null,
+    infoSource: body.infoSource ?? null,
+    serviceArea: body.serviceArea ?? null,
+    customerName: body.customerName ?? null,
+    customerPhone: body.customerPhone ?? null,
+    paymentStatus: body.paymentStatus ?? 'Belum Dibayar',
+    createdAt,
+    updatedAt: new Date().toISOString(),
+  };
+};
 
 // ---- Mock user-management state (super_admin: create/list users & partners) --
 type MockPartner = { id: number; code: string; name: string; type: string | null; isActive: boolean; createdAt: string };
@@ -1075,5 +1147,151 @@ export const handlers = [
       incentive: row.summary.incentive,
       earning: row.summary.earning,
     });
+  }),
+
+  // ---- Partner portal — Rental Monitoring -----------------------------------
+  // NOTE: keep the specific paths (cogs-defaults, export, :id/payment-status)
+  // registered BEFORE the generic `:id` matcher.
+  http.get('*/partner/portal/rentals/cogs-defaults', () =>
+    ok({ items: cogsDefaultsState.map((c) => ({ ...c })) }),
+  ),
+
+  http.put('*/partner/portal/rentals/cogs-defaults', async ({ request }) => {
+    const body = (await request.json()) as { key?: string; label?: string; cogsPerDay?: number };
+    if (!body.label?.trim() || body.cogsPerDay == null) {
+      return err(422, 'VALIDATION_ERROR', 'label dan cogsPerDay wajib diisi');
+    }
+    const existing = body.key ? cogsDefaultsState.find((c) => c.key === body.key) : undefined;
+    if (existing) {
+      existing.label = body.label.trim();
+      existing.cogsPerDay = body.cogsPerDay;
+      return ok({ ...existing });
+    }
+    const key =
+      body.key ?? body.label.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+    const created = { key, label: body.label.trim(), cogsPerDay: body.cogsPerDay };
+    cogsDefaultsState.push(created);
+    return ok({ ...created });
+  }),
+
+  http.get('*/partner/portal/rentals/export', ({ request }) => {
+    const url = new URL(request.url);
+    const month = int(url.searchParams.get('month'), 6);
+    const year = int(url.searchParams.get('year'), 2026);
+    // A tiny fake XLSX payload — enough for the FE blob-download flow.
+    return new HttpResponse(new Uint8Array([0x50, 0x4b, 0x03, 0x04]).buffer, {
+      headers: {
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition': `attachment; filename="rental-monitoring-${year}-${String(month).padStart(2, '0')}.xlsx"`,
+      },
+    });
+  }),
+
+  http.get('*/partner/portal/rentals', ({ request }) => {
+    const url = new URL(request.url);
+    const month = int(url.searchParams.get('month'), 6);
+    const year = int(url.searchParams.get('year'), 2026);
+    const region = url.searchParams.get('region');
+    const search = url.searchParams.get('search')?.trim().toLowerCase();
+    const sortBy = url.searchParams.get('sortBy') ?? 'date';
+    const sortOrder = url.searchParams.get('sortOrder') === 'desc' ? -1 : 1;
+
+    const prefix = `${year}-${String(month).padStart(2, '0')}`;
+    const monthStart = `${prefix}-01`;
+    const monthEnd = `${prefix}-${String(new Date(year, month, 0).getDate()).padStart(2, '0')}`;
+
+    let items = rentalsState
+      .filter((r) => r.startDate <= monthEnd && r.endDate >= monthStart)
+      .map((r) => presentRental(r, { month, year }));
+    const regions = [...new Set(items.map((r) => r.region).filter((v): v is string => !!v))].sort();
+    if (region) items = items.filter((r) => r.region === region);
+    if (search) {
+      items = items.filter((r) =>
+        [r.plateNumber, r.customerName, r.serviceArea]
+          .filter((v): v is string => !!v)
+          .some((v) => v.toLowerCase().includes(search)),
+      );
+    }
+    const sortVal = (r: (typeof items)[number]) => {
+      switch (sortBy) {
+        case 'duration': return r.days;
+        case 'status': return r.paymentStatus;
+        case 'omset': return r.omset;
+        case 'cogs': return r.cogsTotal;
+        default: return r.startDate;
+      }
+    };
+    items.sort((a, b) => {
+      const va = sortVal(a);
+      const vb = sortVal(b);
+      return (va < vb ? -1 : va > vb ? 1 : 0) * sortOrder;
+    });
+
+    const paid = items.filter((r) => r.paymentStatus === 'Sudah Dibayar');
+    const unpaid = items.filter((r) => r.paymentStatus === 'Belum Dibayar');
+    const sum = (rows: typeof items, pick: (r: (typeof items)[number]) => number) =>
+      rows.reduce((acc, r) => acc + pick(r), 0);
+    const summary = {
+      totalTransactions: items.length,
+      unpaidTransactions: unpaid.length,
+      unpaidGross: sum(unpaid, (r) => r.gross),
+      paidGross: sum(paid, (r) => r.gross),
+      paidCogs: sum(paid, (r) => r.cogsTotal),
+      paidAdditionalCost: sum(paid, (r) => r.additionalCost),
+      paidNettProfit: sum(paid, (r) => r.nettProfit),
+    };
+    const byType = new Map<string, { cogsType: string; gross: number; cogs: number; nett: number; count: number }>();
+    for (const r of paid) {
+      const key = r.cogsType ?? 'lainnya';
+      const row = byType.get(key) ?? { cogsType: key, gross: 0, cogs: 0, nett: 0, count: 0 };
+      row.gross += r.gross;
+      row.cogs += r.cogsTotal;
+      row.nett += r.nettProfit;
+      row.count += 1;
+      byType.set(key, row);
+    }
+    return ok({ summary, nettByType: [...byType.values()], regions, items });
+  }),
+
+  http.post('*/partner/portal/rentals', async ({ request }) => {
+    const body = (await request.json()) as RentalUpsertBody;
+    const created = rentalFromBody(body, nextRentalId, new Date().toISOString());
+    if (!created) {
+      return err(422, 'VALIDATION_ERROR', 'plateNumber, startDate, endDate, price, dan cogsPerDay wajib diisi');
+    }
+    nextRentalId += 1;
+    rentalsState.push(created);
+    return HttpResponse.json({ success: true, data: presentRental(created) }, { status: 201 });
+  }),
+
+  http.patch('*/partner/portal/rentals/:id/payment-status', async ({ params, request }) => {
+    const rental = rentalsState.find((r) => String(r.id) === params.id);
+    if (!rental) return err(404, 'NOT_FOUND', 'Data rental tidak ditemukan');
+    const body = (await request.json()) as { paymentStatus?: SeedRental['paymentStatus'] };
+    if (body.paymentStatus !== 'Belum Dibayar' && body.paymentStatus !== 'Sudah Dibayar') {
+      return err(422, 'VALIDATION_ERROR', 'paymentStatus tidak valid');
+    }
+    rental.paymentStatus = body.paymentStatus;
+    rental.updatedAt = new Date().toISOString();
+    return ok(presentRental(rental));
+  }),
+
+  http.put('*/partner/portal/rentals/:id', async ({ params, request }) => {
+    const idx = rentalsState.findIndex((r) => String(r.id) === params.id);
+    if (idx === -1) return err(404, 'NOT_FOUND', 'Data rental tidak ditemukan');
+    const body = (await request.json()) as RentalUpsertBody;
+    const updated = rentalFromBody(body, rentalsState[idx].id, rentalsState[idx].createdAt);
+    if (!updated) {
+      return err(422, 'VALIDATION_ERROR', 'plateNumber, startDate, endDate, price, dan cogsPerDay wajib diisi');
+    }
+    rentalsState[idx] = updated;
+    return ok(presentRental(updated));
+  }),
+
+  http.delete('*/partner/portal/rentals/:id', ({ params }) => {
+    const idx = rentalsState.findIndex((r) => String(r.id) === params.id);
+    if (idx === -1) return err(404, 'NOT_FOUND', 'Data rental tidak ditemukan');
+    rentalsState.splice(idx, 1);
+    return ok({ deleted: true });
   }),
 ];
