@@ -182,7 +182,7 @@
             "description": ""
           }
         },
-        "summary": "Admin login \u2014 sets the session cookie (admin audience only)",
+        "summary": "Admin login — sets the session cookie (admin audience only)",
         "tags": [
           "admin-auth"
         ]
@@ -252,7 +252,7 @@
             "session": []
           }
         ],
-        "summary": "Change the current session user\u2019s password (clears mustChangePassword)",
+        "summary": "Change the current session user’s password (clears mustChangePassword)",
         "tags": [
           "auth"
         ]
@@ -378,7 +378,7 @@
             "session": []
           }
         ],
-        "summary": "Generate an external API key for this partner \u2014 rawKey returned ONCE",
+        "summary": "Generate an external API key for this partner — rawKey returned ONCE",
         "tags": [
           "admin-partners"
         ]
@@ -440,7 +440,7 @@
             "session": []
           }
         ],
-        "summary": "Upload a CSV/XLSX for a period \u2014 parsed asynchronously",
+        "summary": "Upload a CSV/XLSX for a period — parsed asynchronously",
         "tags": [
           "admin-fleet-imports"
         ]
@@ -1188,7 +1188,7 @@
             "description": ""
           }
         },
-        "summary": "Partner portal login \u2014 sets the session cookie",
+        "summary": "Partner portal login — sets the session cookie",
         "tags": [
           "partner-portal"
         ]
@@ -1356,7 +1356,7 @@
             "session": []
           }
         ],
-        "summary": "One own order detail (403 for another partner\u2019s order)",
+        "summary": "One own order detail (403 for another partner’s order)",
         "tags": [
           "partner-portal"
         ]
@@ -1921,7 +1921,7 @@
             "session": []
           }
         ],
-        "summary": "Delete a DRAFT checkpoint (completed berita acara are immutable \u2014 409)",
+        "summary": "Delete a DRAFT checkpoint (completed berita acara are immutable — 409)",
         "tags": [
           "partner-portal"
         ]
@@ -2254,76 +2254,9 @@
         ]
       }
     },
-    "/partner/v1/pricelist": {
+    "/partner/portal/debt-summary": {
       "get": {
-        "operationId": "PricelistController_quote",
-        "parameters": [
-          {
-            "name": "pickupCode",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "example": "BHISA_CAWANG",
-              "type": "string"
-            }
-          },
-          {
-            "name": "destinationCode",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "example": "EVISTA_HALIM",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "partner-api-key": []
-          }
-        ],
-        "summary": "Route/car pricelist for the authenticated partner",
-        "tags": [
-          "partner-v1"
-        ]
-      }
-    },
-    "/partner/v1/orders": {
-      "post": {
-        "operationId": "PartnerOrdersController_create",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreatePartnerOrderDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "security": [
-          {
-            "partner-api-key": []
-          }
-        ],
-        "summary": "Create an order (replaces legacy GET /partner/v1/order/create)",
-        "tags": [
-          "partner-v1"
-        ]
-      },
-      "get": {
-        "operationId": "PartnerOrdersController_list",
+        "operationId": "PortalDebtController_list",
         "parameters": [
           {
             "name": "page",
@@ -2339,7 +2272,69 @@
             "required": false,
             "in": "query",
             "schema": {
-              "example": 50,
+              "example": 10,
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "aktif",
+                "nonaktif"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "cabang",
+            "required": false,
+            "in": "query",
+            "description": "Exact cabang from /debt-summary/filters",
+            "schema": {}
+          },
+          {
+            "name": "koordinator",
+            "required": false,
+            "in": "query",
+            "description": "Exact koordinator from /debt-summary/filters",
+            "schema": {}
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Substring on driver name or plate",
+            "schema": {}
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "driverName",
+                "cabang",
+                "koordinator",
+                "depositTerbayar",
+                "tagihanSetoran",
+                "totalTagihan",
+                "selisihDeposit"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "asc",
+                "desc"
+              ],
               "type": "string"
             }
           }
@@ -2351,25 +2346,110 @@
         },
         "security": [
           {
-            "partner-api-key": []
+            "session": []
           }
         ],
-        "summary": "Order history for the authenticated partner",
+        "summary": "Own debt summary per driver (scoped to registered plates)",
         "tags": [
-          "partner-v1"
+          "partner-portal"
         ]
       }
     },
-    "/partner/v1/orders/{id}": {
+    "/partner/portal/debt-summary/filters": {
       "get": {
-        "operationId": "PartnerOrdersController_detail",
+        "operationId": "PortalDebtController_filters",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "summary": "Dropdown options (cabang, koordinator) for the debt summary",
+        "tags": [
+          "partner-portal"
+        ]
+      }
+    },
+    "/partner/portal/debt-summary/export": {
+      "get": {
+        "operationId": "PortalDebtController_export",
         "parameters": [
           {
-            "name": "id",
+            "name": "format",
             "required": true,
-            "in": "path",
+            "in": "query",
             "schema": {
-              "type": "number"
+              "enum": [
+                "xlsx"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "aktif",
+                "nonaktif"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "cabang",
+            "required": false,
+            "in": "query",
+            "description": "Exact cabang from /debt-summary/filters",
+            "schema": {}
+          },
+          {
+            "name": "koordinator",
+            "required": false,
+            "in": "query",
+            "description": "Exact koordinator from /debt-summary/filters",
+            "schema": {}
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Substring on driver name or plate",
+            "schema": {}
+          },
+          {
+            "name": "sortBy",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "driverName",
+                "cabang",
+                "koordinator",
+                "depositTerbayar",
+                "tagihanSetoran",
+                "totalTagihan",
+                "selisihDeposit"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "sortOrder",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "type": "string"
             }
           }
         ],
@@ -2380,12 +2460,12 @@
         },
         "security": [
           {
-            "partner-api-key": []
+            "session": []
           }
         ],
-        "summary": "One order's detail (own orders only \u2014 404 for any other order)",
+        "summary": "Export the filtered debt summary (?format=xlsx)",
         "tags": [
-          "partner-v1"
+          "partner-portal"
         ]
       }
     },
@@ -2431,7 +2511,7 @@
             "session": []
           }
         ],
-        "summary": "Upsert one COGS default (key present \u2192 update, absent \u2192 create)",
+        "summary": "Upsert one COGS default (key present → update, absent → create)",
         "tags": [
           "partner-portal"
         ]
@@ -2751,6 +2831,141 @@
         "summary": "Toggle Belum/Sudah Dibayar on one own rental",
         "tags": [
           "partner-portal"
+        ]
+      }
+    },
+    "/partner/v1/pricelist": {
+      "get": {
+        "operationId": "PricelistController_quote",
+        "parameters": [
+          {
+            "name": "pickupCode",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "BHISA_CAWANG",
+              "type": "string"
+            }
+          },
+          {
+            "name": "destinationCode",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "example": "EVISTA_HALIM",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "partner-api-key": []
+          }
+        ],
+        "summary": "Route/car pricelist for the authenticated partner",
+        "tags": [
+          "partner-v1"
+        ]
+      }
+    },
+    "/partner/v1/orders": {
+      "post": {
+        "operationId": "PartnerOrdersController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePartnerOrderDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "partner-api-key": []
+          }
+        ],
+        "summary": "Create an order (replaces legacy GET /partner/v1/order/create)",
+        "tags": [
+          "partner-v1"
+        ]
+      },
+      "get": {
+        "operationId": "PartnerOrdersController_list",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 1,
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "example": 50,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "partner-api-key": []
+          }
+        ],
+        "summary": "Order history for the authenticated partner",
+        "tags": [
+          "partner-v1"
+        ]
+      }
+    },
+    "/partner/v1/orders/{id}": {
+      "get": {
+        "operationId": "PartnerOrdersController_detail",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "partner-api-key": []
+          }
+        ],
+        "summary": "One order's detail (own orders only — 404 for any other order)",
+        "tags": [
+          "partner-v1"
         ]
       }
     }
@@ -3217,37 +3432,27 @@
           "batteryPercent"
         ]
       },
-      "CreatePartnerOrderDto": {
+      "UpsertCogsDefaultDto": {
         "type": "object",
         "properties": {
-          "pickupCode": {
+          "key": {
             "type": "string",
-            "example": "BHISA_CAWANG",
-            "description": "Pool code (whitelisted)"
+            "example": "air_ev",
+            "description": "Present → update that row; absent → create (key slugified from label)"
           },
-          "destinationCode": {
+          "label": {
             "type": "string",
-            "example": "EVISTA_HALIM"
+            "example": "Air EV"
           },
-          "carTypesId": {
+          "cogsPerDay": {
             "type": "number",
-            "example": 1
-          },
-          "pickupAt": {
-            "type": "string",
-            "example": "2026-07-10 09:00:00",
-            "description": "ISO 8601, or \"YYYY-MM-DD HH:mm:ss\" interpreted as Asia/Jakarta"
-          },
-          "passengerDetails": {
-            "type": "object",
-            "description": "Free-form passenger details object (stored as JSON; size-bounded)"
+            "example": 335833,
+            "description": "Integer rupiah"
           }
         },
         "required": [
-          "pickupCode",
-          "destinationCode",
-          "carTypesId",
-          "pickupAt"
+          "label",
+          "cogsPerDay"
         ]
       },
       "CreateRentalDto": {
@@ -3366,27 +3571,37 @@
           "paymentStatus"
         ]
       },
-      "UpsertCogsDefaultDto": {
+      "CreatePartnerOrderDto": {
         "type": "object",
         "properties": {
-          "key": {
+          "pickupCode": {
             "type": "string",
-            "example": "air_ev",
-            "description": "Present \u2192 update that row; absent \u2192 create (key slugified from label)"
+            "example": "BHISA_CAWANG",
+            "description": "Pool code (whitelisted)"
           },
-          "label": {
+          "destinationCode": {
             "type": "string",
-            "example": "Air EV"
+            "example": "EVISTA_HALIM"
           },
-          "cogsPerDay": {
+          "carTypesId": {
             "type": "number",
-            "example": 335833,
-            "description": "Integer rupiah"
+            "example": 1
+          },
+          "pickupAt": {
+            "type": "string",
+            "example": "2026-07-10 09:00:00",
+            "description": "ISO 8601, or \"YYYY-MM-DD HH:mm:ss\" interpreted as Asia/Jakarta"
+          },
+          "passengerDetails": {
+            "type": "object",
+            "description": "Free-form passenger details object (stored as JSON; size-bounded)"
           }
         },
         "required": [
-          "label",
-          "cogsPerDay"
+          "pickupCode",
+          "destinationCode",
+          "carTypesId",
+          "pickupAt"
         ]
       }
     }
