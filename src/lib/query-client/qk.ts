@@ -58,5 +58,17 @@ export const qk = {
       summary: (p: { month: number; year: number; day?: number }) =>
         ['partner', 'fleet', 'gojek', 'summary', p] as const,
     },
+    // Rental Monitoring (own rental transactions + COGS presets).
+    rental: {
+      list: (p: {
+        month: number;
+        year: number;
+        region?: string;
+        search?: string;
+        sortBy: string;
+        sortOrder: string;
+      }) => ['partner', 'rental', 'list', p] as const,
+      cogsDefaults: ['partner', 'rental', 'cogs-defaults'] as const,
+    },
   },
 } as const;

@@ -900,6 +900,94 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/partner/portal/rentals/cogs-defaults": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Per-partner default COGS/day per vehicle type (lazy-seeded) */
+        get: operations["PartnerRentalsController_listCogsDefaults"];
+        /** Upsert one COGS default (key present → update, absent → create) */
+        put: operations["PartnerRentalsController_upsertCogsDefault"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/rentals/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export the monthly rental recap (?format=pdf|xlsx) */
+        get: operations["PartnerRentalsController_export"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/rentals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Monthly rental recap: summary, nett per type, regions, items */
+        get: operations["PartnerRentalsController_list"];
+        put?: never;
+        /** Create a rental transaction (overlap-guarded per plate) */
+        post: operations["PartnerRentalsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/rentals/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Edit one own rental transaction */
+        put: operations["PartnerRentalsController_update"];
+        post?: never;
+        /** Delete one own rental transaction */
+        delete: operations["PartnerRentalsController_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/rentals/{id}/payment-status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Toggle Belum/Sudah Dibayar on one own rental */
+        patch: operations["PartnerRentalsController_updatePaymentStatus"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1141,6 +1229,86 @@ export interface components {
             pickupAt: string;
             /** @description Free-form passenger details object (stored as JSON; size-bounded) */
             passengerDetails?: Record<string, never>;
+        };
+        CreateRentalDto: {
+            /**
+             * @description Nomor plat (as entered)
+             * @example B 1793 SCP
+             */
+            plateNumber: string;
+            /** @example Air EV */
+            vehicleType?: string;
+            /** @example Jakarta */
+            region?: string;
+            /**
+             * @description YYYY-MM-DD, inclusive
+             * @example 2026-07-01
+             */
+            startDate: string;
+            /**
+             * @description YYYY-MM-DD, inclusive
+             * @example 2026-07-27
+             */
+            endDate: string;
+            /**
+             * @description Integer rupiah, per priceUnit
+             * @example 450000
+             */
+            price: number;
+            /**
+             * @description Default 'hari'
+             * @enum {string}
+             */
+            priceUnit?: "hari" | "bulan";
+            /**
+             * @description COGS per day, integer rupiah
+             * @example 335833
+             */
+            cogsPerDay: number;
+            /** @example Air EV */
+            cogsType?: string;
+            /** @description TOTAL for the transaction (not per day), integer rupiah. Default 0. */
+            additionalCost?: number;
+            /** @example Antar-jemput bandara */
+            additionalCostDescription?: string;
+            /** @description Integer rupiah. Default 0. */
+            deposit?: number;
+            /** @enum {string} */
+            rentalType?: "Dengan Driver" | "Lepas Kunci";
+            /** @example Instagram */
+            infoSource?: string;
+            /** @example Jabodetabek */
+            serviceArea?: string;
+            /** @example Budi Santoso */
+            customerName?: string;
+            /** @example +62 812-3456-7890 */
+            customerPhone?: string;
+            /**
+             * @description Default 'Belum Dibayar'
+             * @enum {string}
+             */
+            paymentStatus?: "Belum Dibayar" | "Sudah Dibayar";
+        };
+        UpdatePaymentStatusDto: {
+            /**
+             * @example Sudah Dibayar
+             * @enum {string}
+             */
+            paymentStatus: "Belum Dibayar" | "Sudah Dibayar";
+        };
+        UpsertCogsDefaultDto: {
+            /**
+             * @description Present → update that row; absent → create (key slugified from label)
+             * @example air_ev
+             */
+            key?: string;
+            /** @example Air EV */
+            label: string;
+            /**
+             * @description Integer rupiah
+             * @example 335833
+             */
+            cogsPerDay: number;
         };
     };
     responses: never;
@@ -2482,6 +2650,187 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PartnerRentalsController_listCogsDefaults: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PartnerRentalsController_upsertCogsDefault: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpsertCogsDefaultDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PartnerRentalsController_export: {
+        parameters: {
+            query: {
+                format: "xlsx" | "pdf";
+                /** @description 1..12, default current WIB month */
+                month?: number;
+                /** @description Default current WIB year */
+                year?: number;
+                /** @description Exact region; absent/empty = all */
+                region?: string;
+                /** @description Substring on plate/customer/service area */
+                search?: string;
+                sortBy?: "date" | "duration" | "status" | "omset" | "cogs";
+                sortOrder?: "asc" | "desc";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PartnerRentalsController_list: {
+        parameters: {
+            query?: {
+                /** @description 1..12, default current WIB month */
+                month?: number;
+                /** @description Default current WIB year */
+                year?: number;
+                /** @description Exact region; absent/empty = all */
+                region?: string;
+                /** @description Substring on plate/customer/service area */
+                search?: string;
+                sortBy?: "date" | "duration" | "status" | "omset" | "cogs";
+                sortOrder?: "asc" | "desc";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PartnerRentalsController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateRentalDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PartnerRentalsController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateRentalDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PartnerRentalsController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PartnerRentalsController_updatePaymentStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdatePaymentStatusDto"];
+            };
+        };
         responses: {
             200: {
                 headers: {
