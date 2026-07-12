@@ -10,7 +10,17 @@ import {
   scopeGrabGrid,
   importBatches,
 } from './fixtures/fleet';
-import { partnerMe, adminMe, superAdminMe, seedPartnerPlates } from './fixtures/partner';
+import {
+  partnerMe,
+  adminMe,
+  superAdminMe,
+  seedPartnerPlates,
+  seedCheckpoints,
+  makeCheckpointPoints,
+  MOCK_PHOTO_URL,
+  type MockCheckpoint,
+  type MockCheckpointMedia,
+} from './fixtures/partner';
 
 // Single mock layer for dev (VITE_USE_MSW=true) and tests (frontend-kickoff.md §9).
 // All responses use the standard envelope from PROJECT-BRIEF.md §6.
@@ -145,6 +155,48 @@ export const resetPartnerPlates = () => {
   platesState = seedPartnerPlates.map((p) => ({ ...p }));
   nextPlateId = 100;
 };
+
+// ---- Mock checkpoint state (dokumentasi serah terima) -------------------------
+const COMPARISON_PAIR: Record<string, string> = {
+  return_from_customer: 'delivery_to_customer',
+  return_from_driver: 'delivery_to_driver',
+};
+let checkpointsState: MockCheckpoint[] = structuredClone(seedCheckpoints);
+let nextCheckpointId = 100;
+let nextCheckpointMediaId = 10_000;
+let nextCheckpointPointId = 1_000;
+// presigned-but-unconfirmed uploads: mediaId → target row info
+const pendingCheckpointMedia = new Map<
+  number,
+  { checkpointId: number; pointKey?: string; kind: MockCheckpointMedia['kind']; contentType: string }
+>();
+
+/** Reset checkpoint mocks to the seed (call between tests for isolation). */
+export const resetCheckpoints = () => {
+  checkpointsState = structuredClone(seedCheckpoints);
+  nextCheckpointId = 100;
+  nextCheckpointMediaId = 10_000;
+  nextCheckpointPointId = 1_000;
+  pendingCheckpointMedia.clear();
+};
+
+const findCheckpoint = (id: string | readonly string[] | undefined) =>
+  checkpointsState.find((c) => String(c.id) === id);
+
+const checkpointSummary = (c: MockCheckpoint) => ({
+  id: c.id,
+  plateNumber: c.plateNumber,
+  handoverType: c.handoverType,
+  status: c.status,
+  counterpartName: c.counterpartName,
+  odometerKm: c.odometerKm,
+  createdAt: c.createdAt,
+  completedAt: c.completedAt,
+  photoCount: c.points.reduce(
+    (n, p) => n + p.media.filter((m) => m.kind === 'photo' && m.status === 'uploaded').length,
+    0,
+  ),
+});
 
 // ---- Mock user-management state (super_admin: create/list users & partners) --
 type MockPartner = { id: number; code: string; name: string; type: string | null; isActive: boolean; createdAt: string };
@@ -690,6 +742,244 @@ export const handlers = [
     if (idx === -1) return err(404, 'NOT_FOUND', 'Plat tidak ditemukan');
     platesState.splice(idx, 1);
     return ok({ deleted: true });
+  }),
+
+  // ---- Partner portal — Checkpoint (dokumentasi serah terima) ---------------
+  http.get('*/partner/portal/checkpoints', ({ request }) => {
+    const url = new URL(request.url);
+    const status = url.searchParams.get('status');
+    const handoverType = url.searchParams.get('handoverType');
+    const plate = url.searchParams.get('plate');
+    const page = int(url.searchParams.get('page'), 1);
+    const pageSize = int(url.searchParams.get('pageSize'), 50);
+
+    const filtered = checkpointsState
+      .filter((c) => !status || c.status === status)
+      .filter((c) => !handoverType || c.handoverType === handoverType)
+      .filter((c) => !plate || c.plateNumberNorm === normPlate(plate))
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
+    const rows = filtered.slice((page - 1) * pageSize, page * pageSize).map(checkpointSummary);
+    return ok(rows, { page, pageSize, total: filtered.length });
+  }),
+
+  http.post('*/partner/portal/checkpoints', async ({ request }) => {
+    const body = (await request.json()) as {
+      plateNumber?: string;
+      handoverType?: string;
+      counterpartName?: string;
+      counterpartPhone?: string;
+    };
+    const norm = normPlate(body.plateNumber ?? '');
+    if (!norm || !registeredNorms().has(norm)) {
+      return err(400, 'VALIDATION_ERROR', 'Plat tidak terdaftar — daftarkan plat terlebih dahulu');
+    }
+    const created: MockCheckpoint = {
+      id: nextCheckpointId++,
+      plateNumber: (body.plateNumber ?? '').trim(),
+      plateNumberNorm: norm,
+      handoverType: body.handoverType ?? 'delivery_to_customer',
+      status: 'draft',
+      counterpartName: body.counterpartName?.trim() || null,
+      counterpartPhone: body.counterpartPhone?.trim() || null,
+      odometerKm: null,
+      batteryPercent: null,
+      generalNotes: null,
+      createdAt: new Date().toISOString(),
+      completedAt: null,
+      points: makeCheckpointPoints(nextCheckpointPointId),
+      signatures: [],
+    };
+    nextCheckpointPointId += 10;
+    checkpointsState.push(created);
+    return HttpResponse.json({ success: true, data: created }, { status: 201 });
+  }),
+
+  http.get('*/partner/portal/checkpoints/:id', ({ params }) => {
+    const cp = findCheckpoint(params.id);
+    return cp ? ok(cp) : err(404, 'NOT_FOUND', 'Checkpoint tidak ditemukan');
+  }),
+
+  http.patch('*/partner/portal/checkpoints/:id', async ({ params, request }) => {
+    const cp = findCheckpoint(params.id);
+    if (!cp) return err(404, 'NOT_FOUND', 'Checkpoint tidak ditemukan');
+    if (cp.status !== 'draft') return err(409, 'CONFLICT', 'Checkpoint sudah diselesaikan');
+    const body = (await request.json()) as Partial<MockCheckpoint>;
+    if (body.counterpartName !== undefined) cp.counterpartName = body.counterpartName || null;
+    if (body.counterpartPhone !== undefined) cp.counterpartPhone = body.counterpartPhone || null;
+    if (body.odometerKm !== undefined) cp.odometerKm = body.odometerKm;
+    if (body.batteryPercent !== undefined) cp.batteryPercent = body.batteryPercent;
+    if (body.generalNotes !== undefined) cp.generalNotes = body.generalNotes || null;
+    return ok({ ...cp });
+  }),
+
+  http.patch('*/partner/portal/checkpoints/:id/points/:pointKey', async ({ params, request }) => {
+    const cp = findCheckpoint(params.id);
+    if (!cp) return err(404, 'NOT_FOUND', 'Checkpoint tidak ditemukan');
+    if (cp.status !== 'draft') return err(409, 'CONFLICT', 'Checkpoint sudah diselesaikan');
+    const point = cp.points.find((p) => p.pointKey === params.pointKey);
+    if (!point) return err(400, 'VALIDATION_ERROR', 'Titik inspeksi tidak dikenal');
+    const body = (await request.json()) as { passed?: boolean; note?: string };
+    if (body.passed !== undefined) point.passed = body.passed;
+    if (body.note !== undefined) point.note = body.note.trim() || null;
+    return ok({ ...point });
+  }),
+
+  http.post('*/partner/portal/checkpoints/:id/media/presign', async ({ params, request }) => {
+    const cp = findCheckpoint(params.id);
+    if (!cp) return err(404, 'NOT_FOUND', 'Checkpoint tidak ditemukan');
+    if (cp.status !== 'draft') return err(409, 'CONFLICT', 'Checkpoint sudah diselesaikan');
+    const body = (await request.json()) as {
+      kind: MockCheckpointMedia['kind'];
+      pointKey?: string;
+      contentType: string;
+      sizeBytes: number;
+    };
+    if (body.kind === 'photo' && !body.pointKey) {
+      return err(400, 'VALIDATION_ERROR', 'pointKey wajib untuk foto');
+    }
+    const mediaId = nextCheckpointMediaId++;
+    pendingCheckpointMedia.set(mediaId, {
+      checkpointId: cp.id,
+      pointKey: body.pointKey,
+      kind: body.kind,
+      contentType: body.contentType,
+    });
+    return HttpResponse.json(
+      {
+        success: true,
+        data: {
+          mediaId,
+          uploadUrl: `/partner/portal/checkpoints/media/${mediaId}/upload`,
+          method: 'PUT',
+          headers: { 'Content-Type': body.contentType },
+        },
+      },
+      { status: 201 },
+    );
+  }),
+
+  // Dev upload sink — the mock just acknowledges the bytes.
+  http.put('*/partner/portal/checkpoints/media/:mediaId/upload', () =>
+    ok({ stored: true }),
+  ),
+
+  http.post(
+    '*/partner/portal/checkpoints/:id/media/:mediaId/confirm',
+    ({ params }) => {
+      const pending = pendingCheckpointMedia.get(Number(params.mediaId));
+      const cp = findCheckpoint(params.id);
+      if (!pending || !cp || pending.checkpointId !== cp.id) {
+        return err(404, 'NOT_FOUND', 'Media tidak ditemukan');
+      }
+      pendingCheckpointMedia.delete(Number(params.mediaId));
+      const media: MockCheckpointMedia = {
+        id: Number(params.mediaId),
+        kind: pending.kind,
+        contentType: pending.contentType,
+        status: 'uploaded',
+        url: MOCK_PHOTO_URL,
+      };
+      if (pending.kind === 'photo') {
+        cp.points.find((p) => p.pointKey === pending.pointKey)?.media.push(media);
+      } else {
+        // Re-signing supersedes the previous signature of the same kind
+        cp.signatures = cp.signatures.filter((s) => s.kind !== pending.kind);
+        cp.signatures.push(media);
+      }
+      return HttpResponse.json({ success: true, data: media }, { status: 201 });
+    },
+  ),
+
+  http.delete('*/partner/portal/checkpoints/:id/media/:mediaId', ({ params }) => {
+    const cp = findCheckpoint(params.id);
+    if (!cp) return err(404, 'NOT_FOUND', 'Checkpoint tidak ditemukan');
+    if (cp.status !== 'draft') return err(409, 'CONFLICT', 'Checkpoint sudah diselesaikan');
+    for (const point of cp.points) {
+      const idx = point.media.findIndex((m) => String(m.id) === params.mediaId);
+      if (idx !== -1) {
+        point.media.splice(idx, 1);
+        return ok({ deleted: true });
+      }
+    }
+    const sigIdx = cp.signatures.findIndex((m) => String(m.id) === params.mediaId);
+    if (sigIdx !== -1) {
+      cp.signatures.splice(sigIdx, 1);
+      return ok({ deleted: true });
+    }
+    return err(404, 'NOT_FOUND', 'Media tidak ditemukan');
+  }),
+
+  http.post('*/partner/portal/checkpoints/:id/complete', async ({ params, request }) => {
+    const cp = findCheckpoint(params.id);
+    if (!cp) return err(404, 'NOT_FOUND', 'Checkpoint tidak ditemukan');
+    if (cp.status !== 'draft') return err(409, 'CONFLICT', 'Checkpoint sudah diselesaikan');
+    const body = (await request.json()) as {
+      odometerKm: number;
+      batteryPercent: number;
+      generalNotes?: string;
+    };
+
+    const details: { field: string; message: string }[] = [];
+    for (const p of cp.points) {
+      if (p.passed == null) details.push({ field: p.pointKey, message: `${p.label}: belum dinilai` });
+      if (!p.media.some((m) => m.kind === 'photo' && m.status === 'uploaded')) {
+        details.push({ field: p.pointKey, message: `${p.label}: belum ada foto` });
+      }
+    }
+    for (const kind of ['signature_partner', 'signature_counterpart'] as const) {
+      if (!cp.signatures.some((s) => s.kind === kind)) {
+        details.push({
+          field: kind,
+          message:
+            kind === 'signature_partner'
+              ? 'Tanda tangan petugas partner belum ada'
+              : 'Tanda tangan pihak penerima/penyerah belum ada',
+        });
+      }
+    }
+    if (details.length) {
+      return HttpResponse.json(
+        { success: false, error: { code: 'VALIDATION_ERROR', message: 'Checkpoint belum lengkap', details } },
+        { status: 400 },
+      );
+    }
+
+    cp.status = 'completed';
+    cp.odometerKm = body.odometerKm;
+    cp.batteryPercent = body.batteryPercent;
+    cp.generalNotes = body.generalNotes?.trim() || null;
+    cp.completedAt = new Date().toISOString();
+    return HttpResponse.json({ success: true, data: cp }, { status: 201 });
+  }),
+
+  http.get('*/partner/portal/checkpoints/:id/comparison', ({ params }) => {
+    const cp = findCheckpoint(params.id);
+    if (!cp) return err(404, 'NOT_FOUND', 'Checkpoint tidak ditemukan');
+    const pairedType = COMPARISON_PAIR[cp.handoverType];
+    if (!pairedType) return ok(null);
+    const cutoff = cp.completedAt ?? new Date().toISOString();
+    const prev = checkpointsState
+      .filter(
+        (c) =>
+          c.plateNumberNorm === cp.plateNumberNorm &&
+          c.handoverType === pairedType &&
+          c.status === 'completed' &&
+          c.completedAt != null &&
+          c.completedAt < cutoff,
+      )
+      .sort((a, b) => b.completedAt!.localeCompare(a.completedAt!))[0];
+    return ok(prev ?? null);
+  }),
+
+  http.get('*/partner/portal/checkpoints/:id/pdf', ({ params }) => {
+    const cp = findCheckpoint(params.id);
+    if (!cp) return err(404, 'NOT_FOUND', 'Checkpoint tidak ditemukan');
+    if (cp.status !== 'completed') return err(409, 'CONFLICT', 'Checkpoint belum diselesaikan');
+    return new HttpResponse('%PDF-1.4 mock', {
+      status: 200,
+      headers: { 'Content-Type': 'application/pdf' },
+    });
   }),
 
   // ---- Partner portal — read-only fleet (scoped to registered plates) ------

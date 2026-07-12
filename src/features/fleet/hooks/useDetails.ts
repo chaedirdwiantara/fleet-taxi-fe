@@ -45,7 +45,7 @@ export function useDetailQuery(
       const { data, error } = await api.GET('/admin/fleet/gojek/details/{detailId}', {
         params: {
           path: { detailId: detailId! },
-          query: period ? { month: period.month, year: period.year } : {},
+          query: period ? { month: String(period.month), year: String(period.year) } : {},
         },
       });
       if (error) throwEnvelope(error);

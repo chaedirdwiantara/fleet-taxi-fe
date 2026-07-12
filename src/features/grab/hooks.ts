@@ -14,8 +14,8 @@ export function useGrabGridQuery(p: { month: number; year: number; rentalPartner
       const { data, error } = await api.GET('/admin/fleet/grab/grid', {
         params: {
           query: {
-            month: p.month,
-            year: p.year,
+            month: String(p.month),
+            year: String(p.year),
             ...(p.rentalPartner.length ? { rentalPartner: p.rentalPartner } : {}),
             ...(p.plate ? { plate: p.plate } : {}),
           },
@@ -38,7 +38,7 @@ export function useGrabDriverDetailQuery(p: {
     queryKey: qk.fleet.cell({ platform: 'grab', key: p.compositeKey, day: 1, month: p.month, year: p.year }),
     queryFn: async (): Promise<GrabDriverDetail> => {
       const { data, error } = await api.GET('/admin/fleet/grab/cell', {
-        params: { query: { compositeKey: p.compositeKey, day: 1, month: p.month, year: p.year } },
+        params: { query: { compositeKey: p.compositeKey, day: 1, month: String(p.month), year: String(p.year) } },
       });
       if (error) throwEnvelope(error);
       return unwrap(data) as GrabDriverDetail;
@@ -54,7 +54,7 @@ export function usePartnerGrabGridQuery(p: { month: number; year: number }) {
     queryKey: qk.partner.fleet.grid({ platform: 'grab', ...p }),
     queryFn: async (): Promise<GrabGrid> => {
       const { data, error } = await api.GET('/partner/portal/fleet/grab/grid', {
-        params: { query: { month: p.month, year: p.year } },
+        params: { query: { month: String(p.month), year: String(p.year) } },
       });
       if (error) throwEnvelope(error);
       return unwrap(data) as GrabGrid;
@@ -73,7 +73,7 @@ export function usePartnerGrabDriverDetailQuery(p: {
     queryKey: qk.partner.fleet.cell({ platform: 'grab', key: p.compositeKey, day: 1, month: p.month, year: p.year }),
     queryFn: async (): Promise<GrabDriverDetail> => {
       const { data, error } = await api.GET('/partner/portal/fleet/grab/cell', {
-        params: { query: { compositeKey: p.compositeKey, day: 1, month: p.month, year: p.year } },
+        params: { query: { compositeKey: p.compositeKey, day: 1, month: String(p.month), year: String(p.year) } },
       });
       if (error) throwEnvelope(error);
       return unwrap(data) as GrabDriverDetail;
