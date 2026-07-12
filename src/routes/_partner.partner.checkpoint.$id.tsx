@@ -1,6 +1,17 @@
 import { useMemo, useState } from 'react';
-import { createFileRoute, Link } from '@tanstack/react-router';
-import { ArrowLeft, CheckCircle2, FileDown, Loader2 } from 'lucide-react';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
+import { ArrowLeft, CheckCircle2, FileDown, Loader2, Trash2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,6 +22,7 @@ import {
   resolveMediaUrl,
   useCheckpointQuery,
   useComparisonQuery,
+  useDeleteCheckpoint,
 } from '@/features/partner/checkpoint/hooks';
 import {
   HANDOVER_LABELS,
@@ -48,9 +60,11 @@ function CheckpointDetailPage() {
 }
 
 function CheckpointDetailView({ detail }: { detail: CheckpointDetail }) {
+  const navigate = useNavigate();
   const isDraft = detail.status === 'draft';
   const isReturn = RETURN_TYPES.includes(detail.handoverType);
   const comparison = useComparisonQuery(detail.id, isReturn);
+  const remove = useDeleteCheckpoint();
   const [completeOpen, setCompleteOpen] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
@@ -104,8 +118,56 @@ function CheckpointDetailView({ detail }: { detail: CheckpointDetail }) {
               {assessed}/{detail.points.length} titik
             </span>
           )}
+          {isDraft && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Hapus draft ini"
+                  className="min-h-9 min-w-9 shrink-0 text-destructive hover:bg-destructive/10"
+                  disabled={remove.isPending}
+                >
+                  {remove.isPending ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="size-4" />
+                  )}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Hapus draft checkpoint ini?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Draft {detail.plateNumber} ({HANDOVER_LABELS[detail.handoverType]}) beserta
+                    seluruh foto dan penilaian di dalamnya akan dihapus permanen dan tidak bisa
+                    dikembalikan.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Batal</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() =>
+                      remove.mutate(detail.id, {
+                        onSuccess: () => void navigate({ to: '/partner/checkpoint' }),
+                      })
+                    }
+                    className="bg-destructive text-white hover:bg-destructive/90"
+                  >
+                    Hapus Draft
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
         </div>
       </div>
+
+      {remove.isError && (
+        <p className="text-sm text-destructive" role="alert">
+          {remove.error.message}
+        </p>
+      )}
 
       <Card className="py-4">
         <CardContent className="grid grid-cols-2 gap-x-4 gap-y-2 px-4 text-sm">

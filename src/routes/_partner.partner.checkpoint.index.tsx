@@ -1,6 +1,16 @@
 import { useEffect, useState } from 'react';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { Camera, ChevronRight, Plus, Search, X } from 'lucide-react';
+import { Camera, ChevronRight, Loader2, Plus, Search, Trash2, X } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -13,7 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { CreateCheckpointDialog } from '@/features/partner/checkpoint/CreateCheckpointDialog';
-import { useCheckpointsQuery } from '@/features/partner/checkpoint/hooks';
+import { useCheckpointsQuery, useDeleteCheckpoint } from '@/features/partner/checkpoint/hooks';
 import {
   HANDOVER_LABELS,
   HANDOVER_TYPES,
@@ -247,33 +257,83 @@ function CheckpointListPage() {
 }
 
 function CheckpointCard({ checkpoint }: { checkpoint: CheckpointSummary }) {
+  const remove = useDeleteCheckpoint();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
   return (
-    <Link
-      to="/partner/checkpoint/$id"
-      params={{ id: String(checkpoint.id) }}
-      className="block rounded-xl outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-    >
-      <Card className="py-3 transition-colors hover:bg-accent/40">
-        <CardContent className="flex items-center gap-3 px-4">
-          <div className="min-w-0 flex-1 space-y-0.5">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-semibold">{checkpoint.plateNumber}</span>
-              <Badge variant={checkpoint.status === 'completed' ? 'default' : 'secondary'}>
-                {checkpoint.status === 'completed' ? 'Selesai' : 'Draft'}
-              </Badge>
+    <>
+      <Link
+        to="/partner/checkpoint/$id"
+        params={{ id: String(checkpoint.id) }}
+        className="block rounded-xl outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+      >
+        <Card className="py-3 transition-colors hover:bg-accent/40">
+          <CardContent className="flex items-center gap-3 px-4">
+            <div className="min-w-0 flex-1 space-y-0.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm font-semibold">{checkpoint.plateNumber}</span>
+                <Badge variant={checkpoint.status === 'completed' ? 'default' : 'secondary'}>
+                  {checkpoint.status === 'completed' ? 'Selesai' : 'Draft'}
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {HANDOVER_LABELS[checkpoint.handoverType]}
+                {checkpoint.counterpartName ? ` · ${checkpoint.counterpartName}` : ''}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {formatDateTimeWIB(checkpoint.completedAt ?? checkpoint.createdAt)} ·{' '}
+                {checkpoint.photoCount} foto
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground">
-              {HANDOVER_LABELS[checkpoint.handoverType]}
-              {checkpoint.counterpartName ? ` · ${checkpoint.counterpartName}` : ''}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {formatDateTimeWIB(checkpoint.completedAt ?? checkpoint.createdAt)} ·{' '}
-              {checkpoint.photoCount} foto
-            </p>
-          </div>
-          <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-        </CardContent>
-      </Card>
-    </Link>
+            {/* Completed checkpoints are berita acara — no delete offered */}
+            {checkpoint.status === 'draft' && (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label={`Hapus draft ${checkpoint.plateNumber}`}
+                className="min-h-9 min-w-9 shrink-0 text-destructive hover:bg-destructive/10"
+                disabled={remove.isPending}
+                onClick={(e) => {
+                  // Stop the wrapping Link from navigating; the dialog is
+                  // controlled state, so preventDefault can't swallow it.
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setConfirmOpen(true);
+                }}
+              >
+                {remove.isPending ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Trash2 className="size-4" />
+                )}
+              </Button>
+            )}
+            <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+          </CardContent>
+        </Card>
+      </Link>
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus draft checkpoint ini?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Draft {checkpoint.plateNumber} ({HANDOVER_LABELS[checkpoint.handoverType]}) beserta{' '}
+              {checkpoint.photoCount} foto di dalamnya akan dihapus permanen dan tidak bisa
+              dikembalikan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => remove.mutate(checkpoint.id)}
+              className="bg-destructive text-white hover:bg-destructive/90"
+            >
+              Hapus Draft
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
