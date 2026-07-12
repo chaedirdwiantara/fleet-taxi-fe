@@ -31,6 +31,9 @@ export interface CheckpointListFilters {
   plate?: string;
   handoverType?: string;
   status?: string;
+  /** WIB period filter; both must be set to take effect. */
+  month?: number;
+  year?: number;
 }
 
 export function useCheckpointsQuery(filters: CheckpointListFilters) {
@@ -46,6 +49,8 @@ export function useCheckpointsQuery(filters: CheckpointListFilters) {
               handoverType: filters.handoverType as HandoverType,
             }),
             ...(filters.status && { status: filters.status as 'draft' | 'completed' }),
+            ...(filters.month &&
+              filters.year && { month: String(filters.month), year: String(filters.year) }),
           },
         },
       });

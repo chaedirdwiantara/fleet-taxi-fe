@@ -750,13 +750,22 @@ export const handlers = [
     const status = url.searchParams.get('status');
     const handoverType = url.searchParams.get('handoverType');
     const plate = url.searchParams.get('plate');
+    const month = Number(url.searchParams.get('month')) || 0;
+    const year = Number(url.searchParams.get('year')) || 0;
     const page = int(url.searchParams.get('page'), 1);
     const pageSize = int(url.searchParams.get('pageSize'), 50);
 
     const filtered = checkpointsState
       .filter((c) => !status || c.status === status)
       .filter((c) => !handoverType || c.handoverType === handoverType)
-      .filter((c) => !plate || c.plateNumberNorm === normPlate(plate))
+      // partial match, mirroring the BE ilike filter
+      .filter((c) => !plate || c.plateNumberNorm.includes(normPlate(plate)))
+      .filter((c) => {
+        if (!month || !year) return true;
+        // WIB bucketing: shift UTC by +7h then read the calendar fields
+        const wib = new Date(new Date(c.createdAt).getTime() + 7 * 3_600_000);
+        return wib.getUTCMonth() + 1 === month && wib.getUTCFullYear() === year;
+      })
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
     const rows = filtered.slice((page - 1) * pageSize, page * pageSize).map(checkpointSummary);

@@ -44,6 +44,37 @@ describe('checkpoint — dokumentasi serah terima', () => {
     expect(result.current.data!.rows[0]!.status).toBe('draft');
   });
 
+  it('searches by partial plate and filters by WIB month/year', async () => {
+    // "1000" is a fragment of B1000XYZ — partial match must find both seeds
+    const { result: partial } = renderHook(
+      () => useCheckpointsQuery({ page: 1, plate: '1000' }),
+      { wrapper: wrapperFor(makeClient()) },
+    );
+    await waitFor(() => expect(partial.current.isSuccess).toBe(true));
+    expect(partial.current.data!.meta?.total).toBe(2);
+
+    const { result: none } = renderHook(() => useCheckpointsQuery({ page: 1, plate: 'ZZZ' }), {
+      wrapper: wrapperFor(makeClient()),
+    });
+    await waitFor(() => expect(none.current.isSuccess).toBe(true));
+    expect(none.current.data!.meta?.total).toBe(0);
+
+    // Both seeds are July 2026 (WIB); June must be empty
+    const { result: june } = renderHook(
+      () => useCheckpointsQuery({ page: 1, month: 6, year: 2026 }),
+      { wrapper: wrapperFor(makeClient()) },
+    );
+    await waitFor(() => expect(june.current.isSuccess).toBe(true));
+    expect(june.current.data!.meta?.total).toBe(0);
+
+    const { result: july } = renderHook(
+      () => useCheckpointsQuery({ page: 1, month: 7, year: 2026 }),
+      { wrapper: wrapperFor(makeClient()) },
+    );
+    await waitFor(() => expect(july.current.isSuccess).toBe(true));
+    expect(july.current.data!.meta?.total).toBe(2);
+  });
+
   it('creates a draft with the 10-point template; rejects unregistered plates', async () => {
     const { result } = renderHook(() => useCreateCheckpoint(), {
       wrapper: wrapperFor(makeClient()),

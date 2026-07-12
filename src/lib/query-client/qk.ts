@@ -39,8 +39,14 @@ export const qk = {
     me: ['partner', 'me'] as const,
     plates: ['partner', 'plates'] as const,
     checkpoint: {
-      list: (p: { page: number; plate?: string; handoverType?: string; status?: string }) =>
-        ['partner', 'checkpoint', 'list', p] as const,
+      list: (p: {
+        page: number;
+        plate?: string;
+        handoverType?: string;
+        status?: string;
+        month?: number;
+        year?: number;
+      }) => ['partner', 'checkpoint', 'list', p] as const,
       detail: (id: number) => ['partner', 'checkpoint', 'detail', id] as const,
       comparison: (id: number) => ['partner', 'checkpoint', 'comparison', id] as const,
     },

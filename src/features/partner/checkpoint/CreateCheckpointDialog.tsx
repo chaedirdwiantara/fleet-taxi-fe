@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { usePartnerPlatesQuery } from '@/features/partner/hooks';
+import { PlateCombobox } from './PlateCombobox';
 import { useCreateCheckpoint } from './hooks';
 import { HANDOVER_LABELS, HANDOVER_TYPES, type HandoverType } from './types';
 
@@ -72,21 +73,13 @@ export function CreateCheckpointDialog({
         <form onSubmit={submit} className="grid gap-3">
           <div className="space-y-1.5">
             <Label htmlFor="cp-plate">Nomor Plat</Label>
-            <Select value={plateNumber} onValueChange={setPlateNumber}>
-              <SelectTrigger id="cp-plate" className="w-full">
-                <SelectValue
-                  placeholder={plates.isPending ? 'Memuat…' : 'Pilih plat terdaftar'}
-                />
-              </SelectTrigger>
-              <SelectContent>
-                {(plates.data ?? []).map((p) => (
-                  <SelectItem key={p.id} value={p.plateNumber}>
-                    {p.plateNumber}
-                    {p.vehicleType ? ` · ${p.vehicleType}` : ''}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <PlateCombobox
+              id="cp-plate"
+              plates={plates.data ?? []}
+              loading={plates.isPending}
+              value={plateNumber}
+              onChange={setPlateNumber}
+            />
             {plates.isSuccess && plates.data.length === 0 && (
               <p className="text-xs text-muted-foreground">
                 Belum ada plat terdaftar — daftarkan dulu di menu Daftarkan Plat.

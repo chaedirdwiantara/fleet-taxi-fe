@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { Camera, ChevronRight, Plus } from 'lucide-react';
+import { Camera, ChevronRight, Plus, Search, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -18,7 +19,7 @@ import {
   HANDOVER_TYPES,
   type CheckpointSummary,
 } from '@/features/partner/checkpoint/types';
-import { formatDateTimeWIB } from '@/lib/datetime';
+import { currentYearWIB, formatDateTimeWIB, MONTH_NAMES_ID } from '@/lib/datetime';
 
 // Checkpoint — dokumentasi serah terima kendaraan. Mobile-first card list;
 // inspections happen outdoors on a phone.
@@ -27,17 +28,35 @@ export const Route = createFileRoute('/_partner/partner/checkpoint/')({
 });
 
 const ALL = 'all';
+// This year plus a few back — checkpoints only exist from 2026 onward
+const YEAR_OPTIONS = Array.from({ length: 3 }, (_, i) => currentYearWIB() - i).filter(
+  (y) => y >= 2026,
+);
 
 function CheckpointListPage() {
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState(ALL);
   const [handoverType, setHandoverType] = useState(ALL);
+  const [month, setMonth] = useState(ALL); // '1'..'12' | ALL
+  const [year, setYear] = useState(String(currentYearWIB()));
+  const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(search.trim());
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [search]);
 
   const list = useCheckpointsQuery({
     page,
+    plate: debouncedSearch || undefined,
     status: status === ALL ? undefined : status,
     handoverType: handoverType === ALL ? undefined : handoverType,
+    ...(month !== ALL && { month: Number(month), year: Number(year) }),
   });
 
   const total = list.data?.meta?.total ?? 0;
@@ -61,7 +80,34 @@ function CheckpointListPage() {
         </Button>
       </div>
 
-      <div className="flex gap-2">
+      <div className="relative">
+        <Search
+          className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+          aria-hidden
+        />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Cari nomor plat… (mis. 2437 atau B 2437 SNC)"
+          aria-label="Cari riwayat checkpoint berdasarkan plat"
+          className="pl-9 pr-9"
+          autoComplete="off"
+        />
+        {search && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Bersihkan pencarian"
+            className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground"
+            onClick={() => setSearch('')}
+          >
+            <X className="size-4" />
+          </Button>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Select
           value={status}
           onValueChange={(v) => {
@@ -69,7 +115,7 @@ function CheckpointListPage() {
             setPage(1);
           }}
         >
-          <SelectTrigger className="flex-1" aria-label="Filter status">
+          <SelectTrigger className="w-full" aria-label="Filter status">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -85,7 +131,7 @@ function CheckpointListPage() {
             setPage(1);
           }}
         >
-          <SelectTrigger className="flex-1" aria-label="Filter jenis serah terima">
+          <SelectTrigger className="w-full" aria-label="Filter jenis serah terima">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -93,6 +139,44 @@ function CheckpointListPage() {
             {HANDOVER_TYPES.map((t) => (
               <SelectItem key={t} value={t}>
                 {HANDOVER_LABELS[t]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={month}
+          onValueChange={(v) => {
+            setMonth(v);
+            setPage(1);
+          }}
+        >
+          <SelectTrigger className="w-full" aria-label="Filter bulan">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>Semua bulan</SelectItem>
+            {MONTH_NAMES_ID.map((name, i) => (
+              <SelectItem key={name} value={String(i + 1)}>
+                {name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={year}
+          onValueChange={(v) => {
+            setYear(v);
+            setPage(1);
+          }}
+          disabled={month === ALL}
+        >
+          <SelectTrigger className="w-full" aria-label="Filter tahun">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {YEAR_OPTIONS.map((y) => (
+              <SelectItem key={y} value={String(y)}>
+                {y}
               </SelectItem>
             ))}
           </SelectContent>
@@ -107,14 +191,26 @@ function CheckpointListPage() {
         <Card className="py-10">
           <CardContent className="flex flex-col items-center gap-2 text-center">
             <Camera className="size-8 text-muted-foreground/50" aria-hidden />
-            <p className="text-sm text-muted-foreground">
-              Belum ada checkpoint. Mulai dokumentasi serah terima pertama Anda.
-            </p>
-            <Button variant="outline" size="sm" onClick={() => setCreateOpen(true)}>
-              <Plus aria-hidden /> Checkpoint Baru
-            </Button>
+            {debouncedSearch || status !== ALL || handoverType !== ALL || month !== ALL ? (
+              <p className="text-sm text-muted-foreground">
+                Tidak ada checkpoint yang cocok dengan pencarian/filter.
+              </p>
+            ) : (
+              <>
+                <p className="text-sm text-muted-foreground">
+                  Belum ada checkpoint. Mulai dokumentasi serah terima pertama Anda.
+                </p>
+                <Button variant="outline" size="sm" onClick={() => setCreateOpen(true)}>
+                  <Plus aria-hidden /> Checkpoint Baru
+                </Button>
+              </>
+            )}
           </CardContent>
         </Card>
+      )}
+
+      {list.isSuccess && total > 0 && (
+        <p className="text-xs text-muted-foreground">{total} checkpoint ditemukan</p>
       )}
 
       <div className="space-y-2">

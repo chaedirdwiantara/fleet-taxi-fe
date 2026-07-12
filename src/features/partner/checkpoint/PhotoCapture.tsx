@@ -2,12 +2,18 @@ import { useRef, useState } from 'react';
 import { Camera, Image as ImageIcon, Loader2, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { CameraDialog } from './CameraDialog';
 import { resolveMediaUrl, useDeleteMedia, useUploadMedia } from './hooks';
 import type { CheckpointMedia, PointKey } from './types';
 
-// Photo evidence for one inspection point: camera capture + gallery pick
-// (two hidden inputs — `capture` forces the camera on phones), thumbnail
-// grid with full-screen preview, per-photo delete while still a draft.
+// Touch devices get the native camera app via `<input capture>`; on desktop
+// that attribute silently degrades to a file picker, so there the Kamera
+// button opens a getUserMedia webcam dialog instead.
+const isTouchDevice = () =>
+  typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
+
+// Photo evidence for one inspection point: camera capture + gallery pick,
+// thumbnail grid with full-screen preview, per-photo delete while a draft.
 export function PhotoCapture({
   checkpointId,
   pointKey,
@@ -22,6 +28,7 @@ export function PhotoCapture({
   const cameraRef = useRef<HTMLInputElement>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<CheckpointMedia | null>(null);
+  const [webcamOpen, setWebcamOpen] = useState(false);
   const upload = useUploadMedia(checkpointId);
   const remove = useDeleteMedia(checkpointId);
 
@@ -32,6 +39,11 @@ export function PhotoCapture({
     for (const file of Array.from(files)) {
       upload.mutate({ kind: 'photo', pointKey, blob: file });
     }
+  };
+
+  const openCamera = () => {
+    if (isTouchDevice()) cameraRef.current?.click();
+    else setWebcamOpen(true);
   };
 
   return (
@@ -96,7 +108,7 @@ export function PhotoCapture({
             <button
               type="button"
               className="flex flex-1 min-h-11 items-center justify-center gap-1 rounded-md border border-dashed text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground disabled:opacity-50"
-              onClick={() => cameraRef.current?.click()}
+              onClick={openCamera}
               disabled={upload.isPending}
             >
               {upload.isPending ? (
@@ -150,6 +162,12 @@ export function PhotoCapture({
           </Button>
         </DialogContent>
       </Dialog>
+
+      <CameraDialog
+        open={webcamOpen}
+        onOpenChange={setWebcamOpen}
+        onCapture={(blob) => upload.mutate({ kind: 'photo', pointKey, blob })}
+      />
     </div>
   );
 }
