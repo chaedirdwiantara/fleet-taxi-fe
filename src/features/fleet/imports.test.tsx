@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { qk } from '@/lib/query-client';
 import { useImportProgress } from '@/lib/socket/useImportProgress';
-import { useUploadImport, useRollbackImport, useImportsQuery } from './hooks/useImports';
+import { useUploadImport, useRollbackImport, useImportsQuery, type ImportBatch } from './hooks/useImports';
 import { api, unwrap } from '@/lib/api-client/client';
 
 // fake socket.io-client surface — handlers captured per event
@@ -88,7 +88,7 @@ describe('import lifecycle against the stateful mock (upload → poll → done �
     const { data } = await api.GET('/admin/fleet/{platform}/imports/{id}', {
       params: { path: { platform: 'gojek', id } },
     });
-    return unwrap(data);
+    return unwrap(data) as ImportBatch;
   };
 
   it('runs the whole flow', async () => {
@@ -122,6 +122,6 @@ describe('import lifecycle against the stateful mock (upload → poll → done �
     const { data } = await api.GET('/admin/fleet/{platform}/imports', {
       params: { path: { platform: 'gojek' } },
     });
-    expect(unwrap(data).some((b) => b.id === importId)).toBe(false);
+    expect((unwrap(data) as ImportBatch[]).some((b) => b.id === importId)).toBe(false);
   });
 });

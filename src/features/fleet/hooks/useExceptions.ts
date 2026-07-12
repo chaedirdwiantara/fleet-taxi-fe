@@ -22,7 +22,7 @@ export function useExceptionsQuery(p: { month: number; year: number }) {
     queryKey: qk.fleet.exceptions(p),
     queryFn: async (): Promise<FleetException[]> => {
       const { data, error } = await api.GET('/admin/fleet/gojek/exceptions', {
-        params: { query: p },
+        params: { query: { month: String(p.month), year: String(p.year) } },
       });
       if (error) throwEnvelope(error);
       return unwrap(data) as FleetException[];
