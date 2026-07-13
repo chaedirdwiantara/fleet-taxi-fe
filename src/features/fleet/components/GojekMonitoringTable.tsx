@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { MoreHorizontal, Pencil, PlusCircle, CalendarClock, History } from 'lucide-react';
+import { MoreHorizontal, Pencil, PlusCircle, CalendarClock } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,25 +19,28 @@ import { groupRowSpans, identityWidth, stickyLefts, type IdentityCol } from './s
 // Rendered in the modern shadcn shell; horizontally scrollable on mobile.
 //
 // Two column layouts share this component:
-//  • admin   → No · Rental Partner · Region · Plate · Type · Setoran · Aksi
-//  • partner → No · Plate · Type · Setoran · Aksi   (own plates only; no
-//    Rental Partner / Region — those are cross-partner/admin concepts)
+//  • admin   → No · Rental Partner · Region · Plate · Type · Driver · Setoran · Aksi
+//  • partner → No · Plate · Type · Driver · Setoran   (own plates only; no
+//    Rental Partner / Region / Aksi — cross-partner and admin-only concepts)
+// Driver history is rendered inline as its own frozen column (one name per
+// line), replacing the legacy "Histori Driver" modal.
 
 const IDENTITY_ADMIN: IdentityCol[] = [
   { id: 'no', label: 'No', width: 44 },
   { id: 'rentalPartner', label: 'Rental Partner', width: 130 },
   { id: 'region', label: 'Region', width: 90 },
-  { id: 'plate', label: 'Plate', width: 110 },
-  { id: 'type', label: 'Type', width: 140 },
-  { id: 'setoran', label: 'Setoran', width: 92 },
+  { id: 'plate', label: 'Plate', width: 92 },
+  { id: 'type', label: 'Type', width: 104 },
+  { id: 'driver', label: 'Driver', width: 148 },
+  { id: 'setoran', label: 'Setoran', width: 78 },
   { id: 'aksi', label: 'Aksi', width: 56 },
 ];
 const IDENTITY_PARTNER: IdentityCol[] = [
   { id: 'no', label: 'No', width: 44 },
-  { id: 'plate', label: 'Plate', width: 120 },
-  { id: 'type', label: 'Type', width: 150 },
-  { id: 'setoran', label: 'Setoran', width: 100 },
-  { id: 'aksi', label: 'Aksi', width: 56 },
+  { id: 'plate', label: 'Plate', width: 96 },
+  { id: 'type', label: 'Type', width: 110 },
+  { id: 'driver', label: 'Driver', width: 152 },
+  { id: 'setoran', label: 'Setoran', width: 82 },
 ];
 const DAY_W = 62;
 const SUMMARY: IdentityCol[] = [
@@ -58,9 +61,8 @@ type Props = {
   // Admin-only actions; omitted in read-only (partner portal) mode.
   onEditTarget?: (row: FleetRow) => void;
   onManageException?: (plateNorm: string) => void;
-  onDriverHistory?: (row: FleetRow) => void;
-  // Read-only = partner portal: drops Rental Partner / Region, and the Aksi
-  // column keeps only the read-only "Histori Driver" action.
+  // Read-only = partner portal: drops Rental Partner / Region and the
+  // admin-only Aksi column entirely.
   readOnly?: boolean;
   // Surface-specific empty-state copy (e.g. the admin grid explains that only
   // partner-registered plates appear).
@@ -72,7 +74,6 @@ export function GojekMonitoringTable({
   onCellClick,
   onEditTarget,
   onManageException,
-  onDriverHistory,
   readOnly = false,
   emptyMessage = 'Tidak ada data untuk periode / filter ini.',
 }: Props) {
@@ -115,13 +116,17 @@ export function GojekMonitoringTable({
             ))}
             <th
               colSpan={days.length}
-              className={cn('sticky top-0 z-20 border-b border-r border-indigo-300/40 px-2 py-1.5 text-center font-semibold', HEAD_BG)}
+              className={cn('sticky top-0 z-20 h-8 border-b border-r border-indigo-300/40 px-2 py-0 text-left align-middle font-semibold', HEAD_BG)}
             >
-              Tanggal ({monthLabel})
+              {/* pinned past the frozen columns so the label stays visible
+                  while the ~31-day band scrolls horizontally */}
+              <span className="sticky inline-block w-fit" style={{ left: idW + 12 }}>
+                Tanggal ({monthLabel})
+              </span>
             </th>
             <th
               colSpan={SUMMARY.length}
-              className={cn('sticky top-0 z-20 border-b border-l-2 border-l-slate-300 px-2 py-1.5 text-center font-semibold', SUMMARY_BG)}
+              className={cn('sticky top-0 z-20 h-8 border-b border-l-2 border-l-slate-300 px-2 py-0 text-center align-middle font-semibold', SUMMARY_BG)}
             >
               Summary
             </th>
@@ -131,7 +136,7 @@ export function GojekMonitoringTable({
             {days.map((d) => (
               <th
                 key={d}
-                className={cn('sticky top-[33px] z-20 border-b border-r border-indigo-300/30 px-1 py-1 text-center font-medium', HEAD_BG)}
+                className={cn('sticky top-8 z-20 border-b border-r border-indigo-300/30 px-1 py-1 text-center font-medium', HEAD_BG)}
                 style={{ width: DAY_W, minWidth: DAY_W }}
               >
                 {d}
@@ -141,7 +146,7 @@ export function GojekMonitoringTable({
               <th
                 key={c.id}
                 className={cn(
-                  'sticky top-[33px] z-20 border-b border-r px-1 py-1 text-center font-medium',
+                  'sticky top-8 z-20 border-b border-r px-1 py-1 text-center font-medium',
                   SUMMARY_BG,
                   i === 0 && 'border-l-2 border-l-slate-300',
                 )}
@@ -162,6 +167,7 @@ export function GojekMonitoringTable({
             const regionCol = colAt('region');
             const plateCol = colAt('plate')!;
             const typeCol = colAt('type')!;
+            const driverCol = colAt('driver')!;
             const setoranCol = colAt('setoran')!;
             const aksiCol = colAt('aksi');
             return (
@@ -210,6 +216,22 @@ export function GojekMonitoringTable({
                   {row.vehicleType || '-'}
                 </td>
                 <td
+                  className={cn(stickyBase, 'px-2 py-1 text-left', lastBorder(driverCol.isLast))}
+                  style={{ left: driverCol.left, width: driverCol.width, maxWidth: driverCol.width }}
+                >
+                  {row.driverHistory.length > 0 ? (
+                    <div className="space-y-0.5">
+                      {row.driverHistory.map((name, i) => (
+                        <div key={`${name}-${i}`} className="truncate" title={name}>
+                          {name}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-slate-400">-</span>
+                  )}
+                </td>
+                <td
                   className={cn(stickyBase, 'px-2 py-1 text-right tabular-nums', lastBorder(setoranCol.isLast))}
                   style={{ left: setoranCol.left, width: setoranCol.width }}
                 >
@@ -248,11 +270,6 @@ export function GojekMonitoringTable({
                         {!readOnly && onManageException && (
                           <DropdownMenuItem onClick={() => onManageException(row.plateNorm)}>
                             <CalendarClock className="text-indigo-500" /> Kelola Jadwal
-                          </DropdownMenuItem>
-                        )}
-                        {onDriverHistory && (
-                          <DropdownMenuItem onClick={() => onDriverHistory(row)}>
-                            <History className="text-sky-500" /> Histori Driver
                           </DropdownMenuItem>
                         )}
                       </DropdownMenuContent>

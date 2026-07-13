@@ -92,23 +92,27 @@ export function GrabMonitoringTable({
                 {c.label}
               </th>
             ))}
-            <th colSpan={days.length} className={cn('sticky top-0 z-20 border-b border-r px-2 py-1.5 text-center font-semibold', HEAD_BG)}>
-              Tanggal ({monthLabel})
+            <th colSpan={days.length} className={cn('sticky top-0 z-20 h-8 border-b border-r px-2 py-0 text-left align-middle font-semibold', HEAD_BG)}>
+              {/* pinned past the frozen columns so the label stays visible
+                  while the ~31-day band scrolls horizontally */}
+              <span className="sticky inline-block w-fit" style={{ left: idW + 12 }}>
+                Tanggal ({monthLabel})
+              </span>
             </th>
-            <th colSpan={SUMMARY.length} className={cn('sticky top-0 z-20 border-b border-l-2 border-l-slate-300 px-2 py-1.5 text-center font-semibold', SUMMARY_BG)}>
+            <th colSpan={SUMMARY.length} className={cn('sticky top-0 z-20 h-8 border-b border-l-2 border-l-slate-300 px-2 py-0 text-center align-middle font-semibold', SUMMARY_BG)}>
               Monthly Summary
             </th>
           </tr>
           <tr>
             {days.map((d) => (
-              <th key={d} className={cn('sticky top-[33px] z-20 border-b border-r px-1 py-1 text-center font-medium', HEAD_BG)} style={{ width: DAY_W, minWidth: DAY_W }}>
+              <th key={d} className={cn('sticky top-8 z-20 border-b border-r px-1 py-1 text-center font-medium', HEAD_BG)} style={{ width: DAY_W, minWidth: DAY_W }}>
                 {d}
               </th>
             ))}
             {SUMMARY.map((c, i) => (
               <th
                 key={c.id}
-                className={cn('sticky top-[33px] z-20 border-b border-r px-1 py-1 text-center font-medium', SUMMARY_BG, i === 0 && 'border-l-2 border-l-slate-300')}
+                className={cn('sticky top-8 z-20 border-b border-r px-1 py-1 text-center font-medium', SUMMARY_BG, i === 0 && 'border-l-2 border-l-slate-300')}
                 style={{ width: c.width, minWidth: c.width }}
               >
                 {c.label}

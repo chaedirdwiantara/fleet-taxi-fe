@@ -6,7 +6,6 @@ import { GojekMonitoringTable } from '@/features/fleet/components/GojekMonitorin
 import { FilterBar } from '@/features/fleet/components/FilterBar';
 import { CellLegend } from '@/features/fleet/components/CellLegend';
 import { CellModal } from '@/features/fleet/components/CellModal';
-import { DriverHistoryModal } from '@/features/fleet/components/DriverHistoryModal';
 import { ImportPanel } from '@/features/fleet/components/ImportPanel';
 import { ImportHistoryDialog } from '@/features/fleet/components/ImportHistoryDialog';
 import { ExceptionPanel } from '@/features/fleet/components/ExceptionPanel';
@@ -29,7 +28,6 @@ function GojekGridPage() {
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
   const [editRow, setEditRow] = useState<FleetRow | null>(null);
-  const [historyRow, setHistoryRow] = useState<FleetRow | null>(null);
   const [exceptionOpen, setExceptionOpen] = useState(false);
   const [exceptionPlate, setExceptionPlate] = useState<string | undefined>(undefined);
 
@@ -109,7 +107,6 @@ function GojekGridPage() {
             onCellClick={openCell}
             onEditTarget={setEditRow}
             onManageException={openException}
-            onDriverHistory={setHistoryRow}
             emptyMessage="Tidak ada data untuk periode / filter ini — tabel hanya menampilkan plat yang didaftarkan partner melalui menu Daftarkan Plat."
           />
         </div>
@@ -123,9 +120,6 @@ function GojekGridPage() {
           year={search.year}
           onClose={closeCell}
         />
-      )}
-      {historyRow && (
-        <DriverHistoryModal row={historyRow} onClose={() => setHistoryRow(null)} />
       )}
       {editRow && (
         <DriverEditor
