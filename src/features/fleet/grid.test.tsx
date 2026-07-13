@@ -68,6 +68,22 @@ describe('GojekMonitoringTable (faithful legacy pivot)', () => {
     expect(onCellClick).toHaveBeenCalledWith(row.plateNorm, day);
   });
 
+  it('renders an explicit "0" for in-data-but-Rp0 (pink) days', () => {
+    const base = makeGojekGrid(6, 2026, 1) as unknown as FleetGrid;
+    const row = {
+      ...base.rows[0],
+      days: {
+        ...base.rows[0].days,
+        1: { day: 1, displayAmount: 0, countedAmount: 0, exception: null, detail: null },
+      },
+    };
+    render(
+      <GojekMonitoringTable grid={{ ...base, rows: [row] }} onCellClick={vi.fn()} />,
+    );
+    const zeroCells = screen.getAllByText('0');
+    expect(zeroCells.length).toBeGreaterThan(0);
+  });
+
   it('admin layout is a pure sync view: no Region and no Aksi column', () => {
     renderTable();
     expect(screen.getByText('Rental Partner')).toBeInTheDocument();

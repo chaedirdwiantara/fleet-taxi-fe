@@ -246,12 +246,16 @@ export function GojekMonitoringTable({
                   const tone = cellTone(cell, row.dailyTarget);
                   const clickable = !!cell && toneClickable(tone);
                   const exc = cell?.exception;
+                  // In-data-but-Rp0 (pink) shows an explicit "0"; only days with
+                  // no import data at all render the "-" placeholder.
                   const label = exc && (cell?.displayAmount ?? 0) === 0
                     ? exc.isBebasSetoran
                       ? 'Rental'
                       : (exc.keterangan ?? '').slice(0, 6)
-                    : cell && cell.displayAmount > 0
-                      ? nf(cell.displayAmount)
+                    : cell
+                      ? cell.displayAmount > 0
+                        ? nf(cell.displayAmount)
+                        : '0'
                       : '-';
                   return (
                     <td
