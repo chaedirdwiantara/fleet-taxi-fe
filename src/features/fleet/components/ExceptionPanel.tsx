@@ -17,27 +17,32 @@ import {
   useCreateException,
   useDeleteException,
   useExceptionsQuery,
+  type ExceptionScope,
 } from '../hooks/useExceptions';
 
 // Gojek exception calendar (§6.1) — controlled dialog so it can be opened from
 // the toolbar or from a row's "Kelola Jadwal" action (prefilled plate).
 // isBebasSetoran=true reduces the month's target days (server-side math).
+// scope='partner' targets the portal endpoints (limited server-side to the
+// partner's own registered plates).
 export function ExceptionPanel({
   month,
   year,
   open,
   onOpenChange,
   defaultPlate,
+  scope = 'admin',
 }: {
   month: number;
   year: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultPlate?: string;
+  scope?: ExceptionScope;
 }) {
-  const exceptions = useExceptionsQuery({ month, year });
-  const create = useCreateException();
-  const remove = useDeleteException();
+  const exceptions = useExceptionsQuery({ month, year, scope });
+  const create = useCreateException(scope);
+  const remove = useDeleteException(scope);
 
   const [plate, setPlate] = useState(defaultPlate ?? '');
   const [date, setDate] = useState('');

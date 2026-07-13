@@ -11,7 +11,6 @@ import {
 } from '@/components/ui/select';
 import { SummaryCards } from '@/features/fleet/components/SummaryCards';
 import { FleetChartsPanel } from '@/features/fleet/components/FleetChartsPanel';
-import { DriverActivityPanel } from '@/features/fleet/components/DriverActivityPanel';
 import { PerformerPanel } from '@/features/fleet/components/PerformerPanel';
 import { useGojekSummaryQuery } from '@/features/fleet/hooks/useFleetQueries';
 import { currentMonthWIB, currentYearWIB, MONTH_NAMES_ID } from '@/lib/datetime';
@@ -20,13 +19,21 @@ export const Route = createFileRoute('/_admin/admin/')({
   component: AdminDashboard,
 });
 
+const ALL_PARTNERS = 'all';
+
 function AdminDashboard() {
   const [month, setMonth] = useState(currentMonthWIB());
   const [year, setYear] = useState(currentYearWIB());
-  const [day, setDay] = useState<number | undefined>(undefined);
+  // Default = omset seluruh partner; the select narrows every aggregate to one.
+  const [partner, setPartner] = useState(ALL_PARTNERS);
 
-  const summary = useGojekSummaryQuery({ month, year, day });
+  const summary = useGojekSummaryQuery({
+    month,
+    year,
+    rentalPartner: partner === ALL_PARTNERS ? undefined : partner,
+  });
   const years = Array.from({ length: 6 }, (_, i) => currentYearWIB() - 4 + i);
+  const partnerOptions = summary.data?.availableRentalPartners ?? [];
 
   return (
     <div className="space-y-5">
@@ -35,8 +42,21 @@ function AdminDashboard() {
           <h2 className="text-lg font-semibold">Dashboard Admin</h2>
           <p className="text-sm text-muted-foreground">Ringkasan fleet monitoring — Gojek</p>
         </div>
-        <div className="flex gap-2">
-          <Select value={String(month)} onValueChange={(v) => { setMonth(Number(v)); setDay(undefined); }}>
+        <div className="flex flex-wrap gap-2">
+          <Select value={partner} onValueChange={setPartner}>
+            <SelectTrigger className="w-44" aria-label="Rental Partner">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_PARTNERS}>Semua Partner</SelectItem>
+              {partnerOptions.map((name) => (
+                <SelectItem key={name} value={name}>
+                  {name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
             <SelectTrigger className="w-36" aria-label="Bulan">
               <SelectValue />
             </SelectTrigger>
@@ -48,7 +68,7 @@ function AdminDashboard() {
               ))}
             </SelectContent>
           </Select>
-          <Select value={String(year)} onValueChange={(v) => { setYear(Number(v)); setDay(undefined); }}>
+          <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
             <SelectTrigger className="w-24" aria-label="Tahun">
               <SelectValue />
             </SelectTrigger>
@@ -71,12 +91,6 @@ function AdminDashboard() {
         <div className={summary.isFetching ? 'space-y-5 opacity-70 transition-opacity' : 'space-y-5'}>
           <SummaryCards summary={summary.data.globalSummary} />
           <FleetChartsPanel charts={summary.data.charts} />
-          <DriverActivityPanel
-            activity={summary.data.driverActivity}
-            month={month}
-            year={year}
-            onDayChange={setDay}
-          />
         </div>
       )}
 

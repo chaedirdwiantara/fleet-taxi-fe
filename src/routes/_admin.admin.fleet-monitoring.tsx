@@ -9,7 +9,6 @@ import { CellModal } from '@/features/fleet/components/CellModal';
 import { ImportPanel } from '@/features/fleet/components/ImportPanel';
 import { ImportHistoryDialog } from '@/features/fleet/components/ImportHistoryDialog';
 import { ExceptionPanel } from '@/features/fleet/components/ExceptionPanel';
-import { DriverEditor } from '@/features/fleet/components/DriverEditor';
 import { useGojekGridQuery } from '@/features/fleet/hooks/useFleetQueries';
 import {
   fleetSearchSchema,
@@ -17,7 +16,6 @@ import {
   parseCellParam,
   type FleetSearch,
 } from '@/features/fleet/searchSchema';
-import type { FleetRow } from '@/features/fleet/types';
 
 export const Route = createFileRoute('/_admin/admin/fleet-monitoring')({
   validateSearch: fleetSearchSchema,
@@ -27,7 +25,6 @@ export const Route = createFileRoute('/_admin/admin/fleet-monitoring')({
 function GojekGridPage() {
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
-  const [editRow, setEditRow] = useState<FleetRow | null>(null);
   const [exceptionOpen, setExceptionOpen] = useState(false);
   const [exceptionPlate, setExceptionPlate] = useState<string | undefined>(undefined);
 
@@ -105,8 +102,6 @@ function GojekGridPage() {
           <GojekMonitoringTable
             grid={grid.data}
             onCellClick={openCell}
-            onEditTarget={setEditRow}
-            onManageException={openException}
             emptyMessage="Tidak ada data untuk periode / filter ini — tabel hanya menampilkan plat yang didaftarkan partner melalui menu Daftarkan Plat."
           />
         </div>
@@ -119,15 +114,6 @@ function GojekGridPage() {
           month={search.month}
           year={search.year}
           onClose={closeCell}
-        />
-      )}
-      {editRow && (
-        <DriverEditor
-          platform="gojek"
-          row={editRow}
-          month={search.month}
-          year={search.year}
-          onClose={() => setEditRow(null)}
         />
       )}
       <ExceptionPanel

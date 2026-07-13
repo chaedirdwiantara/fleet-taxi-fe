@@ -441,16 +441,31 @@ export const handlers = [
   }),
 
   // Monthly aggregates for the /admin dashboard (kept off the heavy pivot).
+  // rentalPartner narrows every aggregate; availableRentalPartners is always
+  // computed over the unfiltered grid (matches AdminFleetService).
   http.get('*/admin/fleet/gojek/summary', ({ request }) => {
     const url = new URL(request.url);
     const month = int(url.searchParams.get('month'), 6);
     const year = int(url.searchParams.get('year'), 2026);
     const dayParam = url.searchParams.get('day');
     const grid = scopeGojekGrid(makeGojekGrid(month, year), registeredNorms());
+    const partners = url.searchParams.getAll('rentalPartner');
+    // Re-scope (not just filter rows) so dailyTotals/tableTotals recompute.
+    const filtered = partners.length
+      ? scopeGojekGrid(
+          grid,
+          new Set(
+            grid.rows
+              .filter((r) => partners.includes(r.rentalPartner))
+              .map((r) => r.plateNorm),
+          ),
+        )
+      : grid;
     return ok({
-      globalSummary: makeGojekGlobalSummary(grid),
-      driverActivity: makeDriverActivity(grid, dayParam ? Number(dayParam) : undefined),
-      charts: makeGojekCharts(grid),
+      globalSummary: makeGojekGlobalSummary(filtered),
+      driverActivity: makeDriverActivity(filtered, dayParam ? Number(dayParam) : undefined),
+      charts: makeGojekCharts(filtered),
+      availableRentalPartners: grid.availableRentalPartners,
     });
   }),
 
@@ -1222,6 +1237,55 @@ export const handlers = [
       ?.detail;
     if (!detail) return err(404, 'NOT_FOUND', 'No transactions for that vehicle/day');
     return ok(detail);
+  }),
+
+  // ---- Partner portal — exceptions (Kelola Jadwal), own plates only --------
+  // Shares exceptionState with the admin handlers; the partner scope check
+  // mirrors the backend's registered-plate intersection.
+  http.get('*/partner/portal/fleet/gojek/exceptions', ({ request }) => {
+    const url = new URL(request.url);
+    const month = int(url.searchParams.get('month'), 6);
+    const year = int(url.searchParams.get('year'), 2026);
+    const prefix = `${year}-${String(month).padStart(2, '0')}-`;
+    const norms = registeredNorms();
+    return ok(
+      exceptionState.filter(
+        (e) =>
+          e.exceptionDate.startsWith(prefix) &&
+          norms.has(e.vehiclePlate.toUpperCase().replace(/[^A-Z0-9]/g, '')),
+      ),
+    );
+  }),
+
+  http.post('*/partner/portal/fleet/gojek/exceptions', async ({ request }) => {
+    const body = (await request.json()) as Partial<MockException>;
+    if (!body.vehiclePlate || !body.exceptionDate) {
+      return err(422, 'VALIDATION_ERROR', 'vehiclePlate dan exceptionDate wajib diisi');
+    }
+    const norm = body.vehiclePlate.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (!registeredNorms().has(norm)) {
+      return err(403, 'FORBIDDEN', 'Plat tidak terdaftar pada akun partner ini');
+    }
+    const created: MockException = {
+      id: nextExceptionId++,
+      vehiclePlate: norm,
+      exceptionDate: body.exceptionDate,
+      keterangan: body.keterangan ?? null,
+      isBebasSetoran: body.isBebasSetoran ?? false,
+    };
+    exceptionState.push(created);
+    return HttpResponse.json({ success: true, data: created }, { status: 201 });
+  }),
+
+  http.delete('*/partner/portal/fleet/gojek/exceptions/:id', ({ params }) => {
+    const idx = exceptionState.findIndex((e) => String(e.id) === params.id);
+    if (idx === -1) return err(404, 'NOT_FOUND', 'Exception not found');
+    const norm = exceptionState[idx].vehiclePlate.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (!registeredNorms().has(norm)) {
+      return err(403, 'FORBIDDEN', 'Plat tidak terdaftar pada akun partner ini');
+    }
+    exceptionState.splice(idx, 1);
+    return ok({ deleted: true });
   }),
 
   http.get('*/partner/portal/fleet/grab/grid', ({ request }) => {

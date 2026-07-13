@@ -624,6 +624,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/partner/portal/fleet/gojek/exceptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Own exception schedule (Kelola Jadwal) for a period */
+        get: operations["PortalFleetController_gojekExceptions"];
+        put?: never;
+        /** Mark an exception on an own plate (rental / maintenance / free-day) */
+        post: operations["PortalFleetController_createGojekException"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/fleet/gojek/exceptions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete an own-plate exception */
+        delete: operations["PortalFleetController_deleteGojekException"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/partner/portal/fleet/grab/grid": {
         parameters: {
             query?: never;
@@ -2007,6 +2042,7 @@ export interface operations {
                 month: string;
                 year: string;
                 day?: string;
+                rentalPartner?: string[];
             };
             header?: never;
             path?: never;
@@ -2474,6 +2510,66 @@ export interface operations {
             };
             header?: never;
             path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalFleetController_gojekExceptions: {
+        parameters: {
+            query: {
+                month: string;
+                year: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalFleetController_createGojekException: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateExceptionDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalFleetController_deleteGojekException: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
             cookie?: never;
         };
         requestBody?: never;
