@@ -1,16 +1,10 @@
 import { useMemo } from 'react';
-import { MoreHorizontal, Pencil, PlusCircle, CalendarClock } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { CalendarClock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { cellTone, toneClass, toneClickable } from '../lib/thresholds';
 import { monthYearLabelID } from '@/lib/datetime';
 import { formatNumberID, formatRupiah } from '@/lib/money';
-import type { FleetGrid, FleetRow } from '../types';
+import type { FleetGrid } from '../types';
 import { groupRowSpans, identityWidth, stickyLefts, type IdentityCol } from './stickyGrid';
 
 // Faithful port of the legacy Gojek pivot (_table.blade.php): two-row sticky
@@ -19,21 +13,21 @@ import { groupRowSpans, identityWidth, stickyLefts, type IdentityCol } from './s
 // Rendered in the modern shadcn shell; horizontally scrollable on mobile.
 //
 // Two column layouts share this component:
-//  • admin   → No · Rental Partner · Region · Plate · Type · Driver · Setoran · Aksi
-//  • partner → No · Plate · Type · Driver · Setoran   (own plates only; no
-//    Rental Partner / Region / Aksi — cross-partner and admin-only concepts)
+//  • admin   → No · Rental Partner · Plate · Type · Driver · Setoran
+//    (pure sync view of every partner's registered plates — the Rental
+//    Partner label comes from the registering partner; no per-row actions)
+//  • partner → No · Plate · Type · Driver · Setoran · Aksi
+//    (own plates only; Aksi = Kelola Jadwal on the partner's own plates)
 // Driver history is rendered inline as its own frozen column (one name per
 // line), replacing the legacy "Histori Driver" modal.
 
 const IDENTITY_ADMIN: IdentityCol[] = [
   { id: 'no', label: 'No', width: 44 },
   { id: 'rentalPartner', label: 'Rental Partner', width: 130 },
-  { id: 'region', label: 'Region', width: 90 },
   { id: 'plate', label: 'Plate', width: 92 },
   { id: 'type', label: 'Type', width: 104 },
   { id: 'driver', label: 'Driver', width: 148 },
   { id: 'setoran', label: 'Setoran', width: 78 },
-  { id: 'aksi', label: 'Aksi', width: 56 },
 ];
 const IDENTITY_PARTNER: IdentityCol[] = [
   { id: 'no', label: 'No', width: 44 },
@@ -41,6 +35,7 @@ const IDENTITY_PARTNER: IdentityCol[] = [
   { id: 'type', label: 'Type', width: 110 },
   { id: 'driver', label: 'Driver', width: 152 },
   { id: 'setoran', label: 'Setoran', width: 82 },
+  { id: 'aksi', label: 'Aksi', width: 56 },
 ];
 const DAY_W = 62;
 const SUMMARY: IdentityCol[] = [
@@ -58,11 +53,11 @@ const rp = formatRupiah;
 type Props = {
   grid: FleetGrid;
   onCellClick: (plateNorm: string, day: number) => void;
-  // Admin-only actions; omitted in read-only (partner portal) mode.
-  onEditTarget?: (row: FleetRow) => void;
+  // Partner-portal row action: Kelola Jadwal for the row's plate. The Aksi
+  // column renders only in the partner layout (readOnly) when this is set.
   onManageException?: (plateNorm: string) => void;
-  // Read-only = partner portal: drops Rental Partner / Region and the
-  // admin-only Aksi column entirely.
+  // readOnly = partner portal layout: drops the cross-partner Rental Partner
+  // column and gains the own-plate Aksi column.
   readOnly?: boolean;
   // Surface-specific empty-state copy (e.g. the admin grid explains that only
   // partner-registered plates appear).
@@ -72,7 +67,6 @@ type Props = {
 export function GojekMonitoringTable({
   grid,
   onCellClick,
-  onEditTarget,
   onManageException,
   readOnly = false,
   emptyMessage = 'Tidak ada data untuk periode / filter ini.',
@@ -164,7 +158,6 @@ export function GojekMonitoringTable({
             const outstanding = row.summary.outstanding;
             const noCol = colAt('no')!;
             const rpCol = colAt('rentalPartner');
-            const regionCol = colAt('region');
             const plateCol = colAt('plate')!;
             const typeCol = colAt('type')!;
             const driverCol = colAt('driver')!;
@@ -185,14 +178,6 @@ export function GojekMonitoringTable({
                     style={{ left: rpCol.left, width: rpCol.width }}
                   >
                     {row.rentalPartner || '-'}
-                  </td>
-                )}
-                {regionCol && (
-                  <td
-                    className="sticky z-10 border-b border-r bg-slate-50/70 px-2 py-1 text-center dark:bg-slate-900/70"
-                    style={{ left: regionCol.left, width: regionCol.width }}
-                  >
-                    {row.regionName}
                   </td>
                 )}
                 <td
@@ -242,38 +227,17 @@ export function GojekMonitoringTable({
                     className={cn(stickyBase, 'px-1 py-1 text-center', lastBorder(aksiCol.isLast))}
                     style={{ left: aksiCol.left, width: aksiCol.width }}
                   >
-                    <DropdownMenu>
-                      <DropdownMenuTrigger
-                        aria-label={`Aksi ${row.plateRaw || 'Tanpa Plat'}`}
-                        className="inline-flex size-6 items-center justify-center rounded hover:bg-slate-200 dark:hover:bg-slate-800"
+                    {onManageException && row.plateRaw !== '' && (
+                      <button
+                        type="button"
+                        aria-label={`Kelola jadwal ${row.plateRaw}`}
+                        title="Kelola Jadwal"
+                        onClick={() => onManageException(row.plateNorm)}
+                        className="inline-flex size-6 items-center justify-center rounded text-indigo-500 hover:bg-slate-200 hover:text-indigo-700 dark:hover:bg-slate-800"
                       >
-                        <MoreHorizontal className="size-4" />
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        {!readOnly && onEditTarget && (
-                          <DropdownMenuItem onClick={() => onEditTarget(row)}>
-                            {row.detailId !== null ? (
-                              <>
-                                <Pencil className="text-[#9c27b0]" /> Edit Manual Payment
-                              </>
-                            ) : row.carId ? (
-                              <>
-                                <Pencil className="text-amber-500" /> Edit Detail &amp; Target
-                              </>
-                            ) : (
-                              <>
-                                <PlusCircle className="text-red-500" /> Set Target
-                              </>
-                            )}
-                          </DropdownMenuItem>
-                        )}
-                        {!readOnly && onManageException && (
-                          <DropdownMenuItem onClick={() => onManageException(row.plateNorm)}>
-                            <CalendarClock className="text-indigo-500" /> Kelola Jadwal
-                          </DropdownMenuItem>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                        <CalendarClock className="size-4" />
+                      </button>
+                    )}
                   </td>
                 )}
 
@@ -282,12 +246,16 @@ export function GojekMonitoringTable({
                   const tone = cellTone(cell, row.dailyTarget);
                   const clickable = !!cell && toneClickable(tone);
                   const exc = cell?.exception;
+                  // In-data-but-Rp0 (pink) shows an explicit "0"; only days with
+                  // no import data at all render the "-" placeholder.
                   const label = exc && (cell?.displayAmount ?? 0) === 0
                     ? exc.isBebasSetoran
                       ? 'Rental'
                       : (exc.keterangan ?? '').slice(0, 6)
-                    : cell && cell.displayAmount > 0
-                      ? nf(cell.displayAmount)
+                    : cell
+                      ? cell.displayAmount > 0
+                        ? nf(cell.displayAmount)
+                        : '0'
                       : '-';
                   return (
                     <td

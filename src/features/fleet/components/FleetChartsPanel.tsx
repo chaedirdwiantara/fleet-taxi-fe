@@ -24,11 +24,18 @@ const PARTNER_COLORS = [
 
 // Dashboard charts synced to the monitoring grid (same month/year): daily
 // setoran trend + setoran split per rental partner. Mirrors the Recharts
-// style of the partner dashboard.
-export function FleetChartsPanel({ charts }: { charts: FleetCharts }) {
+// style of the partner dashboard. The partner portal hides the per-partner
+// split (a partner only ever sees itself) via showPartnerSplit={false}.
+export function FleetChartsPanel({
+  charts,
+  showPartnerSplit = true,
+}: {
+  charts: FleetCharts;
+  showPartnerSplit?: boolean;
+}) {
   return (
-    <div className="grid gap-3 lg:grid-cols-3">
-      <Card className="lg:col-span-2">
+    <div className={showPartnerSplit ? 'grid gap-3 lg:grid-cols-3' : 'grid gap-3'}>
+      <Card className={showPartnerSplit ? 'lg:col-span-2' : undefined}>
         <CardHeader>
           <CardTitle className="text-sm">Setoran per hari</CardTitle>
         </CardHeader>
@@ -52,6 +59,7 @@ export function FleetChartsPanel({ charts }: { charts: FleetCharts }) {
         </CardContent>
       </Card>
 
+      {showPartnerSplit && (
       <Card>
         <CardHeader>
           <CardTitle className="text-sm">Setoran per rental partner</CardTitle>
@@ -78,6 +86,7 @@ export function FleetChartsPanel({ charts }: { charts: FleetCharts }) {
           </ResponsiveContainer>
         </CardContent>
       </Card>
+      )}
     </div>
   );
 }

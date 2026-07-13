@@ -4,9 +4,9 @@ import { Info } from 'lucide-react';
 import { GojekMonitoringTable } from '@/features/fleet/components/GojekMonitoringTable';
 import { CellLegend } from '@/features/fleet/components/CellLegend';
 import { CellModal } from '@/features/fleet/components/CellModal';
+import { ExceptionPanel } from '@/features/fleet/components/ExceptionPanel';
 import { SummaryCards } from '@/features/fleet/components/SummaryCards';
 import { FleetChartsPanel } from '@/features/fleet/components/FleetChartsPanel';
-import { DriverActivityPanel } from '@/features/fleet/components/DriverActivityPanel';
 import { MonthYearPicker } from '@/features/fleet/components/MonthYearPicker';
 import {
   usePartnerGojekGridQuery,
@@ -30,18 +30,23 @@ export const Route = createFileRoute('/_partner/partner/fleet-monitoring')({
 function PartnerGojekPage() {
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
-  const [day, setDay] = useState<number | undefined>(undefined);
+  const [exceptionOpen, setExceptionOpen] = useState(false);
+  const [exceptionPlate, setExceptionPlate] = useState<string | undefined>(undefined);
+
+  const openException = (plate?: string) => {
+    setExceptionPlate(plate);
+    setExceptionOpen(true);
+  };
 
   const setPeriod = useCallback(
     (patch: Partial<FleetSearch>) => {
-      setDay(undefined);
       navigate({ search: (prev) => ({ ...prev, cell: undefined, ...patch }), replace: true });
     },
     [navigate],
   );
 
   const grid = usePartnerGojekGridQuery({ month: search.month, year: search.year });
-  const summary = usePartnerGojekSummaryQuery({ month: search.month, year: search.year, day });
+  const summary = usePartnerGojekSummaryQuery({ month: search.month, year: search.year });
 
   const openCell = useCallback(
     (plateNorm: string, d: number) =>
@@ -77,13 +82,8 @@ function PartnerGojekPage() {
       {summary.isSuccess && (
         <div className={summary.isFetching ? 'space-y-4 opacity-70 transition-opacity' : 'space-y-4'}>
           <SummaryCards summary={summary.data.globalSummary} />
-          <FleetChartsPanel charts={summary.data.charts} />
-          <DriverActivityPanel
-            activity={summary.data.driverActivity}
-            month={search.month}
-            year={search.year}
-            onDayChange={setDay}
-          />
+          {/* No per-partner split here — a partner only ever sees itself. */}
+          <FleetChartsPanel charts={summary.data.charts} showPartnerSplit={false} />
         </div>
       )}
 
@@ -111,6 +111,7 @@ function PartnerGojekPage() {
           <GojekMonitoringTable
             grid={grid.data}
             onCellClick={openCell}
+            onManageException={openException}
             readOnly
           />
         </div>
@@ -126,6 +127,14 @@ function PartnerGojekPage() {
           onClose={closeCell}
         />
       )}
+      <ExceptionPanel
+        scope="partner"
+        month={search.month}
+        year={search.year}
+        open={exceptionOpen}
+        onOpenChange={setExceptionOpen}
+        defaultPlate={exceptionPlate}
+      />
     </div>
   );
 }

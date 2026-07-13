@@ -24,8 +24,13 @@ export const qk = {
     importStatus: (platform: Platform, id: string) => ['fleet', platform, 'imports', id] as const,
     performers: (p: { platform: Platform; month: number; year: number }) =>
       ['fleet', p.platform, 'performers', p] as const,
-    summary: (p: { platform: Platform; month: number; year: number; day?: number }) =>
-      ['fleet', p.platform, 'summary', p] as const,
+    summary: (p: {
+      platform: Platform;
+      month: number;
+      year: number;
+      day?: number;
+      rentalPartner?: string;
+    }) => ['fleet', p.platform, 'summary', p] as const,
     target: (platform: Platform, plate: string) =>
       ['fleet', platform, 'target', plate] as const,
     detail: (platform: Platform, detailId: number) =>
@@ -71,6 +76,8 @@ export const qk = {
         ['partner', 'fleet', p.platform, 'cell', p] as const,
       summary: (p: { month: number; year: number; day?: number }) =>
         ['partner', 'fleet', 'gojek', 'summary', p] as const,
+      exceptions: (p: { month: number; year: number }) =>
+        ['partner', 'fleet', 'gojek', 'exceptions', p] as const,
     },
     // Driver management (registrations → active roster → resignations).
     driver: {
