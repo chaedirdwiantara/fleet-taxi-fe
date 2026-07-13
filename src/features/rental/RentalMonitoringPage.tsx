@@ -183,7 +183,6 @@ export function RentalMonitoringPage({
       <RentalFormDialog
         open={createOpen || editing != null}
         initial={editing}
-        regions={regions}
         onClose={() => {
           setCreateOpen(false);
           setEditing(null);
