@@ -2,30 +2,20 @@ import { useRef } from 'react';
 import { ExternalLink, FileText, Loader2, Upload } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { resolveMediaUrl, useUploadDriverDocument } from '../hooks';
 import { DOC_KIND_LABELS, type DriverDocument, type DriverDocumentKind } from '../types';
 
-// One card per document kind: upload (replaces the previous of its kind),
-// preview link, and — for the three identity documents — the verified
-// switch that feeds the registration doc-check.
+// One card per document kind: upload (replaces the previous of its kind) and
+// preview link. `readOnly` locks settled documents (e.g. a returned deposit).
 export function DocumentUploadCard({
   driverId,
   kind,
   document,
-  verified,
-  onVerifiedChange,
-  verifyPending = false,
   readOnly = false,
 }: {
   driverId: number;
   kind: DriverDocumentKind;
   document?: DriverDocument;
-  /** Only for ktp/sim/skck on the verification page. */
-  verified?: boolean;
-  onVerifiedChange?: (verified: boolean) => void;
-  verifyPending?: boolean;
   readOnly?: boolean;
 }) {
   const upload = useUploadDriverDocument(driverId);
@@ -89,27 +79,8 @@ export function DocumentUploadCard({
             </Button>
           </>
         )}
-        {onVerifiedChange && (
-          <div className="ml-auto flex items-center gap-2">
-            <Label htmlFor={`doc-verified-${kind}`} className="text-xs text-muted-foreground">
-              Terverifikasi
-            </Label>
-            <Switch
-              id={`doc-verified-${kind}`}
-              checked={verified ?? false}
-              disabled={readOnly || verifyPending || !uploaded}
-              onCheckedChange={onVerifiedChange}
-              aria-label={`Verifikasi ${label}`}
-            />
-          </div>
-        )}
       </div>
 
-      {onVerifiedChange && !uploaded && (
-        <p className="text-xs text-muted-foreground">
-          Unggah dokumen terlebih dahulu sebelum menandai terverifikasi.
-        </p>
-      )}
       {upload.isError && (
         <p className="text-sm text-destructive" role="alert">
           {upload.error.message}

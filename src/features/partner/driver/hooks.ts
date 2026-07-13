@@ -4,24 +4,18 @@ import { compressImage } from '@/features/partner/checkpoint/compressImage';
 import { resolveMediaUrl } from '@/features/partner/checkpoint/hooks';
 import { qk } from '@/lib/query-client';
 import type {
-  CheckableDocKind,
-  DecisionAction,
   DriverDetail,
   DriverDocument,
   DriverDocumentKind,
   DriverSummary,
   DriverUpdateInput,
   PresignDocumentResult,
-  RegistrationDetail,
-  RegistrationSummary,
-  RegistrationUpsertInput,
-  ResignationDetail,
-  ResignationSummary,
 } from './types';
 
-// Driver management — one drivers row travels through three stages
-// (registration → active roster → resignation); every mutation invalidates
-// the whole ['partner','driver'] namespace so all three lists stay fresh.
+// Driver management — the roster auto-syncs from Fleet Monitoring
+// (Gojek/Grab) server-side on every GET /drivers; the FE only lists, edits,
+// and drives the resign / deposit-return lifecycle via PATCH. Every mutation
+// invalidates the whole ['partner','driver'] namespace.
 
 const throwEnvelope = (error: unknown): never => {
   throw new ApiErrorException((error as { error: ApiError }).error);
@@ -31,177 +25,29 @@ const DRIVER_NS = ['partner', 'driver'] as const;
 
 export { resolveMediaUrl };
 
-// ---- registrations (pending | rejected) --------------------------------------
+// ---- roster ------------------------------------------------------------------
 
-export function useRegistrationsQuery(params: { q?: string; page: number }) {
-  return useQuery({
-    queryKey: qk.partner.driver.registrations(params),
-    placeholderData: keepPreviousData,
-    queryFn: async () => {
-      const { data, error } = await api.GET('/partner/portal/driver-registrations', {
-        params: { query: { page: String(params.page), ...(params.q && { q: params.q }) } },
-      });
-      if (error) throwEnvelope(error);
-      const { data: rows, meta } = unwrapWithMeta(data);
-      return { rows: rows as RegistrationSummary[], meta };
-    },
-  });
-}
-
-export function useRegistrationQuery(id: number) {
-  return useQuery({
-    queryKey: qk.partner.driver.registration(id),
-    queryFn: async (): Promise<RegistrationDetail> => {
-      const { data, error } = await api.GET('/partner/portal/driver-registrations/{id}', {
-        params: { path: { id } },
-      });
-      if (error) throwEnvelope(error);
-      return unwrap(data) as RegistrationDetail;
-    },
-  });
-}
-
-export function useCreateRegistration() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (body: RegistrationUpsertInput): Promise<RegistrationDetail> => {
-      const { data, error } = await api.POST('/partner/portal/driver-registrations', { body });
-      if (error) throwEnvelope(error);
-      return unwrap(data) as RegistrationDetail;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: DRIVER_NS }),
-  });
-}
-
-export function useUpdateRegistration(id: number) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (body: Partial<RegistrationUpsertInput>): Promise<RegistrationDetail> => {
-      const { data, error } = await api.PATCH('/partner/portal/driver-registrations/{id}', {
-        params: { path: { id } },
-        body,
-      });
-      if (error) throwEnvelope(error);
-      return unwrap(data) as RegistrationDetail;
-    },
-    onSuccess: (detail) => {
-      qc.setQueryData(qk.partner.driver.registration(id), detail);
-      void qc.invalidateQueries({ queryKey: DRIVER_NS });
-    },
-  });
-}
-
-export function useDeleteRegistration() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (id: number) => {
-      const { data, error } = await api.DELETE('/partner/portal/driver-registrations/{id}', {
-        params: { path: { id } },
-      });
-      if (error) throwEnvelope(error);
-      return unwrap(data);
-    },
-    onSuccess: (_, id) => {
-      qc.removeQueries({ queryKey: qk.partner.driver.registration(id) });
-      void qc.invalidateQueries({ queryKey: DRIVER_NS });
-    },
-  });
-}
-
-/** Shared onSuccess for the verification-page mutations: keep the cached detail hot. */
-function useRegistrationDetailSuccess(id: number) {
-  const qc = useQueryClient();
-  return (detail: RegistrationDetail) => {
-    qc.setQueryData(qk.partner.driver.registration(id), detail);
-    void qc.invalidateQueries({ queryKey: DRIVER_NS });
-  };
-}
-
-export function useDocCheck(id: number) {
-  const onSuccess = useRegistrationDetailSuccess(id);
-  return useMutation({
-    mutationFn: async (input: { kind: CheckableDocKind; verified: boolean }) => {
-      const { data, error } = await api.POST('/partner/portal/driver-registrations/{id}/doc-check', {
-        params: { path: { id } },
-        body: input,
-      });
-      if (error) throwEnvelope(error);
-      return unwrap(data) as RegistrationDetail;
-    },
-    onSuccess,
-  });
-}
-
-export function useSetDeposit(id: number) {
-  const onSuccess = useRegistrationDetailSuccess(id);
-  return useMutation({
-    mutationFn: async (input: { amount: number }) => {
-      const { data, error } = await api.POST('/partner/portal/driver-registrations/{id}/deposit', {
-        params: { path: { id } },
-        body: input,
-      });
-      if (error) throwEnvelope(error);
-      return unwrap(data) as RegistrationDetail;
-    },
-    onSuccess,
-  });
-}
-
-export function useDecideDeposit(id: number) {
-  const onSuccess = useRegistrationDetailSuccess(id);
-  return useMutation({
-    mutationFn: async (input: { action: DecisionAction; note?: string }) => {
-      const { data, error } = await api.POST(
-        '/partner/portal/driver-registrations/{id}/deposit/decision',
-        { params: { path: { id } }, body: input },
-      );
-      if (error) throwEnvelope(error);
-      return unwrap(data) as RegistrationDetail;
-    },
-    onSuccess,
-  });
-}
-
-/** Approve moves the row to the active roster (registration detail then 404s). */
-export function useVerifyRegistration(id: number) {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (input: { action: DecisionAction; rejectNote?: string }) => {
-      const { data, error } = await api.POST('/partner/portal/driver-registrations/{id}/verify', {
-        params: { path: { id } },
-        body: input,
-      });
-      if (error) throwEnvelope(error);
-      return unwrap(data) as RegistrationDetail;
-    },
-    onSuccess: (detail, input) => {
-      if (input.action === 'approve') {
-        // The row left the registration slice — drop the stale detail cache.
-        qc.removeQueries({ queryKey: qk.partner.driver.registration(id) });
-      } else {
-        qc.setQueryData(qk.partner.driver.registration(id), detail);
-      }
-      void qc.invalidateQueries({ queryKey: DRIVER_NS });
-    },
-  });
-}
-
-// ---- active drivers -----------------------------------------------------------
-
-export function useDriversQuery(params: { q?: string; plate?: string; active?: string; page: number }) {
+export function useDriversQuery(params: {
+  q?: string;
+  plate?: string;
+  active?: string;
+  resigned?: string;
+  page: number;
+}) {
   return useQuery({
     queryKey: qk.partner.driver.drivers(params),
     placeholderData: keepPreviousData,
     queryFn: async () => {
+      const flag = (v?: string) =>
+        v === 'true' || v === 'false' ? (v as 'true' | 'false') : undefined;
       const { data, error } = await api.GET('/partner/portal/drivers', {
         params: {
           query: {
             page: String(params.page),
             ...(params.q && { q: params.q }),
             ...(params.plate && { plate: params.plate }),
-            ...((params.active === 'true' || params.active === 'false') && {
-              active: params.active as 'true' | 'false',
-            }),
+            ...(flag(params.active) && { active: flag(params.active) }),
+            ...(flag(params.resigned) && { resigned: flag(params.resigned) }),
           },
         },
       });
@@ -225,6 +71,7 @@ export function useDriverQuery(id: number) {
   });
 }
 
+/** Single PATCH for master data + lifecycle (`resigned`, `depositReturned`). */
 export function useUpdateDriver(id: number) {
   const qc = useQueryClient();
   return useMutation({
@@ -240,93 +87,6 @@ export function useUpdateDriver(id: number) {
       qc.setQueryData(qk.partner.driver.detail(id), detail);
       void qc.invalidateQueries({ queryKey: DRIVER_NS });
     },
-  });
-}
-
-/** Moves the driver to the resignation list (deposit return handled there). */
-export function useResignDriver() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (id: number): Promise<ResignationDetail> => {
-      const { data, error } = await api.POST('/partner/portal/drivers/{id}/resign', {
-        params: { path: { id } },
-      });
-      if (error) throwEnvelope(error);
-      return unwrap(data) as ResignationDetail;
-    },
-    onSuccess: (_, id) => {
-      qc.removeQueries({ queryKey: qk.partner.driver.detail(id) });
-      void qc.invalidateQueries({ queryKey: DRIVER_NS });
-    },
-  });
-}
-
-// ---- resignations ---------------------------------------------------------------
-
-export function useResignationsQuery(params: { q?: string; page: number }) {
-  return useQuery({
-    queryKey: qk.partner.driver.resignations(params),
-    placeholderData: keepPreviousData,
-    queryFn: async () => {
-      const { data, error } = await api.GET('/partner/portal/driver-resignations', {
-        params: { query: { page: String(params.page), ...(params.q && { q: params.q }) } },
-      });
-      if (error) throwEnvelope(error);
-      const { data: rows, meta } = unwrapWithMeta(data);
-      return { rows: rows as ResignationSummary[], meta };
-    },
-  });
-}
-
-export function useResignationQuery(id: number) {
-  return useQuery({
-    queryKey: qk.partner.driver.resignation(id),
-    queryFn: async (): Promise<ResignationDetail> => {
-      const { data, error } = await api.GET('/partner/portal/driver-resignations/{id}', {
-        params: { path: { id } },
-      });
-      if (error) throwEnvelope(error);
-      return unwrap(data) as ResignationDetail;
-    },
-  });
-}
-
-function useResignationDetailSuccess(id: number) {
-  const qc = useQueryClient();
-  return (detail: ResignationDetail) => {
-    qc.setQueryData(qk.partner.driver.resignation(id), detail);
-    void qc.invalidateQueries({ queryKey: DRIVER_NS });
-  };
-}
-
-/** Requires an uploaded deposit_return_proof; puts the return in `waiting`. */
-export function useRequestDepositReturn(id: number) {
-  const onSuccess = useResignationDetailSuccess(id);
-  return useMutation({
-    mutationFn: async (): Promise<ResignationDetail> => {
-      const { data, error } = await api.POST(
-        '/partner/portal/driver-resignations/{id}/deposit-return',
-        { params: { path: { id } } },
-      );
-      if (error) throwEnvelope(error);
-      return unwrap(data) as ResignationDetail;
-    },
-    onSuccess,
-  });
-}
-
-export function useDecideDepositReturn(id: number) {
-  const onSuccess = useResignationDetailSuccess(id);
-  return useMutation({
-    mutationFn: async (input: { action: DecisionAction; note?: string }) => {
-      const { data, error } = await api.POST(
-        '/partner/portal/driver-resignations/{id}/deposit-return/decision',
-        { params: { path: { id } }, body: input },
-      );
-      if (error) throwEnvelope(error);
-      return unwrap(data) as ResignationDetail;
-    },
-    onSuccess,
   });
 }
 

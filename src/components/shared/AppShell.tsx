@@ -1,30 +1,35 @@
 import { useState, type ReactNode } from 'react';
-import { Link } from '@tanstack/react-router';
+import { Link, useLocation } from '@tanstack/react-router';
 import {
   CalendarDays,
   Car,
+  ChevronDown,
   ClipboardCheck,
   ClipboardList,
-  IdCard,
   LayoutDashboard,
   LogOut,
   Menu,
   Table2,
-  UserMinus,
   Users,
   Wallet,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { cn } from '@/lib/utils';
 import type { SessionUser } from '@/features/auth/hooks';
 
 export type Audience = 'admin' | 'partner';
 
 // `requireRole` hides an item unless the session user holds that role
 // (UX only — the route + backend still enforce access).
-type NavItem = { to: string; label: string; icon: typeof Table2; requireRole?: string };
+type NavLeaf = { to: string; label: string; icon: typeof Table2; requireRole?: string };
+// A collapsible group of leaves under one label (e.g. "Driver").
+type NavGroup = { label: string; icon: typeof Table2; children: NavLeaf[]; requireRole?: string };
+type NavEntry = NavLeaf | NavGroup;
 
-const NAV: Record<Audience, NavItem[]> = {
+const isGroup = (entry: NavEntry): entry is NavGroup => 'children' in entry;
+
+const NAV: Record<Audience, NavEntry[]> = {
   admin: [
     { to: '/admin', label: 'Dashboard', icon: LayoutDashboard },
     { to: '/admin/fleet-monitoring', label: 'Fleet Monitoring — Gojek', icon: Table2 },
@@ -34,15 +39,87 @@ const NAV: Record<Audience, NavItem[]> = {
   partner: [
     { to: '/partner/fleet-monitoring', label: 'Fleet Monitoring — Gojek', icon: Table2 },
     { to: '/partner/fleet-monitoring-grab', label: 'Fleet Monitoring — Grab', icon: Car },
-    { to: '/partner/debt-summary', label: 'Debt Summary', icon: Wallet },
+    {
+      label: 'Driver',
+      icon: Users,
+      children: [
+        { to: '/partner/drivers', label: 'Daftar Driver', icon: Users },
+        { to: '/partner/debt-summary', label: 'Debt Summary', icon: Wallet },
+      ],
+    },
     { to: '/partner/rental-monitoring', label: 'Rental Monitoring', icon: CalendarDays },
-    { to: '/partner/daftarkan-plat', label: 'Daftarkan Plat', icon: ClipboardList },
     { to: '/partner/checkpoint', label: 'Checkpoint', icon: ClipboardCheck },
-    { to: '/partner/driver-registrations', label: 'Registrasi Driver', icon: IdCard },
-    { to: '/partner/drivers', label: 'Daftar Driver', icon: Users },
-    { to: '/partner/driver-resign', label: 'Driver Resign', icon: UserMinus },
+    { to: '/partner/daftarkan-plat', label: 'Plate Registration', icon: ClipboardList },
   ],
 };
+
+const roleAllows = (user: SessionUser | null | undefined, requireRole?: string) =>
+  !requireRole || (user?.roles ?? []).includes(requireRole);
+
+const LINK_CLASS =
+  'flex items-center gap-2 rounded-md px-3 py-2 text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground [&.active]:bg-sidebar-accent [&.active]:font-medium';
+
+function NavLink({ item, onNavigate, indented = false }: { item: NavLeaf; onNavigate?: () => void; indented?: boolean }) {
+  return (
+    <Link
+      to={item.to}
+      onClick={onNavigate}
+      activeOptions={{ exact: item.to === '/admin' }}
+      className={cn(LINK_CLASS, indented && 'py-1.5 pl-4')}
+    >
+      <item.icon className={cn('shrink-0', indented ? 'size-3.5' : 'size-4')} aria-hidden />
+      <span className="truncate">{item.label}</span>
+    </Link>
+  );
+}
+
+function NavGroupItem({
+  group,
+  user,
+  onNavigate,
+}: {
+  group: NavGroup;
+  user: SessionUser | null | undefined;
+  onNavigate?: () => void;
+}) {
+  const { pathname } = useLocation();
+  const children = group.children.filter((c) => roleAllows(user, c.requireRole));
+  const childActive = children.some((c) => pathname.startsWith(c.to));
+  const [open, setOpen] = useState(childActive);
+
+  // Keep the group unfolded whenever navigation lands on one of its children
+  // (derive-during-render pattern — no effect, no cascading renders).
+  const [prevChildActive, setPrevChildActive] = useState(childActive);
+  if (childActive !== prevChildActive) {
+    setPrevChildActive(childActive);
+    if (childActive) setOpen(true);
+  }
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className={cn(LINK_CLASS, 'w-full', childActive && 'font-medium')}
+      >
+        <group.icon className="size-4 shrink-0" aria-hidden />
+        <span className="truncate">{group.label}</span>
+        <ChevronDown
+          className={cn('ml-auto size-4 shrink-0 transition-transform', open && 'rotate-180')}
+          aria-hidden
+        />
+      </button>
+      {open && (
+        <div className="ml-4 mt-0.5 space-y-0.5 border-l border-sidebar-border pl-1">
+          {children.map((child) => (
+            <NavLink key={child.to} item={child} onNavigate={onNavigate} indented />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // Presentational shell — the session user + logout handler are injected by the
 // audience-specific layout so this component fires no auth queries of its own.
@@ -72,19 +149,14 @@ function SidebarContent({
       </div>
       <nav className="flex-1 space-y-1 overflow-y-auto p-2" aria-label="Navigasi utama">
         {NAV[audience]
-          .filter((item) => !item.requireRole || (user?.roles ?? []).includes(item.requireRole))
-          .map((item) => (
-          <Link
-            key={item.to}
-            to={item.to}
-            onClick={onNavigate}
-            activeOptions={{ exact: item.to === '/admin' }}
-            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground [&.active]:bg-sidebar-accent [&.active]:font-medium"
-          >
-            <item.icon className="size-4 shrink-0" aria-hidden />
-            <span className="truncate">{item.label}</span>
-          </Link>
-        ))}
+          .filter((entry) => roleAllows(user, entry.requireRole))
+          .map((entry) =>
+            isGroup(entry) ? (
+              <NavGroupItem key={entry.label} group={entry} user={user} onNavigate={onNavigate} />
+            ) : (
+              <NavLink key={entry.to} item={entry} onNavigate={onNavigate} />
+            ),
+          )}
       </nav>
       <div className="border-t p-3">
         <div className="mb-2 px-1 text-xs text-muted-foreground">

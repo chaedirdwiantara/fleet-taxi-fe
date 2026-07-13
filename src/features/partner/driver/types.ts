@@ -1,19 +1,29 @@
 // Partner-portal driver management — types mirror the BE presenter
-// (partner-drivers/driver-presenter.ts). Statuses/kinds are stable enum
-// strings shared via OpenAPI; labels are display-only and owned by the FE.
+// (partner-drivers/driver-presenter.ts). The roster auto-syncs server-side
+// from Fleet Monitoring (Gojek/Grab) on every list load; `source` marks the
+// origin of a row. Enum strings are stable across the OpenAPI contract;
+// labels are display-only and owned by the FE.
 
-export const REGISTRATION_STATUSES = ['pending', 'approved', 'rejected'] as const;
-export type RegistrationStatus = (typeof REGISTRATION_STATUSES)[number];
+export const DRIVER_SOURCES = ['gojek', 'grab', 'manual'] as const;
+export type DriverSource = (typeof DRIVER_SOURCES)[number];
 
-export const DEPOSIT_STATUSES = ['none', 'waiting', 'approved', 'rejected'] as const;
-export type DepositStatus = (typeof DEPOSIT_STATUSES)[number];
+export const SOURCE_LABELS: Record<DriverSource, string> = {
+  gojek: 'Gojek',
+  grab: 'Grab',
+  manual: 'Manual',
+};
+
+// Deposit-return lifecycle of a resigned driver. The current flow only
+// produces 'none' (not yet returned / reset) and 'approved' (returned);
+// 'waiting' / 'rejected' remain in the contract union.
+export const DEPOSIT_RETURN_STATUSES = ['none', 'waiting', 'approved', 'rejected'] as const;
+export type DepositReturnStatus = (typeof DEPOSIT_RETURN_STATUSES)[number];
 
 export const DOCUMENT_KINDS = ['ktp', 'sim', 'skck', 'deposit_proof', 'deposit_return_proof'] as const;
 export type DriverDocumentKind = (typeof DOCUMENT_KINDS)[number];
 
-/** The three identity documents a partner ticks off before final approval. */
-export const CHECKABLE_DOC_KINDS = ['ktp', 'sim', 'skck'] as const;
-export type CheckableDocKind = (typeof CHECKABLE_DOC_KINDS)[number];
+/** The three identity documents managed on the edit page's Dokumen card. */
+export const IDENTITY_DOC_KINDS = ['ktp', 'sim', 'skck'] as const;
 
 export const DOC_KIND_LABELS: Record<DriverDocumentKind, string> = {
   ktp: 'KTP',
@@ -22,8 +32,6 @@ export const DOC_KIND_LABELS: Record<DriverDocumentKind, string> = {
   deposit_proof: 'Bukti Deposit',
   deposit_return_proof: 'Bukti Pengembalian Deposit',
 };
-
-export type DecisionAction = 'approve' | 'reject';
 
 export interface DriverDocument {
   id: number;
@@ -34,70 +42,38 @@ export interface DriverDocument {
   url?: string;
 }
 
-/** Shared master-data fields of every driver view. */
-export interface DriverBase {
+/** One roster row — the list includes resigned drivers (`resignedAt` set). */
+export interface DriverSummary {
   id: number;
-  name: string;
-  email: string | null;
-  phone: string | null;
-  address: string | null;
-  ktpNo: string | null;
-  simNo: string | null;
-  simExpired: string | null;
   driverCode: string | null;
+  name: string;
+  source: DriverSource;
   plateNumber: string | null;
-  bankAccount: string | null;
-}
-
-export interface RegistrationSummary extends DriverBase {
-  registrationStatus: RegistrationStatus;
-  rejectNote: string | null;
-  ktpVerified: boolean;
-  simVerified: boolean;
-  skckVerified: boolean;
-  depositAmount: number;
-  depositStatus: DepositStatus;
-  createdAt: string;
-}
-
-export interface RegistrationDetail extends RegistrationSummary {
-  depositNote: string | null;
-  depositDecidedAt: string | null;
-  updatedAt: string;
-  documents: DriverDocument[];
-}
-
-export interface DriverSummary extends DriverBase {
+  phone: string | null;
+  email: string | null;
+  simExpired: string | null;
   isActive: boolean;
+  /** Integer rupiah — formatted, never computed, client-side. */
   depositAmount: number;
-  depositStatus: DepositStatus;
+  depositReturnStatus: DepositReturnStatus;
+  resignedAt: string | null;
   joinedAt: string;
 }
 
 export interface DriverDetail extends DriverSummary {
-  depositNote: string | null;
-  depositDecidedAt: string | null;
-  updatedAt: string;
-  documents: DriverDocument[];
-}
-
-export interface ResignationSummary extends DriverBase {
-  depositAmount: number;
-  depositReturnStatus: DepositStatus;
+  address: string | null;
+  ktpNo: string | null;
+  simNo: string | null;
+  bankAccount: string | null;
+  /** Set when the deposit-return decision was recorded. */
   depositReturnDecidedAt: string | null;
-  resignedAt: string;
-  joinedAt: string;
-}
-
-export interface ResignationDetail extends ResignationSummary {
-  depositStatus: DepositStatus;
   updatedAt: string;
   documents: DriverDocument[];
 }
 
-/** Master-data input shared by create/edit; `name` is required on create. */
-export interface RegistrationUpsertInput {
-  name: string;
+/** PATCH body — master data plus the resign / deposit-return lifecycle. */
+export interface DriverUpdateInput {
+  name?: string;
   email?: string;
   phone?: string;
   address?: string;
@@ -108,10 +84,13 @@ export interface RegistrationUpsertInput {
   /** Must be one of the partner's registered plates when set. */
   plateNumber?: string;
   bankAccount?: string;
-}
-
-export interface DriverUpdateInput extends Partial<RegistrationUpsertInput> {
+  /** Integer rupiah. */
+  depositAmount?: number;
   isActive?: boolean;
+  /** true = tandai resign (nonaktif); false = batalkan resign (resets return state). */
+  resigned?: boolean;
+  /** Only for resigned drivers; the BE requires an uploaded deposit_return_proof. */
+  depositReturned?: boolean;
 }
 
 export interface PresignDocumentResult {

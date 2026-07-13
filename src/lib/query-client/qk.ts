@@ -79,17 +79,11 @@ export const qk = {
       exceptions: (p: { month: number; year: number }) =>
         ['partner', 'fleet', 'gojek', 'exceptions', p] as const,
     },
-    // Driver management (registrations → active roster → resignations).
+    // Driver management (roster auto-synced from Fleet Monitoring).
     driver: {
-      registrations: (p: { q?: string; page: number }) =>
-        ['partner', 'driver', 'registrations', p] as const,
-      registration: (id: number) => ['partner', 'driver', 'registrations', 'detail', id] as const,
-      drivers: (p: { q?: string; plate?: string; active?: string; page: number }) =>
+      drivers: (p: { q?: string; plate?: string; active?: string; resigned?: string; page: number }) =>
         ['partner', 'driver', 'list', p] as const,
       detail: (id: number) => ['partner', 'driver', 'detail', id] as const,
-      resignations: (p: { q?: string; page: number }) =>
-        ['partner', 'driver', 'resignations', p] as const,
-      resignation: (id: number) => ['partner', 'driver', 'resignations', 'detail', id] as const,
     },
     // Rental Monitoring (own rental transactions + COGS presets).
     rental: {

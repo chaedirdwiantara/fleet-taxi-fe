@@ -1022,111 +1022,6 @@ export interface paths {
         patch: operations["PartnerRentalsController_updatePaymentStatus"];
         trace?: never;
     };
-    "/partner/portal/driver-registrations": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List own driver registrations (pending/rejected, paginated) */
-        get: operations["PortalDriverRegistrationsController_list"];
-        put?: never;
-        /** Register a driver candidate (plate must be registered when set) */
-        post: operations["PortalDriverRegistrationsController_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/partner/portal/driver-registrations/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** One own registration incl. documents */
-        get: operations["PortalDriverRegistrationsController_detail"];
-        put?: never;
-        post?: never;
-        /** Delete an unapproved registration (hard delete incl. documents) */
-        delete: operations["PortalDriverRegistrationsController_remove"];
-        options?: never;
-        head?: never;
-        /** Edit registration master data */
-        patch: operations["PortalDriverRegistrationsController_update"];
-        trace?: never;
-    };
-    "/partner/portal/driver-registrations/{id}/doc-check": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Record the KTP/SIM/SKCK verification result */
-        post: operations["PortalDriverRegistrationsController_docCheck"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/partner/portal/driver-registrations/{id}/deposit": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Record the deposit amount (requires an uploaded deposit proof) */
-        post: operations["PortalDriverRegistrationsController_setDeposit"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/partner/portal/driver-registrations/{id}/deposit/decision": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Approve/reject the waiting deposit */
-        post: operations["PortalDriverRegistrationsController_decideDeposit"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/partner/portal/driver-registrations/{id}/verify": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Final verification: approve (assigns driver code) or reject the registration */
-        post: operations["PortalDriverRegistrationsController_verify"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/partner/portal/drivers/documents/{driverId}/presign": {
         parameters: {
             query?: never;
@@ -1219,7 +1114,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List own active drivers (paginated, filterable) */
+        /** Sync the roster from fleet imports, then list own drivers (paginated, filterable) */
         get: operations["PortalDriversController_list"];
         put?: never;
         post?: never;
@@ -1236,100 +1131,15 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** One own active driver incl. documents */
+        /** One own driver incl. documents */
         get: operations["PortalDriversController_detail"];
         put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
-        /** Edit driver master data / toggle isActive */
+        /** Edit driver master data / lifecycle (resign, deposit return, isActive) */
         patch: operations["PortalDriversController_update"];
-        trace?: never;
-    };
-    "/partner/portal/drivers/{id}/resign": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Resign the driver (moves them to the resignation list) */
-        post: operations["PortalDriversController_resign"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/partner/portal/driver-resignations": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List own resigned drivers (paginated, newest resignation first) */
-        get: operations["PortalDriverResignationsController_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/partner/portal/driver-resignations/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** One own resignation incl. documents */
-        get: operations["PortalDriverResignationsController_detail"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/partner/portal/driver-resignations/{id}/deposit-return": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Request the deposit return decision (requires an uploaded return proof) */
-        post: operations["PortalDriverResignationsController_requestReturn"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/partner/portal/driver-resignations/{id}/deposit-return/decision": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Approve/reject the waiting deposit return */
-        post: operations["PortalDriverResignationsController_decideReturn"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
         trace?: never;
     };
     "/partner/v1/pricelist": {
@@ -1688,119 +1498,6 @@ export interface components {
              */
             paymentStatus: "Belum Dibayar" | "Sudah Dibayar";
         };
-        CreateDriverRegistrationDto: {
-            /** @example Budi Santoso */
-            name: string;
-            /** @example budi@example.com */
-            email?: string;
-            /** @example 0812xxxxxxx */
-            phone?: string;
-            /** @example Jl. Melati No. 1, Jakarta Selatan */
-            address?: string;
-            /**
-             * @description Nomor KTP
-             * @example 3174xxxxxxxxxxxx
-             */
-            ktpNo?: string;
-            /**
-             * @description Nomor SIM
-             * @example 1234-5678-901234
-             */
-            simNo?: string;
-            /**
-             * @description Masa berlaku SIM (YYYY-MM-DD)
-             * @example 2027-03-15
-             */
-            simExpired?: string;
-            /**
-             * @description Plat unit yang dioperasikan (harus plat terdaftar partner)
-             * @example B 1793 SCP
-             */
-            plateNumber?: string;
-            /**
-             * @description Rekening driver
-             * @example BCA 1234567890 a.n. Budi
-             */
-            bankAccount?: string;
-        };
-        UpdateDriverRegistrationDto: {
-            /** @example Budi Santoso */
-            name?: string;
-            /** @example budi@example.com */
-            email?: string;
-            /** @example 0812xxxxxxx */
-            phone?: string;
-            /** @example Jl. Melati No. 1, Jakarta Selatan */
-            address?: string;
-            /**
-             * @description Nomor KTP
-             * @example 3174xxxxxxxxxxxx
-             */
-            ktpNo?: string;
-            /**
-             * @description Nomor SIM
-             * @example 1234-5678-901234
-             */
-            simNo?: string;
-            /**
-             * @description Masa berlaku SIM (YYYY-MM-DD)
-             * @example 2027-03-15
-             */
-            simExpired?: string;
-            /**
-             * @description Plat unit yang dioperasikan (harus plat terdaftar partner)
-             * @example B 1793 SCP
-             */
-            plateNumber?: string;
-            /**
-             * @description Rekening driver
-             * @example BCA 1234567890 a.n. Budi
-             */
-            bankAccount?: string;
-        };
-        DriverDocCheckDto: {
-            /**
-             * @example ktp
-             * @enum {string}
-             */
-            kind: "ktp" | "sim" | "skck";
-            /**
-             * @description Hasil pemeriksaan dokumen
-             * @example true
-             */
-            verified: boolean;
-        };
-        SetDriverDepositDto: {
-            /**
-             * @description Nominal deposit (rupiah bulat)
-             * @example 1500000
-             */
-            amount: number;
-        };
-        DriverDecisionDto: {
-            /**
-             * @example approve
-             * @enum {string}
-             */
-            action: "approve" | "reject";
-            /**
-             * @description Catatan (saat menolak)
-             * @example Nominal tidak sesuai
-             */
-            note?: string;
-        };
-        VerifyDriverRegistrationDto: {
-            /**
-             * @example approve
-             * @enum {string}
-             */
-            action: "approve" | "reject";
-            /**
-             * @description Alasan penolakan
-             * @example Dokumen tidak jelas
-             */
-            rejectNote?: string;
-        };
         PresignDriverDocumentDto: {
             /**
              * @example ktp
@@ -1853,10 +1550,25 @@ export interface components {
              */
             bankAccount?: string;
             /**
+             * @description Deposit (rupiah bulat)
+             * @example 2500000
+             */
+            depositAmount?: number;
+            /**
              * @description Aktif/nonaktifkan driver
              * @example true
              */
             isActive?: boolean;
+            /**
+             * @description true = tandai resign (nonaktif); false = batalkan resign
+             * @example false
+             */
+            resigned?: boolean;
+            /**
+             * @description Hanya untuk driver resign: true = deposit sudah dikembalikan (butuh bukti terunggah)
+             * @example false
+             */
+            depositReturned?: boolean;
         };
         CreatePartnerOrderDto: {
             /**
@@ -3461,202 +3173,6 @@ export interface operations {
             };
         };
     };
-    PortalDriverRegistrationsController_list: {
-        parameters: {
-            query?: {
-                /** @description Search name / driver code */
-                q?: string;
-                page?: string;
-                pageSize?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PortalDriverRegistrationsController_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateDriverRegistrationDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PortalDriverRegistrationsController_detail: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PortalDriverRegistrationsController_remove: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PortalDriverRegistrationsController_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateDriverRegistrationDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PortalDriverRegistrationsController_docCheck: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DriverDocCheckDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PortalDriverRegistrationsController_setDeposit: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SetDriverDepositDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PortalDriverRegistrationsController_decideDeposit: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DriverDecisionDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PortalDriverRegistrationsController_verify: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["VerifyDriverRegistrationDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
     PortalDriverDocumentsController_presign: {
         parameters: {
             query?: never;
@@ -3765,6 +3281,7 @@ export interface operations {
                 q?: string;
                 plate?: string;
                 active?: "true" | "false";
+                resigned?: "true" | "false";
                 page?: string;
                 pageSize?: string;
             };
@@ -3817,108 +3334,6 @@ export interface operations {
         };
         responses: {
             200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PortalDriversController_resign: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PortalDriverResignationsController_list: {
-        parameters: {
-            query?: {
-                /** @description Search name / driver code */
-                q?: string;
-                page?: string;
-                pageSize?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PortalDriverResignationsController_detail: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PortalDriverResignationsController_requestReturn: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PortalDriverResignationsController_decideReturn: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DriverDecisionDto"];
-            };
-        };
-        responses: {
-            201: {
                 headers: {
                     [name: string]: unknown;
                 };
