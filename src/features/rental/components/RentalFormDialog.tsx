@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from '@tanstack/react-router';
-import { Loader2, Search, X } from 'lucide-react';
+import { Loader2, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -51,12 +51,10 @@ const INFO_SOURCES = [
 export function RentalFormDialog({
   open,
   initial,
-  regions,
   onClose,
 }: {
   open: boolean;
   initial: RentalItem | null;
-  regions: string[];
   onClose: () => void;
 }) {
   return (
@@ -67,12 +65,7 @@ export function RentalFormDialog({
         </DialogHeader>
         {/* keyed remount → the form re-initializes per picked row / fresh create */}
         {open && (
-          <RentalForm
-            key={initial?.id ?? 'create'}
-            initial={initial}
-            regions={regions}
-            onClose={onClose}
-          />
+          <RentalForm key={initial?.id ?? 'create'} initial={initial} onClose={onClose} />
         )}
       </DialogContent>
     </Dialog>
@@ -85,11 +78,9 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
 
 function RentalForm({
   initial,
-  regions,
   onClose,
 }: {
   initial: RentalItem | null;
-  regions: string[];
   onClose: () => void;
 }) {
   const plates = usePartnerPlatesQuery();
@@ -99,13 +90,6 @@ function RentalForm({
   const mutation = initial ? update : create;
 
   // Kendaraan & Jadwal
-  const initialRegionInList = !!initial?.region && regions.includes(initial.region);
-  const [regionChoice, setRegionChoice] = useState(
-    initial?.region ? (initialRegionInList ? initial.region : OTHER) : '',
-  );
-  const [regionOther, setRegionOther] = useState(
-    initial?.region && !initialRegionInList ? initial.region : '',
-  );
   const [plateNumber, setPlateNumber] = useState(initial?.plateNumber ?? '');
   const [rentalType, setRentalType] = useState<RentalType | ''>(initial?.rentalType ?? '');
   const [startDate, setStartDate] = useState(initial?.startDate ?? '');
@@ -191,12 +175,12 @@ function RentalForm({
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit || cogsPerDay == null) return;
-    const region = regionChoice === OTHER ? regionOther.trim() : regionChoice;
     const infoSource = infoChoice === OTHER ? infoOther.trim() : infoChoice;
     const body: RentalUpsertInput = {
       plateNumber,
       vehicleType: selectedPlate?.vehicleType ?? initial?.vehicleType ?? undefined,
-      region: region || undefined,
+      // the form no longer manages region; keep whatever the row already has
+      region: initial?.region ?? undefined,
       startDate,
       endDate,
       price: Number(price),
@@ -225,48 +209,6 @@ function RentalForm({
       <div className="space-y-3">
         <SectionHeading>Kendaraan &amp; Jadwal</SectionHeading>
         <div className="grid gap-3 sm:grid-cols-2">
-          <div className="space-y-1.5">
-            <Label htmlFor="rental-form-region">Region</Label>
-            <div className="flex gap-2">
-              <Select value={regionChoice} onValueChange={setRegionChoice}>
-                <SelectTrigger id="rental-form-region" className="w-full flex-1">
-                  <SelectValue placeholder="Pilih region" />
-                </SelectTrigger>
-                <SelectContent>
-                  {regions.map((r) => (
-                    <SelectItem key={r} value={r}>
-                      {r}
-                    </SelectItem>
-                  ))}
-                  <SelectItem value={OTHER}>Lainnya…</SelectItem>
-                </SelectContent>
-              </Select>
-              {regionChoice !== '' && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  aria-label="Hapus region"
-                  title="Hapus region"
-                  onClick={() => {
-                    setRegionChoice('');
-                    setRegionOther('');
-                  }}
-                >
-                  <X aria-hidden />
-                </Button>
-              )}
-            </div>
-            {regionChoice === OTHER && (
-              <Input
-                aria-label="Region lainnya"
-                value={regionOther}
-                onChange={(e) => setRegionOther(e.target.value)}
-                placeholder="Nama region"
-                maxLength={100}
-              />
-            )}
-          </div>
           <div className="space-y-1.5">
             <Label htmlFor="rental-form-plate">Plat</Label>
             <Select

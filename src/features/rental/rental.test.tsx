@@ -145,7 +145,7 @@ describe('RentalMonitoringPage', () => {
     expect(screen.getByText(/Tidak ada plat yang cocok/)).toBeInTheDocument();
   });
 
-  it('clears the selected region with the hapus button', async () => {
+  it('does not render a Region field in the add/edit dialog', async () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByText('B 1000 XYZ');
@@ -153,16 +153,9 @@ describe('RentalMonitoringPage', () => {
     await user.click(screen.getByRole('button', { name: /Tambah Rental Data/i }));
     const dialog = await screen.findByRole('dialog');
 
-    // pick "Lainnya…" and type a custom region, then clear both via the X button
-    await user.click(within(dialog).getByLabelText('Region'));
-    await user.click(await screen.findByRole('option', { name: 'Lainnya…' }));
-    await user.type(within(dialog).getByLabelText('Region lainnya'), 'Region Uji');
-
-    await user.click(within(dialog).getByRole('button', { name: 'Hapus region' }));
-    expect(within(dialog).queryByLabelText('Region lainnya')).not.toBeInTheDocument();
-    expect(
-      within(dialog).queryByRole('button', { name: 'Hapus region' }),
-    ).not.toBeInTheDocument();
+    expect(within(dialog).queryByLabelText('Region')).not.toBeInTheDocument();
+    // the page-level Region FILTER stays (it operates on existing data)
+    expect(screen.getByLabelText('Region')).toBeInTheDocument();
   });
 
   it('blocks submit when tanggal selesai is before tanggal mulai', async () => {
