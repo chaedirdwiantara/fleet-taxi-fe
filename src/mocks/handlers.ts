@@ -23,6 +23,8 @@ import {
   type MockCheckpointMedia,
 } from './fixtures/partner';
 import { seedRentals, seedCogsDefaults, type SeedRental } from './fixtures/rental';
+import { debtFilters, queryDebtRows } from './fixtures/debt';
+import type { DebtSortField, DriverStatus } from '@/features/debt/types';
 
 // Single mock layer for dev (VITE_USE_MSW=true) and tests (frontend-kickoff.md §9).
 // All responses use the standard envelope from PROJECT-BRIEF.md §6.
@@ -1257,5 +1259,37 @@ export const handlers = [
     if (idx === -1) return err(404, 'NOT_FOUND', 'Data rental tidak ditemukan');
     rentalsState.splice(idx, 1);
     return ok({ deleted: true });
+  }),
+
+  // ---- Partner portal — Debt Summary (aggregated from Gojek/Grab imports) --
+  http.get('*/partner/portal/debt-summary', ({ request }) => {
+    const url = new URL(request.url);
+    const p = url.searchParams;
+    const { data, meta } = queryDebtRows({
+      status: (p.get('status') as DriverStatus | null) ?? undefined,
+      cabang: p.get('cabang') ?? undefined,
+      koordinator: p.get('koordinator') ?? undefined,
+      search: p.get('search') ?? undefined,
+      sortBy: (p.get('sortBy') as DebtSortField | null) ?? undefined,
+      sortOrder: (p.get('sortOrder') as 'asc' | 'desc' | null) ?? undefined,
+      page: int(p.get('page'), 1),
+      pageSize: int(p.get('pageSize'), 10),
+    });
+    return ok(data, meta);
+  }),
+
+  http.get('*/partner/portal/debt-summary/filters', () => ok(debtFilters)),
+
+  http.get('*/partner/portal/debt-summary/export', ({ request }) => {
+    const url = new URL(request.url);
+    if (url.searchParams.get('format') !== 'xlsx') {
+      return err(400, 'VALIDATION_ERROR', 'format must be xlsx');
+    }
+    return new HttpResponse('mock-xlsx', {
+      headers: {
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition': 'attachment; filename="debt-summary.xlsx"',
+      },
+    });
   }),
 ];

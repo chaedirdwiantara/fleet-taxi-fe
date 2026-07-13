@@ -848,15 +848,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/partner/v1/pricelist": {
+    "/partner/portal/debt-summary": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Route/car pricelist for the authenticated partner */
-        get: operations["PricelistController_quote"];
+        /** Own debt summary per driver (scoped to registered plates) */
+        get: operations["PortalDebtController_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -865,33 +865,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/partner/v1/orders": {
+    "/partner/portal/debt-summary/filters": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Order history for the authenticated partner */
-        get: operations["PartnerOrdersController_list"];
+        /** Dropdown options (cabang, koordinator) for the debt summary */
+        get: operations["PortalDebtController_filters"];
         put?: never;
-        /** Create an order (replaces legacy GET /partner/v1/order/create) */
-        post: operations["PartnerOrdersController_create"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/partner/v1/orders/{id}": {
+    "/partner/portal/debt-summary/export": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** One order's detail (own orders only — 404 for any other order) */
-        get: operations["PartnerOrdersController_detail"];
+        /** Export the filtered debt summary (?format=xlsx) */
+        get: operations["PortalDebtController_export"];
         put?: never;
         post?: never;
         delete?: never;
@@ -986,6 +985,58 @@ export interface paths {
         head?: never;
         /** Toggle Belum/Sudah Dibayar on one own rental */
         patch: operations["PartnerRentalsController_updatePaymentStatus"];
+        trace?: never;
+    };
+    "/partner/v1/pricelist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Route/car pricelist for the authenticated partner */
+        get: operations["PricelistController_quote"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/v1/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Order history for the authenticated partner */
+        get: operations["PartnerOrdersController_list"];
+        put?: never;
+        /** Create an order (replaces legacy GET /partner/v1/order/create) */
+        post: operations["PartnerOrdersController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/v1/orders/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One order's detail (own orders only — 404 for any other order) */
+        get: operations["PartnerOrdersController_detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
 }
@@ -1212,23 +1263,19 @@ export interface components {
             /** @example Serah terima berjalan lancar */
             generalNotes?: string;
         };
-        CreatePartnerOrderDto: {
+        UpsertCogsDefaultDto: {
             /**
-             * @description Pool code (whitelisted)
-             * @example BHISA_CAWANG
+             * @description Present → update that row; absent → create (key slugified from label)
+             * @example air_ev
              */
-            pickupCode: string;
-            /** @example EVISTA_HALIM */
-            destinationCode: string;
-            /** @example 1 */
-            carTypesId: number;
+            key?: string;
+            /** @example Air EV */
+            label: string;
             /**
-             * @description ISO 8601, or "YYYY-MM-DD HH:mm:ss" interpreted as Asia/Jakarta
-             * @example 2026-07-10 09:00:00
+             * @description Integer rupiah
+             * @example 335833
              */
-            pickupAt: string;
-            /** @description Free-form passenger details object (stored as JSON; size-bounded) */
-            passengerDetails?: Record<string, never>;
+            cogsPerDay: number;
         };
         CreateRentalDto: {
             /**
@@ -1296,19 +1343,23 @@ export interface components {
              */
             paymentStatus: "Belum Dibayar" | "Sudah Dibayar";
         };
-        UpsertCogsDefaultDto: {
+        CreatePartnerOrderDto: {
             /**
-             * @description Present → update that row; absent → create (key slugified from label)
-             * @example air_ev
+             * @description Pool code (whitelisted)
+             * @example BHISA_CAWANG
              */
-            key?: string;
-            /** @example Air EV */
-            label: string;
+            pickupCode: string;
+            /** @example EVISTA_HALIM */
+            destinationCode: string;
+            /** @example 1 */
+            carTypesId: number;
             /**
-             * @description Integer rupiah
-             * @example 335833
+             * @description ISO 8601, or "YYYY-MM-DD HH:mm:ss" interpreted as Asia/Jakarta
+             * @example 2026-07-10 09:00:00
              */
-            cogsPerDay: number;
+            pickupAt: string;
+            /** @description Free-form passenger details object (stored as JSON; size-bounded) */
+            passengerDetails?: Record<string, never>;
         };
     };
     responses: never;
@@ -2579,31 +2630,20 @@ export interface operations {
             };
         };
     };
-    PricelistController_quote: {
-        parameters: {
-            query: {
-                pickupCode: string;
-                destinationCode: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PartnerOrdersController_list: {
+    PortalDebtController_list: {
         parameters: {
             query?: {
                 page?: string;
                 pageSize?: string;
+                status?: "aktif" | "nonaktif";
+                /** @description Exact cabang from /debt-summary/filters */
+                cabang?: unknown;
+                /** @description Exact koordinator from /debt-summary/filters */
+                koordinator?: unknown;
+                /** @description Substring on driver name or plate */
+                search?: unknown;
+                sortBy?: "driverName" | "cabang" | "koordinator" | "depositTerbayar" | "tagihanSetoran" | "totalTagihan" | "selisihDeposit";
+                sortOrder?: "asc" | "desc";
             };
             header?: never;
             path?: never;
@@ -2619,20 +2659,16 @@ export interface operations {
             };
         };
     };
-    PartnerOrdersController_create: {
+    PortalDebtController_filters: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreatePartnerOrderDto"];
-            };
-        };
+        requestBody?: never;
         responses: {
-            201: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2640,13 +2676,22 @@ export interface operations {
             };
         };
     };
-    PartnerOrdersController_detail: {
+    PortalDebtController_export: {
         parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
+            query: {
+                format: "xlsx";
+                status?: "aktif" | "nonaktif";
+                /** @description Exact cabang from /debt-summary/filters */
+                cabang?: unknown;
+                /** @description Exact koordinator from /debt-summary/filters */
+                koordinator?: unknown;
+                /** @description Substring on driver name or plate */
+                search?: unknown;
+                sortBy?: "driverName" | "cabang" | "koordinator" | "depositTerbayar" | "tagihanSetoran" | "totalTagihan" | "selisihDeposit";
+                sortOrder?: "asc" | "desc";
             };
+            header?: never;
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -2831,6 +2876,86 @@ export interface operations {
                 "application/json": components["schemas"]["UpdatePaymentStatusDto"];
             };
         };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PricelistController_quote: {
+        parameters: {
+            query: {
+                pickupCode: string;
+                destinationCode: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PartnerOrdersController_list: {
+        parameters: {
+            query?: {
+                page?: string;
+                pageSize?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PartnerOrdersController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePartnerOrderDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PartnerOrdersController_detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             200: {
                 headers: {
