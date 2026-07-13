@@ -22,8 +22,11 @@ export type DepositReturnStatus = (typeof DEPOSIT_RETURN_STATUSES)[number];
 export const DOCUMENT_KINDS = ['ktp', 'sim', 'skck', 'deposit_proof', 'deposit_return_proof'] as const;
 export type DriverDocumentKind = (typeof DOCUMENT_KINDS)[number];
 
-/** The three identity documents managed on the edit page's Dokumen card. */
-export const IDENTITY_DOC_KINDS = ['ktp', 'sim', 'skck'] as const;
+/**
+ * Identity documents managed on the edit page's Dokumen card.
+ * 'skck' stays in the contract (DOCUMENT_KINDS) but is not collected via the UI.
+ */
+export const IDENTITY_DOC_KINDS = ['ktp', 'sim'] as const;
 
 export const DOC_KIND_LABELS: Record<DriverDocumentKind, string> = {
   ktp: 'KTP',

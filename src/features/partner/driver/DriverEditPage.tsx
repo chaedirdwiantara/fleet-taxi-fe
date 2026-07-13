@@ -166,7 +166,7 @@ function DocumentsCard({ detail }: { detail: DriverDetail }) {
     <Card className="py-4">
       <CardHeader className="px-4 pb-0">
         <CardTitle className="text-sm">Dokumen</CardTitle>
-        <CardDescription>KTP, SIM, dan SKCK driver (JPG, PNG, atau PDF).</CardDescription>
+        <CardDescription>KTP dan SIM driver (JPG, PNG, atau PDF).</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3 px-4">
         {IDENTITY_DOC_KINDS.map((kind) => (

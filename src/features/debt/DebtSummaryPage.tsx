@@ -1,8 +1,26 @@
 import { useEffect, useState } from 'react';
 import { Link } from '@tanstack/react-router';
-import { ChevronLeft, ChevronRight, FileSpreadsheet, Info, Loader2, RefreshCw, Search, X } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Construction,
+  FileSpreadsheet,
+  Info,
+  Loader2,
+  RefreshCw,
+  Search,
+  X,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -41,6 +59,8 @@ export function DebtSummaryPage({
   const filters = useDebtFiltersQuery();
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
+  // Fitur belum dirilis penuh — beri tahu user setiap kali halaman dibuka.
+  const [devNoticeOpen, setDevNoticeOpen] = useState(true);
 
   // free-text search: local state, debounced into the URL (and the query key)
   const [searchText, setSearchText] = useState(search.q ?? '');
@@ -80,6 +100,24 @@ export function DebtSummaryPage({
 
   return (
     <div className="space-y-4">
+      <Dialog open={devNoticeOpen} onOpenChange={setDevNoticeOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-500/15">
+              <Construction className="size-6 text-amber-600 dark:text-amber-400" aria-hidden />
+            </div>
+            <DialogTitle className="text-center">Fitur Dalam Pengembangan</DialogTitle>
+            <DialogDescription className="text-center">
+              Halaman Debt Summary masih dalam tahap pengembangan dan akan segera dirilis. Data
+              yang ditampilkan saat ini belum final.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="sm:justify-center">
+            <Button onClick={() => setDevNoticeOpen(false)}>Mengerti</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <div>
         <h2 className="text-lg font-semibold">Debt Summary</h2>
         <p className="text-sm text-muted-foreground">
