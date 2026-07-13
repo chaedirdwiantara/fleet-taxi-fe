@@ -323,20 +323,22 @@ export function makeDriverActivity(grid: GojekGridFixture, day?: number) {
   };
 }
 
-export function makePerformers(platform: 'gojek' | 'grab', month: number, year: number) {
-  if (platform === 'grab') {
-    const grid = grabGrid(month, year);
-    const sorted = [...grid.rows].sort((a, b) => b.summary.earning - a.summary.earning);
-    const toP = (r: (typeof sorted)[number]) => ({
-      key: r.compositeKey,
-      driverName: r.driverName,
-      vehicle: r.plateNumber,
-      totalDeduction: r.summary.earning,
-      outstanding: 0,
-    });
-    return { top: sorted.slice(0, 10).map(toP), bottom: sorted.slice(-10).reverse().map(toP) };
-  }
-  const grid = gojekGrid(month, year);
+export function makeGrabPerformers(month: number, year: number) {
+  const grid = grabGrid(month, year);
+  const sorted = [...grid.rows].sort((a, b) => b.summary.earning - a.summary.earning);
+  const toP = (r: (typeof sorted)[number]) => ({
+    key: r.compositeKey,
+    driverName: r.driverName,
+    vehicle: r.plateNumber,
+    totalDeduction: r.summary.earning,
+    outstanding: 0,
+  });
+  return { top: sorted.slice(0, 10).map(toP), bottom: sorted.slice(-10).reverse().map(toP) };
+}
+
+// Takes a (possibly scoped) grid so admin performers rank exactly the rows the
+// admin table shows — never a plate outside the partner registrations.
+export function makeGojekPerformers(grid: GojekGridFixture) {
   const sorted = [...grid.rows].sort((a, b) => a.summary.outstanding - b.summary.outstanding);
   const toP = (r: (typeof sorted)[number]) => ({
     key: r.plateNorm,

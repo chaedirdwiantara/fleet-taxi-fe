@@ -82,7 +82,8 @@ function GojekGridPage() {
         <div>
           <h2 className="text-lg font-semibold">Fleet Monitoring — Gojek</h2>
           <p className="text-sm text-muted-foreground">
-            Rekonsiliasi setoran per kendaraan · {grid.data?.rows.length ?? '…'} kendaraan
+            Rekonsiliasi setoran per kendaraan · hanya plat yang didaftarkan partner ·{' '}
+            {grid.data?.rows.length ?? '…'} kendaraan
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -109,6 +110,7 @@ function GojekGridPage() {
             onEditTarget={setEditRow}
             onManageException={openException}
             onDriverHistory={setHistoryRow}
+            emptyMessage="Tidak ada data untuk periode / filter ini — tabel hanya menampilkan plat yang didaftarkan partner melalui menu Daftarkan Plat."
           />
         </div>
       )}
