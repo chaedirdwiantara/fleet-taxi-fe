@@ -848,6 +848,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/partner/portal/debt-summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Own debt summary per driver (scoped to registered plates) */
+        get: operations["PortalDebtController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/debt-summary/filters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Dropdown options (cabang, koordinator) for the debt summary */
+        get: operations["PortalDebtController_filters"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/debt-summary/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Export the filtered debt summary (?format=xlsx) */
+        get: operations["PortalDebtController_export"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/partner/portal/rentals/cogs-defaults": {
         parameters: {
             query?: never;
@@ -3047,6 +3098,80 @@ export interface operations {
             path: {
                 mediaId: number;
             };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalDebtController_list: {
+        parameters: {
+            query?: {
+                page?: string;
+                pageSize?: string;
+                status?: "aktif" | "nonaktif";
+                /** @description Exact cabang from /debt-summary/filters */
+                cabang?: unknown;
+                /** @description Exact koordinator from /debt-summary/filters */
+                koordinator?: unknown;
+                /** @description Substring on driver name or plate */
+                search?: unknown;
+                sortBy?: "driverName" | "cabang" | "koordinator" | "depositTerbayar" | "tagihanSetoran" | "totalTagihan" | "selisihDeposit";
+                sortOrder?: "asc" | "desc";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalDebtController_filters: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalDebtController_export: {
+        parameters: {
+            query: {
+                format: "xlsx";
+                status?: "aktif" | "nonaktif";
+                /** @description Exact cabang from /debt-summary/filters */
+                cabang?: unknown;
+                /** @description Exact koordinator from /debt-summary/filters */
+                koordinator?: unknown;
+                /** @description Substring on driver name or plate */
+                search?: unknown;
+                sortBy?: "driverName" | "cabang" | "koordinator" | "depositTerbayar" | "tagihanSetoran" | "totalTagihan" | "selisihDeposit";
+                sortOrder?: "asc" | "desc";
+            };
+            header?: never;
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;

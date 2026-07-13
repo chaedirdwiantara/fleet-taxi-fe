@@ -50,6 +50,20 @@ export const qk = {
       detail: (id: number) => ['partner', 'checkpoint', 'detail', id] as const,
       comparison: (id: number) => ['partner', 'checkpoint', 'comparison', id] as const,
     },
+    // Debt Summary — the list params (filters/sort/pagination) key the cache.
+    debt: {
+      list: (p: {
+        status?: string;
+        cabang?: string;
+        koordinator?: string;
+        search?: string;
+        sortBy: string;
+        sortOrder: string;
+        page: number;
+        pageSize: number;
+      }) => ['partner', 'debt', 'list', p] as const,
+      filters: ['partner', 'debt', 'filters'] as const,
+    },
     fleet: {
       grid: (p: { platform: Platform; month: number; year: number }) =>
         ['partner', 'fleet', p.platform, 'grid', p] as const,

@@ -12,6 +12,7 @@ import {
   Table2,
   UserMinus,
   Users,
+  Wallet,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
@@ -33,6 +34,7 @@ const NAV: Record<Audience, NavItem[]> = {
   partner: [
     { to: '/partner/fleet-monitoring', label: 'Fleet Monitoring — Gojek', icon: Table2 },
     { to: '/partner/fleet-monitoring-grab', label: 'Fleet Monitoring — Grab', icon: Car },
+    { to: '/partner/debt-summary', label: 'Debt Summary', icon: Wallet },
     { to: '/partner/rental-monitoring', label: 'Rental Monitoring', icon: CalendarDays },
     { to: '/partner/daftarkan-plat', label: 'Daftarkan Plat', icon: ClipboardList },
     { to: '/partner/checkpoint', label: 'Checkpoint', icon: ClipboardCheck },
