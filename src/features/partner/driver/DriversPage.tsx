@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Info, Search, X } from 'lucide-react';
+import { Info, RefreshCw, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,15 +10,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { DriverFormDialog } from './components/DriverFormDialog';
 import { DriverTable } from './components/DriverTable';
-import { useDriversQuery, useResignDriver } from './hooks';
+import { useDriversQuery } from './hooks';
 import type { DriverSearch } from './searchSchema';
-import type { DriverSummary } from './types';
 
 const ALL = 'all';
 
-// Daftar Driver — roster driver aktif (registrasi yang sudah disetujui).
+// Daftar Driver — the whole roster (including resigned drivers), auto-synced
+// server-side from Fleet Monitoring on every list load. No create affordance:
+// rows appear via the sync (or BE-manual entry); the FE only completes data.
 export function DriversPage({
   search,
   onPatch,
@@ -32,11 +32,10 @@ export function DriversPage({
     q: search.q,
     plate: search.plate,
     active: search.active,
+    resigned: search.resigned,
     page: search.page,
   });
-  const resign = useResignDriver();
 
-  const [editing, setEditing] = useState<DriverSummary | null>(null);
   const [searchText, setSearchText] = useState(search.q ?? '');
   const [plateText, setPlateText] = useState(search.plate ?? '');
 
@@ -55,9 +54,9 @@ export function DriversPage({
   const pageSize = list.data?.meta?.pageSize ?? 20;
   const lastPage = Math.max(1, Math.ceil(total / pageSize));
   const fadeWhileFetching = list.isFetching ? 'opacity-70 transition-opacity' : '';
-  const hasFilter = !!search.q || !!search.plate || !!search.active;
+  const hasFilter = !!search.q || !!search.plate || !!search.active || !!search.resigned;
 
-  // A row-removing mutation can leave the URL pointing past the last page —
+  // A shrinking result set can leave the URL pointing past the last page —
   // snap back once the shrunken result is confirmed (isFetching guards
   // placeholder data; lastPage < page guards re-patch loops).
   const rowCount = list.data?.rows.length;
@@ -71,12 +70,13 @@ export function DriversPage({
     <div className="space-y-4">
       <div>
         <h2 className="text-lg font-semibold">Daftar Driver</h2>
-        <p className="text-sm text-muted-foreground">
-          Driver aktif Anda — kode driver diberikan saat registrasi disetujui.
+        <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+          <RefreshCw className="size-3.5 shrink-0" aria-hidden />
+          Data driver tersinkron otomatis dari Fleet Monitoring (Gojek &amp; Grab).
         </p>
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <div className="relative w-full sm:w-72">
           <Search
             className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
@@ -113,13 +113,28 @@ export function DriversPage({
             onPatch({ active: v === ALL ? undefined : (v as 'true' | 'false'), page: 1 })
           }
         >
-          <SelectTrigger className="w-full sm:w-44" aria-label="Filter status aktif">
+          <SelectTrigger className="w-full sm:w-40" aria-label="Filter status aktif">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ALL}>Semua status</SelectItem>
             <SelectItem value="true">Aktif</SelectItem>
             <SelectItem value="false">Nonaktif</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select
+          value={search.resigned ?? ALL}
+          onValueChange={(v) =>
+            onPatch({ resigned: v === ALL ? undefined : (v as 'true' | 'false'), page: 1 })
+          }
+        >
+          <SelectTrigger className="w-full sm:w-40" aria-label="Filter resign">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>Semua driver</SelectItem>
+            <SelectItem value="true">Resign</SelectItem>
+            <SelectItem value="false">Belum resign</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -139,22 +154,11 @@ export function DriversPage({
                   <span>
                     {hasFilter
                       ? 'Tidak ada driver yang cocok dengan pencarian/filter.'
-                      : 'Belum ada driver aktif — setujui registrasi terlebih dahulu.'}
+                      : 'Belum ada driver — data akan muncul otomatis setelah sinkronisasi Fleet Monitoring.'}
                   </span>
                 </div>
               ) : (
-                <DriverTable
-                  items={list.data.rows}
-                  onOpenDetail={onOpenDetail}
-                  onEdit={setEditing}
-                  onResign={(id) => resign.mutate(id)}
-                  resignPending={resign.isPending}
-                />
-              )}
-              {resign.isError && (
-                <p className="mt-2 text-sm text-destructive" role="alert">
-                  {resign.error.message}
-                </p>
+                <DriverTable items={list.data.rows} onOpenDetail={onOpenDetail} />
               )}
             </CardContent>
           </Card>
@@ -184,8 +188,6 @@ export function DriversPage({
           )}
         </div>
       )}
-
-      <DriverFormDialog driver={editing} onClose={() => setEditing(null)} />
     </div>
   );
 }

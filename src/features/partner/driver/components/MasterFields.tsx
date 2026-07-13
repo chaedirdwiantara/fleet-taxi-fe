@@ -9,11 +9,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { usePartnerPlatesQuery } from '@/features/partner/hooks';
-import type { DriverBase, RegistrationUpsertInput } from '../types';
+import type { DriverDetail, DriverUpdateInput } from '../types';
 
-// Master-data fields shared by the registration (create+edit) and active
-// driver (edit) form dialogs. Plain controlled object state — the dialogs
-// own it and remount the form per row (keyed remount pattern).
+// Master-data fields of the driver edit page's Informasi Driver card. Plain
+// controlled object state — the form owns it and remounts per driver (keyed
+// remount pattern).
 
 const NONE = '__none';
 
@@ -34,21 +34,21 @@ export interface MasterFormValues {
   plateNumber: string;
 }
 
-export function masterValuesFrom(initial: DriverBase | null): MasterFormValues {
+export function masterValuesFrom(initial: DriverDetail): MasterFormValues {
   return {
-    name: initial?.name ?? '',
-    email: initial?.email ?? '',
-    phone: initial?.phone ?? '',
-    ktpNo: initial?.ktpNo ?? '',
-    simNo: initial?.simNo ?? '',
-    simExpired: initial?.simExpired ?? '',
-    address: initial?.address ?? '',
-    bankAccount: initial?.bankAccount ?? '',
-    plateNumber: initial?.plateNumber ?? '',
+    name: initial.name,
+    email: initial.email ?? '',
+    phone: initial.phone ?? '',
+    ktpNo: initial.ktpNo ?? '',
+    simNo: initial.simNo ?? '',
+    simExpired: initial.simExpired ?? '',
+    address: initial.address ?? '',
+    bankAccount: initial.bankAccount ?? '',
+    plateNumber: initial.plateNumber ?? '',
   };
 }
 
-export function masterInputFrom(values: MasterFormValues): RegistrationUpsertInput {
+export function masterInputFrom(values: MasterFormValues): DriverUpdateInput {
   return {
     name: values.name.trim(),
     email: values.email.trim() || undefined,
@@ -160,7 +160,7 @@ export function MasterFields({
           <p className="text-xs text-muted-foreground">
             Belum ada plat terdaftar — daftarkan dulu di{' '}
             <Link to="/partner/daftarkan-plat" className="font-medium text-primary underline">
-              Daftarkan Plat
+              Plate Registration
             </Link>
             .
           </p>

@@ -232,10 +232,10 @@ const rentalFromBody = (body: RentalUpsertBody, id: number, createdAt: string): 
 };
 
 // ---- Mock driver-management state (partner portal) ----------------------------
-// The mock plays the backend's role: one drivers row travels registration →
-// active roster → resignation; endpoint groups slice on status/resignedAt.
+// The mock plays the backend's role: the roster "auto-syncs" from Fleet
+// Monitoring on every list load — emulated by serving fixtures that already
+// contain gojek/grab-sourced rows. All lifecycle changes ride one PATCH.
 let driversState: SeedDriver[] = structuredClone(seedDrivers);
-let nextDriverId = 1_000;
 let nextDriverDocId = 10_000;
 // presigned-but-unconfirmed documents: docId → owning driver
 const pendingDriverDocs = new Map<number, { driverId: number }>();
@@ -243,7 +243,6 @@ const pendingDriverDocs = new Map<number, { driverId: number }>();
 /** Reset drivers to the seed (call between tests for isolation). */
 export const resetDrivers = () => {
   driversState = structuredClone(seedDrivers);
-  nextDriverId = 1_000;
   nextDriverDocId = 10_000;
   pendingDriverDocs.clear();
 };
@@ -262,73 +261,34 @@ const driverDocViews = (d: SeedDriver) =>
     }),
   }));
 
-const driverBase = (d: SeedDriver) => ({
-  id: d.id,
-  name: d.name,
-  email: d.email,
-  phone: d.phone,
-  address: d.address,
-  ktpNo: d.ktpNo,
-  simNo: d.simNo,
-  simExpired: d.simExpired,
-  driverCode: d.driverCode,
-  plateNumber: d.plateNumber,
-  bankAccount: d.bankAccount,
-});
-
-const presentRegistrationSummaryMock = (d: SeedDriver) => ({
-  ...driverBase(d),
-  registrationStatus: d.registrationStatus,
-  rejectNote: d.rejectNote,
-  ktpVerified: d.ktpVerified,
-  simVerified: d.simVerified,
-  skckVerified: d.skckVerified,
-  depositAmount: d.depositAmount,
-  depositStatus: d.depositStatus,
-  createdAt: d.createdAt,
-});
-
-const presentRegistrationDetailMock = (d: SeedDriver) => ({
-  ...presentRegistrationSummaryMock(d),
-  depositNote: d.depositNote,
-  depositDecidedAt: d.depositDecidedAt,
-  updatedAt: d.updatedAt,
-  documents: driverDocViews(d),
-});
-
 const presentDriverSummaryMock = (d: SeedDriver) => ({
-  ...driverBase(d),
+  id: d.id,
+  driverCode: d.driverCode,
+  name: d.name,
+  source: d.source,
+  plateNumber: d.plateNumber,
+  phone: d.phone,
+  email: d.email,
+  simExpired: d.simExpired,
   isActive: d.isActive,
   depositAmount: d.depositAmount,
-  depositStatus: d.depositStatus,
-  joinedAt: d.createdAt,
+  depositReturnStatus: d.depositReturnStatus,
+  resignedAt: d.resignedAt,
+  joinedAt: d.joinedAt,
 });
 
 const presentDriverDetailMock = (d: SeedDriver) => ({
   ...presentDriverSummaryMock(d),
-  depositNote: d.depositNote,
-  depositDecidedAt: d.depositDecidedAt,
-  updatedAt: d.updatedAt,
-  documents: driverDocViews(d),
-});
-
-const presentResignationSummaryMock = (d: SeedDriver) => ({
-  ...driverBase(d),
-  depositAmount: d.depositAmount,
-  depositReturnStatus: d.depositReturnStatus,
+  address: d.address,
+  ktpNo: d.ktpNo,
+  simNo: d.simNo,
+  bankAccount: d.bankAccount,
   depositReturnDecidedAt: d.depositReturnDecidedAt,
-  resignedAt: d.resignedAt,
-  joinedAt: d.createdAt,
-});
-
-const presentResignationDetailMock = (d: SeedDriver) => ({
-  ...presentResignationSummaryMock(d),
-  depositStatus: d.depositStatus,
   updatedAt: d.updatedAt,
   documents: driverDocViews(d),
 });
 
-type DriverMasterBody = Partial<{
+type DriverPatchBody = Partial<{
   name: string;
   email: string;
   phone: string;
@@ -338,12 +298,24 @@ type DriverMasterBody = Partial<{
   simExpired: string;
   plateNumber: string;
   bankAccount: string;
+  depositAmount: number;
   isActive: boolean;
+  resigned: boolean;
+  depositReturned: boolean;
 }>;
 
-/** Shared master-data PATCH for registrations and active drivers. */
-const applyDriverMasterData = (d: SeedDriver, body: DriverMasterBody) => {
-  if (body.name !== undefined) d.name = body.name.trim();
+/** Master-data half of the PATCH (validation errors short-circuit). */
+const applyDriverMasterData = (d: SeedDriver, body: DriverPatchBody) => {
+  if (body.name !== undefined) {
+    const name = body.name.trim();
+    if (
+      name.toLowerCase() !== d.name.toLowerCase() &&
+      driversState.some((other) => other.id !== d.id && other.name.toLowerCase() === name.toLowerCase())
+    ) {
+      return err(409, 'CONFLICT', 'Nama driver sudah terdaftar');
+    }
+    d.name = name;
+  }
   if (body.email !== undefined) d.email = body.email.trim() || null;
   if (body.phone !== undefined) d.phone = body.phone.trim() || null;
   if (body.address !== undefined) d.address = body.address.trim() || null;
@@ -358,7 +330,46 @@ const applyDriverMasterData = (d: SeedDriver, body: DriverMasterBody) => {
     }
     d.plateNumber = trimmed || null;
   }
+  if (body.depositAmount !== undefined) {
+    if (!Number.isInteger(body.depositAmount) || body.depositAmount < 0) {
+      return err(400, 'VALIDATION_ERROR', 'depositAmount harus rupiah bulat');
+    }
+    d.depositAmount = body.depositAmount;
+  }
   if (body.isActive !== undefined) d.isActive = body.isActive;
+  d.updatedAt = new Date().toISOString();
+  return null;
+};
+
+/** Lifecycle half of the PATCH: resign / un-resign / deposit-return gates. */
+const applyDriverLifecycle = (d: SeedDriver, body: DriverPatchBody) => {
+  if (body.resigned === true && !d.resignedAt) {
+    d.resignedAt = new Date().toISOString();
+    d.isActive = false;
+    d.depositReturnStatus = 'none';
+    d.depositReturnDecidedAt = null;
+  }
+  if (body.resigned === false && d.resignedAt) {
+    // Un-resign resets the deposit-return state.
+    d.resignedAt = null;
+    d.depositReturnStatus = 'none';
+    d.depositReturnDecidedAt = null;
+  }
+  if (body.depositReturned !== undefined) {
+    if (!d.resignedAt) {
+      return err(400, 'VALIDATION_ERROR', 'Driver belum ditandai resign');
+    }
+    if (body.depositReturned) {
+      if (!driverHasUploaded(d, 'deposit_return_proof')) {
+        return err(400, 'VALIDATION_ERROR', 'Unggah bukti pengembalian deposit terlebih dahulu');
+      }
+      d.depositReturnStatus = 'approved';
+      d.depositReturnDecidedAt = new Date().toISOString();
+    } else {
+      d.depositReturnStatus = 'none';
+      d.depositReturnDecidedAt = null;
+    }
+  }
   d.updatedAt = new Date().toISOString();
   return null;
 };
@@ -1398,187 +1409,6 @@ export const handlers = [
   }),
 
   // ---- Partner portal — Driver management ------------------------------------
-  // Registrations (pending | rejected).
-  http.get('*/partner/portal/driver-registrations', ({ request }) => {
-    const url = new URL(request.url);
-    const q = url.searchParams.get('q')?.trim().toLowerCase();
-    const page = int(url.searchParams.get('page'), 1);
-    const pageSize = int(url.searchParams.get('pageSize'), 20);
-    const filtered = driversState
-      .filter((d) => d.registrationStatus === 'pending' || d.registrationStatus === 'rejected')
-      .filter(
-        (d) =>
-          !q ||
-          d.name.toLowerCase().includes(q) ||
-          (d.driverCode ?? '').toLowerCase().includes(q),
-      )
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-    const rows = filtered
-      .slice((page - 1) * pageSize, page * pageSize)
-      .map(presentRegistrationSummaryMock);
-    return ok(rows, { page, pageSize, total: filtered.length });
-  }),
-
-  http.post('*/partner/portal/driver-registrations', async ({ request }) => {
-    const body = (await request.json()) as DriverMasterBody;
-    if (!body.name?.trim()) return err(422, 'VALIDATION_ERROR', 'name wajib diisi');
-    const created: SeedDriver = {
-      id: nextDriverId++,
-      name: body.name.trim(),
-      email: null,
-      phone: null,
-      address: null,
-      ktpNo: null,
-      simNo: null,
-      simExpired: null,
-      driverCode: null,
-      plateNumber: null,
-      bankAccount: null,
-      registrationStatus: 'pending',
-      rejectNote: null,
-      ktpVerified: false,
-      simVerified: false,
-      skckVerified: false,
-      depositAmount: 0,
-      depositStatus: 'none',
-      depositNote: null,
-      depositDecidedAt: null,
-      isActive: true,
-      depositReturnStatus: 'none',
-      depositReturnDecidedAt: null,
-      resignedAt: null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      documents: [],
-    };
-    const invalid = applyDriverMasterData(created, body);
-    if (invalid) return invalid;
-    driversState.push(created);
-    return HttpResponse.json(
-      { success: true, data: presentRegistrationDetailMock(created) },
-      { status: 201 },
-    );
-  }),
-
-  http.get('*/partner/portal/driver-registrations/:id', ({ params }) => {
-    const d = findDriver(params.id);
-    if (!d || d.registrationStatus === 'approved') {
-      return err(404, 'NOT_FOUND', 'Registrasi tidak ditemukan');
-    }
-    return ok(presentRegistrationDetailMock(d));
-  }),
-
-  http.patch('*/partner/portal/driver-registrations/:id', async ({ params, request }) => {
-    const d = findDriver(params.id);
-    if (!d || d.registrationStatus === 'approved') {
-      return err(404, 'NOT_FOUND', 'Registrasi tidak ditemukan');
-    }
-    const invalid = applyDriverMasterData(d, (await request.json()) as DriverMasterBody);
-    if (invalid) return invalid;
-    return ok(presentRegistrationDetailMock(d));
-  }),
-
-  http.delete('*/partner/portal/driver-registrations/:id', ({ params }) => {
-    const d = findDriver(params.id);
-    if (!d || d.registrationStatus === 'approved') {
-      return err(404, 'NOT_FOUND', 'Registrasi tidak ditemukan');
-    }
-    driversState.splice(driversState.indexOf(d), 1);
-    return ok({ deleted: true });
-  }),
-
-  http.post('*/partner/portal/driver-registrations/:id/doc-check', async ({ params, request }) => {
-    const d = findDriver(params.id);
-    if (!d || d.registrationStatus === 'approved') {
-      return err(404, 'NOT_FOUND', 'Registrasi tidak ditemukan');
-    }
-    const body = (await request.json()) as { kind?: string; verified?: boolean };
-    const flag = { ktp: 'ktpVerified', sim: 'simVerified', skck: 'skckVerified' }[
-      body.kind ?? ''
-    ] as 'ktpVerified' | 'simVerified' | 'skckVerified' | undefined;
-    if (!flag || typeof body.verified !== 'boolean') {
-      return err(422, 'VALIDATION_ERROR', 'kind dan verified wajib diisi');
-    }
-    d[flag] = body.verified;
-    d.updatedAt = new Date().toISOString();
-    return HttpResponse.json(
-      { success: true, data: presentRegistrationDetailMock(d) },
-      { status: 201 },
-    );
-  }),
-
-  http.post('*/partner/portal/driver-registrations/:id/deposit', async ({ params, request }) => {
-    const d = findDriver(params.id);
-    if (!d || d.registrationStatus === 'approved') {
-      return err(404, 'NOT_FOUND', 'Registrasi tidak ditemukan');
-    }
-    if (!driverHasUploaded(d, 'deposit_proof')) {
-      return err(400, 'VALIDATION_ERROR', 'Unggah bukti deposit terlebih dahulu');
-    }
-    const body = (await request.json()) as { amount?: number };
-    if (!body.amount || body.amount <= 0) {
-      return err(422, 'VALIDATION_ERROR', 'amount wajib diisi');
-    }
-    d.depositAmount = body.amount;
-    d.depositStatus = 'waiting';
-    d.depositNote = null;
-    d.depositDecidedAt = null;
-    d.updatedAt = new Date().toISOString();
-    return HttpResponse.json(
-      { success: true, data: presentRegistrationDetailMock(d) },
-      { status: 201 },
-    );
-  }),
-
-  http.post(
-    '*/partner/portal/driver-registrations/:id/deposit/decision',
-    async ({ params, request }) => {
-      const d = findDriver(params.id);
-      if (!d || d.registrationStatus === 'approved') {
-        return err(404, 'NOT_FOUND', 'Registrasi tidak ditemukan');
-      }
-      if (d.depositStatus !== 'waiting') {
-        return err(409, 'CONFLICT', 'Deposit tidak sedang menunggu keputusan');
-      }
-      const body = (await request.json()) as { action?: string; note?: string };
-      d.depositStatus = body.action === 'approve' ? 'approved' : 'rejected';
-      d.depositNote = body.action === 'reject' ? body.note?.trim() || null : null;
-      d.depositDecidedAt = new Date().toISOString();
-      d.updatedAt = new Date().toISOString();
-      return HttpResponse.json(
-        { success: true, data: presentRegistrationDetailMock(d) },
-        { status: 201 },
-      );
-    },
-  ),
-
-  http.post('*/partner/portal/driver-registrations/:id/verify', async ({ params, request }) => {
-    const d = findDriver(params.id);
-    if (!d || d.registrationStatus === 'approved') {
-      return err(404, 'NOT_FOUND', 'Registrasi tidak ditemukan');
-    }
-    const body = (await request.json()) as { action?: string; rejectNote?: string };
-    if (body.action === 'approve') {
-      if (d.depositStatus !== 'approved') {
-        return err(400, 'VALIDATION_ERROR', 'Deposit belum disetujui');
-      }
-      if (!d.ktpVerified || !d.simVerified || !d.skckVerified) {
-        return err(400, 'VALIDATION_ERROR', 'Semua dokumen harus terverifikasi');
-      }
-      d.registrationStatus = 'approved';
-      d.driverCode = `DRV-${String(d.id).padStart(6, '0')}`;
-      d.rejectNote = null;
-    } else {
-      d.registrationStatus = 'rejected';
-      d.rejectNote = body.rejectNote?.trim() || null;
-    }
-    d.updatedAt = new Date().toISOString();
-    return HttpResponse.json(
-      { success: true, data: presentRegistrationDetailMock(d) },
-      { status: 201 },
-    );
-  }),
-
   // Documents (presign → dev PUT sink → confirm; single instance per kind).
   http.post('*/partner/portal/drivers/documents/:driverId/presign', async ({ params, request }) => {
     const d = findDriver(params.driverId);
@@ -1660,16 +1490,17 @@ export const handlers = [
     return ok({ deleted: true });
   }),
 
-  // Active drivers (approved, not resigned).
+  // The whole roster — includes resigned rows; the BE auto-syncs from Fleet
+  // Monitoring before answering (emulated here by the pre-seeded fixtures).
   http.get('*/partner/portal/drivers', ({ request }) => {
     const url = new URL(request.url);
     const q = url.searchParams.get('q')?.trim().toLowerCase();
     const plate = url.searchParams.get('plate');
     const active = url.searchParams.get('active');
+    const resigned = url.searchParams.get('resigned');
     const page = int(url.searchParams.get('page'), 1);
     const pageSize = int(url.searchParams.get('pageSize'), 20);
     const filtered = driversState
-      .filter((d) => d.registrationStatus === 'approved' && !d.resignedAt)
       .filter(
         (d) =>
           !q ||
@@ -1682,7 +1513,11 @@ export const handlers = [
         if (active !== 'true' && active !== 'false') return true;
         return d.isActive === (active === 'true');
       })
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      .filter((d) => {
+        if (resigned !== 'true' && resigned !== 'false') return true;
+        return (d.resignedAt != null) === (resigned === 'true');
+      })
+      .sort((a, b) => b.joinedAt.localeCompare(a.joinedAt));
     const rows = filtered
       .slice((page - 1) * pageSize, page * pageSize)
       .map(presentDriverSummaryMock);
@@ -1691,99 +1526,19 @@ export const handlers = [
 
   http.get('*/partner/portal/drivers/:id', ({ params }) => {
     const d = findDriver(params.id);
-    if (!d || d.registrationStatus !== 'approved' || d.resignedAt) {
-      return err(404, 'NOT_FOUND', 'Driver tidak ditemukan');
-    }
+    if (!d) return err(404, 'NOT_FOUND', 'Driver tidak ditemukan');
     return ok(presentDriverDetailMock(d));
   }),
 
+  // One PATCH for master data + lifecycle (resign / un-resign / deposit return).
   http.patch('*/partner/portal/drivers/:id', async ({ params, request }) => {
     const d = findDriver(params.id);
-    if (!d || d.registrationStatus !== 'approved' || d.resignedAt) {
-      return err(404, 'NOT_FOUND', 'Driver tidak ditemukan');
-    }
-    const invalid = applyDriverMasterData(d, (await request.json()) as DriverMasterBody);
+    if (!d) return err(404, 'NOT_FOUND', 'Driver tidak ditemukan');
+    const body = (await request.json()) as DriverPatchBody;
+    const invalid = applyDriverMasterData(d, body) ?? applyDriverLifecycle(d, body);
     if (invalid) return invalid;
     return ok(presentDriverDetailMock(d));
   }),
-
-  http.post('*/partner/portal/drivers/:id/resign', ({ params }) => {
-    const d = findDriver(params.id);
-    if (!d || d.registrationStatus !== 'approved') {
-      return err(404, 'NOT_FOUND', 'Driver tidak ditemukan');
-    }
-    if (d.resignedAt) return err(409, 'CONFLICT', 'Driver sudah resign');
-    d.resignedAt = new Date().toISOString();
-    d.isActive = false;
-    d.depositReturnStatus = 'none';
-    d.depositReturnDecidedAt = null;
-    d.updatedAt = new Date().toISOString();
-    return HttpResponse.json(
-      { success: true, data: presentResignationDetailMock(d) },
-      { status: 201 },
-    );
-  }),
-
-  // Resignations.
-  http.get('*/partner/portal/driver-resignations', ({ request }) => {
-    const url = new URL(request.url);
-    const q = url.searchParams.get('q')?.trim().toLowerCase();
-    const page = int(url.searchParams.get('page'), 1);
-    const pageSize = int(url.searchParams.get('pageSize'), 20);
-    const filtered = driversState
-      .filter((d) => d.resignedAt != null)
-      .filter(
-        (d) =>
-          !q ||
-          d.name.toLowerCase().includes(q) ||
-          (d.driverCode ?? '').toLowerCase().includes(q),
-      )
-      .sort((a, b) => (b.resignedAt ?? '').localeCompare(a.resignedAt ?? ''));
-    const rows = filtered
-      .slice((page - 1) * pageSize, page * pageSize)
-      .map(presentResignationSummaryMock);
-    return ok(rows, { page, pageSize, total: filtered.length });
-  }),
-
-  http.get('*/partner/portal/driver-resignations/:id', ({ params }) => {
-    const d = findDriver(params.id);
-    if (!d || !d.resignedAt) return err(404, 'NOT_FOUND', 'Driver resign tidak ditemukan');
-    return ok(presentResignationDetailMock(d));
-  }),
-
-  http.post('*/partner/portal/driver-resignations/:id/deposit-return', ({ params }) => {
-    const d = findDriver(params.id);
-    if (!d || !d.resignedAt) return err(404, 'NOT_FOUND', 'Driver resign tidak ditemukan');
-    if (!driverHasUploaded(d, 'deposit_return_proof')) {
-      return err(400, 'VALIDATION_ERROR', 'Unggah bukti pengembalian terlebih dahulu');
-    }
-    d.depositReturnStatus = 'waiting';
-    d.depositReturnDecidedAt = null;
-    d.updatedAt = new Date().toISOString();
-    return HttpResponse.json(
-      { success: true, data: presentResignationDetailMock(d) },
-      { status: 201 },
-    );
-  }),
-
-  http.post(
-    '*/partner/portal/driver-resignations/:id/deposit-return/decision',
-    async ({ params, request }) => {
-      const d = findDriver(params.id);
-      if (!d || !d.resignedAt) return err(404, 'NOT_FOUND', 'Driver resign tidak ditemukan');
-      if (d.depositReturnStatus !== 'waiting') {
-        return err(409, 'CONFLICT', 'Pengembalian deposit tidak sedang menunggu keputusan');
-      }
-      const body = (await request.json()) as { action?: string };
-      d.depositReturnStatus = body.action === 'approve' ? 'approved' : 'rejected';
-      d.depositReturnDecidedAt = new Date().toISOString();
-      d.updatedAt = new Date().toISOString();
-      return HttpResponse.json(
-        { success: true, data: presentResignationDetailMock(d) },
-        { status: 201 },
-      );
-    },
-  ),
 
   // ---- Partner portal — Debt Summary (aggregated from Gojek/Grab imports) --
   http.get('*/partner/portal/debt-summary', ({ request }) => {
