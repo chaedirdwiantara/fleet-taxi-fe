@@ -14,7 +14,6 @@ function renderTable(overrides?: Partial<Parameters<typeof GojekMonitoringTable>
     onCellClick: vi.fn(),
     onEditTarget: vi.fn(),
     onManageException: vi.fn(),
-    onDriverHistory: vi.fn(),
     ...overrides,
   };
   render(<GojekMonitoringTable {...props} />);
@@ -25,6 +24,7 @@ describe('GojekMonitoringTable (faithful legacy pivot)', () => {
   it('renders the two-row header: identity + Tanggal group + Summary + day numbers', () => {
     renderTable();
     expect(screen.getByText('Rental Partner')).toBeInTheDocument();
+    expect(screen.getByText('Driver')).toBeInTheDocument();
     expect(screen.getByText('Setoran')).toBeInTheDocument();
     expect(screen.getByText(/Tanggal \(/)).toBeInTheDocument();
     expect(screen.getByText('Summary')).toBeInTheDocument();
@@ -70,7 +70,7 @@ describe('GojekMonitoringTable (faithful legacy pivot)', () => {
     expect(onCellClick).toHaveBeenCalledWith(row.plateNorm, day);
   });
 
-  it('opens the Aksi menu and fires edit-target / driver-history', async () => {
+  it('opens the Aksi menu and fires edit-target', async () => {
     const user = userEvent.setup();
     const { onEditTarget } = renderTable();
     const firstPlate = grid.rows[0].plateRaw;
@@ -101,7 +101,6 @@ describe('GojekMonitoringTable (faithful legacy pivot)', () => {
         onCellClick={vi.fn()}
         onEditTarget={onEditTarget}
         onManageException={vi.fn()}
-        onDriverHistory={vi.fn()}
       />,
     );
 
@@ -113,29 +112,25 @@ describe('GojekMonitoringTable (faithful legacy pivot)', () => {
     expect(onEditTarget).toHaveBeenCalledWith(manualRow);
   });
 
-  it('partner (readOnly) variant drops Rental Partner + Region and keeps a Histori-only Aksi', async () => {
-    const user = userEvent.setup();
-    const onDriverHistory = vi.fn();
+  it('partner (readOnly) variant drops Rental Partner + Region + Aksi and shows the Driver column', () => {
     render(
       <GojekMonitoringTable
         grid={grid}
         onCellClick={vi.fn()}
         onEditTarget={vi.fn()}
         onManageException={vi.fn()}
-        onDriverHistory={onDriverHistory}
         readOnly
       />,
     );
     // cross-partner/admin columns are gone in the partner view
     expect(screen.queryByText('Rental Partner')).not.toBeInTheDocument();
     expect(screen.queryByText('Region')).not.toBeInTheDocument();
-    // but the Aksi column stays (per the legacy partner layout)
-    expect(screen.getByText('Aksi')).toBeInTheDocument();
-
-    await user.click(screen.getAllByLabelText(/^Aksi /)[0]);
-    expect(await screen.findByRole('menuitem', { name: /Histori Driver/ })).toBeInTheDocument();
-    // read-only: no admin actions even though the callbacks were passed
-    expect(screen.queryByRole('menuitem', { name: /Target/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole('menuitem', { name: /Kelola/ })).not.toBeInTheDocument();
+    // Aksi is admin-only now that driver history is an inline column
+    expect(screen.queryByText('Aksi')).not.toBeInTheDocument();
+    expect(screen.getByText('Driver')).toBeInTheDocument();
+    // every driver from the row's history is rendered inline
+    for (const name of grid.rows[0].driverHistory) {
+      expect(screen.getAllByText(name).length).toBeGreaterThan(0);
+    }
   });
 });
