@@ -122,6 +122,49 @@ describe('RentalMonitoringPage', () => {
     await waitFor(() => expect(screen.getAllByText('B 1000 XYZ')).toHaveLength(2));
   });
 
+  it('filters the plate list from the search box inside the picker', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText('B 1000 XYZ');
+
+    await user.click(screen.getByRole('button', { name: /Tambah Rental Data/i }));
+    const dialog = await screen.findByRole('dialog');
+
+    await user.click(within(dialog).getByLabelText('Plat'));
+    // all 3 seeded plates listed before filtering
+    expect(await screen.findAllByRole('option')).toHaveLength(3);
+
+    await user.type(screen.getByLabelText('Cari plat'), '2000grb');
+    await waitFor(() => expect(screen.getAllByRole('option')).toHaveLength(1));
+    expect(screen.getByRole('option', { name: /B 2000 GRB/ })).toBeInTheDocument();
+
+    // no match → empty state, no options
+    await user.clear(screen.getByLabelText('Cari plat'));
+    await user.type(screen.getByLabelText('Cari plat'), 'ZZZ999');
+    await waitFor(() => expect(screen.queryAllByRole('option')).toHaveLength(0));
+    expect(screen.getByText(/Tidak ada plat yang cocok/)).toBeInTheDocument();
+  });
+
+  it('clears the selected region with the hapus button', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText('B 1000 XYZ');
+
+    await user.click(screen.getByRole('button', { name: /Tambah Rental Data/i }));
+    const dialog = await screen.findByRole('dialog');
+
+    // pick "Lainnya…" and type a custom region, then clear both via the X button
+    await user.click(within(dialog).getByLabelText('Region'));
+    await user.click(await screen.findByRole('option', { name: 'Lainnya…' }));
+    await user.type(within(dialog).getByLabelText('Region lainnya'), 'Region Uji');
+
+    await user.click(within(dialog).getByRole('button', { name: 'Hapus region' }));
+    expect(within(dialog).queryByLabelText('Region lainnya')).not.toBeInTheDocument();
+    expect(
+      within(dialog).queryByRole('button', { name: 'Hapus region' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('blocks submit when tanggal selesai is before tanggal mulai', async () => {
     const user = userEvent.setup();
     renderPage();

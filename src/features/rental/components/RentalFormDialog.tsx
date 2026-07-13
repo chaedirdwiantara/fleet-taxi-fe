@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from '@tanstack/react-router';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -26,6 +26,15 @@ import { useCogsDefaultsQuery, useCreateRental, useUpdateRental } from '../hooks
 import type { PaymentStatus, RentalItem, RentalType, RentalUpsertInput } from '../types';
 
 const OTHER = '__other';
+
+// The shadcn Input base is `display:flex`, which collapses Chrome's internal
+// date-input layout and leaves the calendar icon glued to the text. `block`
+// restores the native layout (icon pinned to the right edge); ml-auto covers
+// engines that do lay the shadow parts out as flex items.
+const DATE_INPUT_CLASS =
+  'block [&::-webkit-calendar-picker-indicator]:ml-auto [&::-webkit-calendar-picker-indicator]:cursor-pointer';
+
+const normalizePlate = (value: string) => value.toUpperCase().replace(/[^A-Z0-9]/g, '');
 
 const INFO_SOURCES = [
   'Tiktok',
@@ -102,6 +111,7 @@ function RentalForm({
   const [startDate, setStartDate] = useState(initial?.startDate ?? '');
   const [endDate, setEndDate] = useState(initial?.endDate ?? '');
   const [serviceArea, setServiceArea] = useState(initial?.serviceArea ?? '');
+  const [plateQuery, setPlateQuery] = useState('');
 
   // Biaya & Pembayaran
   const [price, setPrice] = useState(initial ? String(initial.pricePerDay) : '');
@@ -134,6 +144,20 @@ function RentalForm({
     () => plates.data?.find((p) => p.plateNumber === plateNumber),
     [plates.data, plateNumber],
   );
+
+  // Type-to-filter for the plate list; matches ignore spacing/case, on plate or type.
+  const filteredPlates = useMemo(() => {
+    const all = plates.data ?? [];
+    const q = plateQuery.trim();
+    if (!q) return all;
+    const qNorm = normalizePlate(q);
+    const qLower = q.toLowerCase();
+    return all.filter(
+      (p) =>
+        (qNorm && normalizePlate(p.plateNumber).includes(qNorm)) ||
+        (p.vehicleType ?? '').toLowerCase().includes(qLower),
+    );
+  }, [plates.data, plateQuery]);
 
   const pickPlate = (nextPlateNumber: string) => {
     setPlateNumber(nextPlateNumber);
@@ -203,19 +227,36 @@ function RentalForm({
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label htmlFor="rental-form-region">Region</Label>
-            <Select value={regionChoice} onValueChange={setRegionChoice}>
-              <SelectTrigger id="rental-form-region" className="w-full">
-                <SelectValue placeholder="Pilih region" />
-              </SelectTrigger>
-              <SelectContent>
-                {regions.map((r) => (
-                  <SelectItem key={r} value={r}>
-                    {r}
-                  </SelectItem>
-                ))}
-                <SelectItem value={OTHER}>Lainnya…</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <Select value={regionChoice} onValueChange={setRegionChoice}>
+                <SelectTrigger id="rental-form-region" className="w-full flex-1">
+                  <SelectValue placeholder="Pilih region" />
+                </SelectTrigger>
+                <SelectContent>
+                  {regions.map((r) => (
+                    <SelectItem key={r} value={r}>
+                      {r}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value={OTHER}>Lainnya…</SelectItem>
+                </SelectContent>
+              </Select>
+              {regionChoice !== '' && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  aria-label="Hapus region"
+                  title="Hapus region"
+                  onClick={() => {
+                    setRegionChoice('');
+                    setRegionOther('');
+                  }}
+                >
+                  <X aria-hidden />
+                </Button>
+              )}
+            </div>
             {regionChoice === OTHER && (
               <Input
                 aria-label="Region lainnya"
@@ -228,17 +269,44 @@ function RentalForm({
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="rental-form-plate">Plat</Label>
-            <Select value={plateNumber} onValueChange={pickPlate}>
+            <Select
+              value={plateNumber}
+              onValueChange={pickPlate}
+              onOpenChange={(o) => !o && setPlateQuery('')}
+            >
               <SelectTrigger id="rental-form-plate" className="w-full">
                 <SelectValue placeholder="Pilih plat" />
               </SelectTrigger>
               <SelectContent>
-                {(plates.data ?? []).map((p) => (
+                {/* type-to-filter; stopPropagation keeps Radix's typeahead from
+                    stealing keystrokes / moving focus off the input */}
+                <div className="sticky top-0 z-10 bg-popover p-1 pb-1.5">
+                  <div className="relative">
+                    <Search
+                      className="pointer-events-none absolute left-2 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                      aria-hidden
+                    />
+                    <Input
+                      aria-label="Cari plat"
+                      value={plateQuery}
+                      onChange={(e) => setPlateQuery(e.target.value)}
+                      onKeyDown={(e) => e.stopPropagation()}
+                      placeholder="Ketik nomor plat…"
+                      className="h-8 pl-8"
+                    />
+                  </div>
+                </div>
+                {filteredPlates.map((p) => (
                   <SelectItem key={p.id} value={p.plateNumber}>
                     {p.plateNumber}
                     {p.vehicleType ? ` — ${p.vehicleType}` : ''}
                   </SelectItem>
                 ))}
+                {plates.isSuccess && plates.data.length > 0 && filteredPlates.length === 0 && (
+                  <p className="px-2 py-3 text-center text-xs text-muted-foreground">
+                    Tidak ada plat yang cocok dengan “{plateQuery.trim()}”.
+                  </p>
+                )}
               </SelectContent>
             </Select>
             {plates.isSuccess && plates.data.length === 0 && (
@@ -281,6 +349,7 @@ function RentalForm({
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
               required
+              className={DATE_INPUT_CLASS}
             />
           </div>
           <div className="space-y-1.5">
@@ -291,6 +360,7 @@ function RentalForm({
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
               required
+              className={DATE_INPUT_CLASS}
             />
           </div>
         </div>
