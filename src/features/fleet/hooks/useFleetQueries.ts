@@ -74,23 +74,41 @@ export function usePerformersQuery(p: { platform: 'gojek' | 'grab'; month: numbe
   });
 }
 
-/** Monthly aggregates for the /admin dashboard (summary cards + driver activity). */
-export function useGojekSummaryQuery(p: { month: number; year: number; day?: number }) {
+/**
+ * Monthly aggregates for the /admin dashboard (summary cards + driver
+ * activity). `rentalPartner` narrows every aggregate to one partner;
+ * `availableRentalPartners` (always computed unfiltered) feeds the select.
+ */
+export function useGojekSummaryQuery(p: {
+  month: number;
+  year: number;
+  day?: number;
+  rentalPartner?: string;
+}) {
   return useQuery({
     queryKey: qk.fleet.summary({ platform: 'gojek', ...p }),
     queryFn: async (): Promise<{
       globalSummary: GlobalSummary;
       driverActivity: DriverActivity;
       charts: FleetCharts;
+      availableRentalPartners: string[];
     }> => {
       const { data, error } = await api.GET('/admin/fleet/gojek/summary', {
-        params: { query: { month: String(p.month), year: String(p.year), ...(p.day ? { day: String(p.day) } : {}) } },
+        params: {
+          query: {
+            month: String(p.month),
+            year: String(p.year),
+            ...(p.day ? { day: String(p.day) } : {}),
+            ...(p.rentalPartner ? { rentalPartner: [p.rentalPartner] } : {}),
+          },
+        },
       });
       if (error) throwEnvelope(error);
       return unwrap(data) as {
         globalSummary: GlobalSummary;
         driverActivity: DriverActivity;
         charts: FleetCharts;
+        availableRentalPartners: string[];
       };
     },
     placeholderData: keepPreviousData,

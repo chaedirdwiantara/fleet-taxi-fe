@@ -20,13 +20,23 @@ export const Route = createFileRoute('/_admin/admin/')({
   component: AdminDashboard,
 });
 
+const ALL_PARTNERS = 'all';
+
 function AdminDashboard() {
   const [month, setMonth] = useState(currentMonthWIB());
   const [year, setYear] = useState(currentYearWIB());
   const [day, setDay] = useState<number | undefined>(undefined);
+  // Default = omset seluruh partner; the select narrows every aggregate to one.
+  const [partner, setPartner] = useState(ALL_PARTNERS);
 
-  const summary = useGojekSummaryQuery({ month, year, day });
+  const summary = useGojekSummaryQuery({
+    month,
+    year,
+    day,
+    rentalPartner: partner === ALL_PARTNERS ? undefined : partner,
+  });
   const years = Array.from({ length: 6 }, (_, i) => currentYearWIB() - 4 + i);
+  const partnerOptions = summary.data?.availableRentalPartners ?? [];
 
   return (
     <div className="space-y-5">
@@ -35,7 +45,20 @@ function AdminDashboard() {
           <h2 className="text-lg font-semibold">Dashboard Admin</h2>
           <p className="text-sm text-muted-foreground">Ringkasan fleet monitoring — Gojek</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Select value={partner} onValueChange={setPartner}>
+            <SelectTrigger className="w-44" aria-label="Rental Partner">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_PARTNERS}>Semua Partner</SelectItem>
+              {partnerOptions.map((name) => (
+                <SelectItem key={name} value={name}>
+                  {name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Select value={String(month)} onValueChange={(v) => { setMonth(Number(v)); setDay(undefined); }}>
             <SelectTrigger className="w-36" aria-label="Bulan">
               <SelectValue />

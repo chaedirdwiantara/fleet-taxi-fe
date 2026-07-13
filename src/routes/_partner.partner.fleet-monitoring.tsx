@@ -4,6 +4,7 @@ import { Info } from 'lucide-react';
 import { GojekMonitoringTable } from '@/features/fleet/components/GojekMonitoringTable';
 import { CellLegend } from '@/features/fleet/components/CellLegend';
 import { CellModal } from '@/features/fleet/components/CellModal';
+import { ExceptionPanel } from '@/features/fleet/components/ExceptionPanel';
 import { SummaryCards } from '@/features/fleet/components/SummaryCards';
 import { FleetChartsPanel } from '@/features/fleet/components/FleetChartsPanel';
 import { DriverActivityPanel } from '@/features/fleet/components/DriverActivityPanel';
@@ -31,6 +32,13 @@ function PartnerGojekPage() {
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
   const [day, setDay] = useState<number | undefined>(undefined);
+  const [exceptionOpen, setExceptionOpen] = useState(false);
+  const [exceptionPlate, setExceptionPlate] = useState<string | undefined>(undefined);
+
+  const openException = (plate?: string) => {
+    setExceptionPlate(plate);
+    setExceptionOpen(true);
+  };
 
   const setPeriod = useCallback(
     (patch: Partial<FleetSearch>) => {
@@ -111,6 +119,7 @@ function PartnerGojekPage() {
           <GojekMonitoringTable
             grid={grid.data}
             onCellClick={openCell}
+            onManageException={openException}
             readOnly
           />
         </div>
@@ -126,6 +135,14 @@ function PartnerGojekPage() {
           onClose={closeCell}
         />
       )}
+      <ExceptionPanel
+        scope="partner"
+        month={search.month}
+        year={search.year}
+        open={exceptionOpen}
+        onOpenChange={setExceptionOpen}
+        defaultPlate={exceptionPlate}
+      />
     </div>
   );
 }
