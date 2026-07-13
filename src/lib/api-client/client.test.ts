@@ -53,14 +53,14 @@ describe('generated client ↔ MSW (single mock layer)', () => {
       params: { path: { platform: 'gojek' } },
     });
     expect(error).toBeUndefined();
-    const batches = unwrap(data);
+    const batches = unwrap(data) as { filename: string; status: string }[];
     expect(batches.length).toBeGreaterThan(0);
     expect(batches[0]).toMatchObject({ filename: expect.any(String), status: expect.any(String) });
   });
 
   it('fetches the gojek grid with query params', async () => {
     const { data } = await api.GET('/admin/fleet/gojek/grid', {
-      params: { query: { month: 6, year: 2026 } },
+      params: { query: { month: '6', year: '2026' } },
     });
     const grid = unwrap(data) as {
       month: number;
