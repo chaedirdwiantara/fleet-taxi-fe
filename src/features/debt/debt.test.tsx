@@ -3,7 +3,10 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
+import userEvent from '@testing-library/user-event';
 import { useDebtFiltersQuery, useDebtSummaryQuery } from './hooks';
+import { DebtSummaryPage } from './DebtSummaryPage';
+import { debtSearchSchema } from './searchSchema';
 import { DebtTable, waLink } from './components/DebtTable';
 import { debtRows } from '@/mocks/fixtures/debt';
 import type { DebtListParams } from './types';
@@ -99,5 +102,21 @@ describe('DebtTable', () => {
     // WhatsApp action is present for a driver with a phone number
     const wa = screen.getAllByRole('link', { name: /whatsapp/i });
     expect(wa[0]).toHaveAttribute('href', expect.stringContaining('https://wa.me/'));
+  });
+});
+
+describe('DebtSummaryPage — development notice', () => {
+  it('shows the in-development dialog on open and dismisses via Mengerti', async () => {
+    const user = userEvent.setup();
+    render(
+      <QueryClientProvider client={makeClient()}>
+        <DebtSummaryPage search={debtSearchSchema.parse({})} onPatch={() => {}} />
+      </QueryClientProvider>,
+    );
+    expect(await screen.findByText('Fitur Dalam Pengembangan')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Mengerti' }));
+    await waitFor(() =>
+      expect(screen.queryByText('Fitur Dalam Pengembangan')).not.toBeInTheDocument(),
+    );
   });
 });
