@@ -5,10 +5,12 @@ import {
   Car,
   ClipboardCheck,
   ClipboardList,
+  IdCard,
   LayoutDashboard,
   LogOut,
   Menu,
   Table2,
+  UserMinus,
   Users,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -34,6 +36,9 @@ const NAV: Record<Audience, NavItem[]> = {
     { to: '/partner/rental-monitoring', label: 'Rental Monitoring', icon: CalendarDays },
     { to: '/partner/daftarkan-plat', label: 'Daftarkan Plat', icon: ClipboardList },
     { to: '/partner/checkpoint', label: 'Checkpoint', icon: ClipboardCheck },
+    { to: '/partner/driver-registrations', label: 'Registrasi Driver', icon: IdCard },
+    { to: '/partner/drivers', label: 'Daftar Driver', icon: Users },
+    { to: '/partner/driver-resign', label: 'Driver Resign', icon: UserMinus },
   ],
 };
 

@@ -848,58 +848,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/partner/v1/pricelist": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Route/car pricelist for the authenticated partner */
-        get: operations["PricelistController_quote"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/partner/v1/orders": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Order history for the authenticated partner */
-        get: operations["PartnerOrdersController_list"];
-        put?: never;
-        /** Create an order (replaces legacy GET /partner/v1/order/create) */
-        post: operations["PartnerOrdersController_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/partner/v1/orders/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** One order's detail (own orders only — 404 for any other order) */
-        get: operations["PartnerOrdersController_detail"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/partner/portal/rentals/cogs-defaults": {
         parameters: {
             query?: never;
@@ -986,6 +934,368 @@ export interface paths {
         head?: never;
         /** Toggle Belum/Sudah Dibayar on one own rental */
         patch: operations["PartnerRentalsController_updatePaymentStatus"];
+        trace?: never;
+    };
+    "/partner/portal/driver-registrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List own driver registrations (pending/rejected, paginated) */
+        get: operations["PortalDriverRegistrationsController_list"];
+        put?: never;
+        /** Register a driver candidate (plate must be registered when set) */
+        post: operations["PortalDriverRegistrationsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/driver-registrations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One own registration incl. documents */
+        get: operations["PortalDriverRegistrationsController_detail"];
+        put?: never;
+        post?: never;
+        /** Delete an unapproved registration (hard delete incl. documents) */
+        delete: operations["PortalDriverRegistrationsController_remove"];
+        options?: never;
+        head?: never;
+        /** Edit registration master data */
+        patch: operations["PortalDriverRegistrationsController_update"];
+        trace?: never;
+    };
+    "/partner/portal/driver-registrations/{id}/doc-check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record the KTP/SIM/SKCK verification result */
+        post: operations["PortalDriverRegistrationsController_docCheck"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/driver-registrations/{id}/deposit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record the deposit amount (requires an uploaded deposit proof) */
+        post: operations["PortalDriverRegistrationsController_setDeposit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/driver-registrations/{id}/deposit/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve/reject the waiting deposit */
+        post: operations["PortalDriverRegistrationsController_decideDeposit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/driver-registrations/{id}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Final verification: approve (assigns driver code) or reject the registration */
+        post: operations["PortalDriverRegistrationsController_verify"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/drivers/documents/{driverId}/presign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a pending document row and get an upload URL (S3 presigned PUT in prod) */
+        post: operations["PortalDriverDocumentsController_presign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/drivers/documents/{driverId}/{documentId}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm an upload finished (marks it uploaded, replaces the previous of its kind) */
+        post: operations["PortalDriverDocumentsController_confirm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/drivers/documents/{driverId}/{documentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete one driver document */
+        delete: operations["PortalDriverDocumentsController_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/drivers/documents/{documentId}/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Upload sink for presigned documents (dev; prod presigns S3) */
+        put: operations["PortalDriverDocumentsController_upload"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/drivers/documents/{documentId}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stream one document (dev; prod detail responses carry presigned S3 GET URLs) */
+        get: operations["PortalDriverDocumentsController_file"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/drivers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List own active drivers (paginated, filterable) */
+        get: operations["PortalDriversController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/drivers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One own active driver incl. documents */
+        get: operations["PortalDriversController_detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Edit driver master data / toggle isActive */
+        patch: operations["PortalDriversController_update"];
+        trace?: never;
+    };
+    "/partner/portal/drivers/{id}/resign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resign the driver (moves them to the resignation list) */
+        post: operations["PortalDriversController_resign"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/driver-resignations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List own resigned drivers (paginated, newest resignation first) */
+        get: operations["PortalDriverResignationsController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/driver-resignations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One own resignation incl. documents */
+        get: operations["PortalDriverResignationsController_detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/driver-resignations/{id}/deposit-return": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Request the deposit return decision (requires an uploaded return proof) */
+        post: operations["PortalDriverResignationsController_requestReturn"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/driver-resignations/{id}/deposit-return/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve/reject the waiting deposit return */
+        post: operations["PortalDriverResignationsController_decideReturn"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/v1/pricelist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Route/car pricelist for the authenticated partner */
+        get: operations["PricelistController_quote"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/v1/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Order history for the authenticated partner */
+        get: operations["PartnerOrdersController_list"];
+        put?: never;
+        /** Create an order (replaces legacy GET /partner/v1/order/create) */
+        post: operations["PartnerOrdersController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/v1/orders/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One order's detail (own orders only — 404 for any other order) */
+        get: operations["PartnerOrdersController_detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
 }
@@ -1212,23 +1522,19 @@ export interface components {
             /** @example Serah terima berjalan lancar */
             generalNotes?: string;
         };
-        CreatePartnerOrderDto: {
+        UpsertCogsDefaultDto: {
             /**
-             * @description Pool code (whitelisted)
-             * @example BHISA_CAWANG
+             * @description Present → update that row; absent → create (key slugified from label)
+             * @example air_ev
              */
-            pickupCode: string;
-            /** @example EVISTA_HALIM */
-            destinationCode: string;
-            /** @example 1 */
-            carTypesId: number;
+            key?: string;
+            /** @example Air EV */
+            label: string;
             /**
-             * @description ISO 8601, or "YYYY-MM-DD HH:mm:ss" interpreted as Asia/Jakarta
-             * @example 2026-07-10 09:00:00
+             * @description Integer rupiah
+             * @example 335833
              */
-            pickupAt: string;
-            /** @description Free-form passenger details object (stored as JSON; size-bounded) */
-            passengerDetails?: Record<string, never>;
+            cogsPerDay: number;
         };
         CreateRentalDto: {
             /**
@@ -1296,19 +1602,193 @@ export interface components {
              */
             paymentStatus: "Belum Dibayar" | "Sudah Dibayar";
         };
-        UpsertCogsDefaultDto: {
+        CreateDriverRegistrationDto: {
+            /** @example Budi Santoso */
+            name: string;
+            /** @example budi@example.com */
+            email?: string;
+            /** @example 0812xxxxxxx */
+            phone?: string;
+            /** @example Jl. Melati No. 1, Jakarta Selatan */
+            address?: string;
             /**
-             * @description Present → update that row; absent → create (key slugified from label)
-             * @example air_ev
+             * @description Nomor KTP
+             * @example 3174xxxxxxxxxxxx
              */
-            key?: string;
-            /** @example Air EV */
-            label: string;
+            ktpNo?: string;
             /**
-             * @description Integer rupiah
-             * @example 335833
+             * @description Nomor SIM
+             * @example 1234-5678-901234
              */
-            cogsPerDay: number;
+            simNo?: string;
+            /**
+             * @description Masa berlaku SIM (YYYY-MM-DD)
+             * @example 2027-03-15
+             */
+            simExpired?: string;
+            /**
+             * @description Plat unit yang dioperasikan (harus plat terdaftar partner)
+             * @example B 1793 SCP
+             */
+            plateNumber?: string;
+            /**
+             * @description Rekening driver
+             * @example BCA 1234567890 a.n. Budi
+             */
+            bankAccount?: string;
+        };
+        UpdateDriverRegistrationDto: {
+            /** @example Budi Santoso */
+            name?: string;
+            /** @example budi@example.com */
+            email?: string;
+            /** @example 0812xxxxxxx */
+            phone?: string;
+            /** @example Jl. Melati No. 1, Jakarta Selatan */
+            address?: string;
+            /**
+             * @description Nomor KTP
+             * @example 3174xxxxxxxxxxxx
+             */
+            ktpNo?: string;
+            /**
+             * @description Nomor SIM
+             * @example 1234-5678-901234
+             */
+            simNo?: string;
+            /**
+             * @description Masa berlaku SIM (YYYY-MM-DD)
+             * @example 2027-03-15
+             */
+            simExpired?: string;
+            /**
+             * @description Plat unit yang dioperasikan (harus plat terdaftar partner)
+             * @example B 1793 SCP
+             */
+            plateNumber?: string;
+            /**
+             * @description Rekening driver
+             * @example BCA 1234567890 a.n. Budi
+             */
+            bankAccount?: string;
+        };
+        DriverDocCheckDto: {
+            /**
+             * @example ktp
+             * @enum {string}
+             */
+            kind: "ktp" | "sim" | "skck";
+            /**
+             * @description Hasil pemeriksaan dokumen
+             * @example true
+             */
+            verified: boolean;
+        };
+        SetDriverDepositDto: {
+            /**
+             * @description Nominal deposit (rupiah bulat)
+             * @example 1500000
+             */
+            amount: number;
+        };
+        DriverDecisionDto: {
+            /**
+             * @example approve
+             * @enum {string}
+             */
+            action: "approve" | "reject";
+            /**
+             * @description Catatan (saat menolak)
+             * @example Nominal tidak sesuai
+             */
+            note?: string;
+        };
+        VerifyDriverRegistrationDto: {
+            /**
+             * @example approve
+             * @enum {string}
+             */
+            action: "approve" | "reject";
+            /**
+             * @description Alasan penolakan
+             * @example Dokumen tidak jelas
+             */
+            rejectNote?: string;
+        };
+        PresignDriverDocumentDto: {
+            /**
+             * @example ktp
+             * @enum {string}
+             */
+            kind: "ktp" | "sim" | "skck" | "deposit_proof" | "deposit_return_proof";
+            /**
+             * @example image/jpeg
+             * @enum {string}
+             */
+            contentType: "image/jpeg" | "image/png" | "application/pdf";
+            /**
+             * @description Bytes, max 10485760
+             * @example 350000
+             */
+            sizeBytes: number;
+        };
+        UpdateDriverDto: {
+            /** @example Budi Santoso */
+            name?: string;
+            /** @example budi@example.com */
+            email?: string;
+            /** @example 0812xxxxxxx */
+            phone?: string;
+            /** @example Jl. Melati No. 1, Jakarta Selatan */
+            address?: string;
+            /**
+             * @description Nomor KTP
+             * @example 3174xxxxxxxxxxxx
+             */
+            ktpNo?: string;
+            /**
+             * @description Nomor SIM
+             * @example 1234-5678-901234
+             */
+            simNo?: string;
+            /**
+             * @description Masa berlaku SIM (YYYY-MM-DD)
+             * @example 2027-03-15
+             */
+            simExpired?: string;
+            /**
+             * @description Plat unit yang dioperasikan (harus plat terdaftar partner)
+             * @example B 1793 SCP
+             */
+            plateNumber?: string;
+            /**
+             * @description Rekening driver
+             * @example BCA 1234567890 a.n. Budi
+             */
+            bankAccount?: string;
+            /**
+             * @description Aktif/nonaktifkan driver
+             * @example true
+             */
+            isActive?: boolean;
+        };
+        CreatePartnerOrderDto: {
+            /**
+             * @description Pool code (whitelisted)
+             * @example BHISA_CAWANG
+             */
+            pickupCode: string;
+            /** @example EVISTA_HALIM */
+            destinationCode: string;
+            /** @example 1 */
+            carTypesId: number;
+            /**
+             * @description ISO 8601, or "YYYY-MM-DD HH:mm:ss" interpreted as Asia/Jakarta
+             * @example 2026-07-10 09:00:00
+             */
+            pickupAt: string;
+            /** @description Free-form passenger details object (stored as JSON; size-bounded) */
+            passengerDetails?: Record<string, never>;
         };
     };
     responses: never;
@@ -2579,86 +3059,6 @@ export interface operations {
             };
         };
     };
-    PricelistController_quote: {
-        parameters: {
-            query: {
-                pickupCode: string;
-                destinationCode: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PartnerOrdersController_list: {
-        parameters: {
-            query?: {
-                page?: string;
-                pageSize?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PartnerOrdersController_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreatePartnerOrderDto"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PartnerOrdersController_detail: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
     PartnerRentalsController_listCogsDefaults: {
         parameters: {
             query?: never;
@@ -2831,6 +3231,551 @@ export interface operations {
                 "application/json": components["schemas"]["UpdatePaymentStatusDto"];
             };
         };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalDriverRegistrationsController_list: {
+        parameters: {
+            query?: {
+                /** @description Search name / driver code */
+                q?: string;
+                page?: string;
+                pageSize?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalDriverRegistrationsController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateDriverRegistrationDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalDriverRegistrationsController_detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalDriverRegistrationsController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalDriverRegistrationsController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateDriverRegistrationDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalDriverRegistrationsController_docCheck: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DriverDocCheckDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalDriverRegistrationsController_setDeposit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetDriverDepositDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalDriverRegistrationsController_decideDeposit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DriverDecisionDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalDriverRegistrationsController_verify: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifyDriverRegistrationDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalDriverDocumentsController_presign: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                driverId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PresignDriverDocumentDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalDriverDocumentsController_confirm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                driverId: number;
+                documentId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalDriverDocumentsController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                driverId: number;
+                documentId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalDriverDocumentsController_upload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documentId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalDriverDocumentsController_file: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documentId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalDriversController_list: {
+        parameters: {
+            query?: {
+                /** @description Search name / driver code / email */
+                q?: string;
+                plate?: string;
+                active?: "true" | "false";
+                page?: string;
+                pageSize?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalDriversController_detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalDriversController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateDriverDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalDriversController_resign: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalDriverResignationsController_list: {
+        parameters: {
+            query?: {
+                /** @description Search name / driver code */
+                q?: string;
+                page?: string;
+                pageSize?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalDriverResignationsController_detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalDriverResignationsController_requestReturn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalDriverResignationsController_decideReturn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DriverDecisionDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PricelistController_quote: {
+        parameters: {
+            query: {
+                pickupCode: string;
+                destinationCode: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PartnerOrdersController_list: {
+        parameters: {
+            query?: {
+                page?: string;
+                pageSize?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PartnerOrdersController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePartnerOrderDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PartnerOrdersController_detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             200: {
                 headers: {

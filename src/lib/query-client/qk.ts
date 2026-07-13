@@ -58,6 +58,18 @@ export const qk = {
       summary: (p: { month: number; year: number; day?: number }) =>
         ['partner', 'fleet', 'gojek', 'summary', p] as const,
     },
+    // Driver management (registrations → active roster → resignations).
+    driver: {
+      registrations: (p: { q?: string; page: number }) =>
+        ['partner', 'driver', 'registrations', p] as const,
+      registration: (id: number) => ['partner', 'driver', 'registrations', 'detail', id] as const,
+      drivers: (p: { q?: string; plate?: string; active?: string; page: number }) =>
+        ['partner', 'driver', 'list', p] as const,
+      detail: (id: number) => ['partner', 'driver', 'detail', id] as const,
+      resignations: (p: { q?: string; page: number }) =>
+        ['partner', 'driver', 'resignations', p] as const,
+      resignation: (id: number) => ['partner', 'driver', 'resignations', 'detail', id] as const,
+    },
     // Rental Monitoring (own rental transactions + COGS presets).
     rental: {
       list: (p: {
