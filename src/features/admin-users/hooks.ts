@@ -118,7 +118,16 @@ export function useDeleteAdminUser(type: 'admin' | 'partner') {
       if (error) throwEnvelope(error);
       return unwrap(data);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: qk.admin.users(type) }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: qk.admin.users(type) });
+      // Deleting a partner's last account drops its plate registrations on the
+      // backend, which re-syncs the Rental Partner labels — refresh the fleet
+      // grids/summaries so the monitoring table reflects that immediately.
+      if (type === 'partner') {
+        void qc.invalidateQueries({ queryKey: qk.fleet.all });
+        void qc.invalidateQueries({ queryKey: qk.partner.fleet.all });
+      }
+    },
   });
 }
 

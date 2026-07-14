@@ -16,6 +16,7 @@ export const qk = {
   },
 
   fleet: {
+    all: ['fleet'] as const, // invalidation prefix for every admin fleet query
     grid: (p: { platform: Platform; month: number; year: number; rentalPartner: string[]; plate?: string }) =>
       ['fleet', p.platform, 'grid', p] as const,
     cell: (p: { platform: Platform; key: string; day: number; month: number; year: number }) =>
@@ -70,6 +71,7 @@ export const qk = {
       filters: ['partner', 'debt', 'filters'] as const,
     },
     fleet: {
+      all: ['partner', 'fleet'] as const, // invalidation prefix for every portal fleet query
       grid: (p: { platform: Platform; month: number; year: number }) =>
         ['partner', 'fleet', p.platform, 'grid', p] as const,
       cell: (p: { platform: Platform; key: string; day: number; month: number; year: number }) =>
