@@ -9,6 +9,8 @@ import { CellModal } from '@/features/fleet/components/CellModal';
 import { ImportPanel } from '@/features/fleet/components/ImportPanel';
 import { ImportHistoryDialog } from '@/features/fleet/components/ImportHistoryDialog';
 import { ExceptionPanel } from '@/features/fleet/components/ExceptionPanel';
+import { ManualPaymentEditor } from '@/features/fleet/components/ManualPaymentEditor';
+import { RawDataPanel } from '@/features/fleet/components/RawDataPanel';
 import { useGojekGridQuery } from '@/features/fleet/hooks/useFleetQueries';
 import {
   fleetSearchSchema,
@@ -27,6 +29,9 @@ function GojekGridPage() {
   const navigate = Route.useNavigate();
   const [exceptionOpen, setExceptionOpen] = useState(false);
   const [exceptionPlate, setExceptionPlate] = useState<string | undefined>(undefined);
+  // Proses/Edit Manual Payment: dari queue "Data Mentah Tanpa Plat" maupun
+  // tombol Edit pada item manual di modal Detail Transaksi.
+  const [editingDetailId, setEditingDetailId] = useState<number | null>(null);
 
   const patchSearch = useCallback(
     (patch: Partial<FleetSearch>) => {
@@ -98,6 +103,13 @@ function GojekGridPage() {
         <p className="text-sm text-destructive">Gagal memuat grid: {grid.error.message}</p>
       )}
       {grid.isSuccess && (
+        <RawDataPanel
+          rows={grid.data.rawRows ?? []}
+          totalAmount={grid.data.rawTotalAmount ?? 0}
+          onProcess={setEditingDetailId}
+        />
+      )}
+      {grid.isSuccess && (
         <div className={grid.isFetching ? 'opacity-60 transition-opacity' : undefined}>
           <GojekMonitoringTable
             grid={grid.data}
@@ -114,6 +126,15 @@ function GojekGridPage() {
           month={search.month}
           year={search.year}
           onClose={closeCell}
+          onEditDetail={setEditingDetailId}
+        />
+      )}
+      {editingDetailId !== null && (
+        <ManualPaymentEditor
+          detailId={editingDetailId}
+          month={search.month}
+          year={search.year}
+          onClose={() => setEditingDetailId(null)}
         />
       )}
       <ExceptionPanel

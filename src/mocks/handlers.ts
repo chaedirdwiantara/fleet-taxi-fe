@@ -496,7 +496,10 @@ export const handlers = [
     const url = new URL(request.url);
     const month = int(url.searchParams.get('month'), 6);
     const year = int(url.searchParams.get('year'), 2026);
-    const grid = overlayPlateTypes(scopeGojekGrid(makeGojekGrid(month, year), registeredNorms()));
+    const grid = overlayPlateTypes(
+      // keepRawRows: the "Data Mentah Tanpa Plat" queue is admin-only
+      scopeGojekGrid(makeGojekGrid(month, year), registeredNorms(), { keepRawRows: true }),
+    );
     // The SERVER returns the filtered pivot (kickoff §5) — emulate that here.
     const partners = url.searchParams.getAll('rentalPartner');
     const plate = url.searchParams

@@ -27,7 +27,8 @@ describe('GojekMonitoringTable (faithful legacy pivot)', () => {
     expect(screen.getByText(/Tanggal \(/)).toBeInTheDocument();
     expect(screen.getByText('Summary')).toBeInTheDocument();
     expect(screen.getByText('Total Deduction')).toBeInTheDocument();
-    expect(screen.getByText('Outstanding')).toBeInTheDocument();
+    expect(screen.getByText('Outstanding Bln Ini')).toBeInTheDocument();
+    expect(screen.getByText('Outstanding Total')).toBeInTheDocument();
     // day headers 1..30
     const dayHeaders = screen
       .getAllByRole('columnheader')

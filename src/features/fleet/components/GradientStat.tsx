@@ -8,7 +8,8 @@ export type GradientStatDef = {
   value: number;
   icon: LucideIcon;
   gradient: string; // tailwind `from-… to-…`
-  sub?: string; // optional caption under the value
+  sub?: string; // optional caption under the value (bold, e.g. "Bulan ini: …")
+  note?: string; // optional softer second caption line
   onClick?: () => void; // renders the card as a button (click-through detail)
 };
 
@@ -18,6 +19,7 @@ export function GradientStat({
   icon: Icon,
   gradient,
   sub,
+  note,
   onClick,
 }: GradientStatDef) {
   const className = cn(
@@ -30,7 +32,8 @@ export function GradientStat({
     <>
       <p className="text-sm font-medium opacity-90">{label}</p>
       <p className="mt-2 text-2xl font-bold tabular-nums sm:text-3xl">{formatRupiah(value)}</p>
-      {sub && <p className="mt-1 text-xs font-medium opacity-80">{sub}</p>}
+      {sub && <p className="mt-1 text-xs font-semibold tabular-nums">{sub}</p>}
+      {note && <p className="mt-0.5 text-xs font-medium opacity-80">{note}</p>}
       <Icon className="absolute -right-2 -bottom-3 size-20 opacity-20" aria-hidden />
     </>
   );
