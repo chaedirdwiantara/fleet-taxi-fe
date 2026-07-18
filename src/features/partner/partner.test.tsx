@@ -101,6 +101,7 @@ describe('partner fleet monitoring — scoped to registered plates', () => {
       totalDeduction: 0,
       totalDue: 0,
       totalOutstanding: 0,
+      totalOutstandingMonth: 0,
       outstandingDriverKeluar: 0,
       exitedCount: 0,
     });

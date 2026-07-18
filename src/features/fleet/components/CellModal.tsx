@@ -5,6 +5,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Pencil } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useGojekCellQuery, usePartnerGojekCellQuery } from '../hooks/useFleetQueries';
 import { monthYearLabelID } from '@/lib/datetime';
@@ -20,6 +21,7 @@ export function CellModal({
   year,
   onClose,
   scope = 'admin',
+  onEditDetail,
 }: {
   plate: string;
   day: number;
@@ -27,6 +29,9 @@ export function CellModal({
   year: number;
   onClose: () => void;
   scope?: 'admin' | 'partner';
+  // Admin-only: re-open a Manual Payment record in the Proses/Edit form (fix a
+  // wrong Masuk/Tidak Masuk Setoran choice). Rendered per backing detail id.
+  onEditDetail?: (detailId: number) => void;
 }) {
   const adminQuery = useGojekCellQuery({ plate, day, month, year, enabled: scope === 'admin' });
   const partnerQuery = usePartnerGojekCellQuery({
@@ -66,6 +71,21 @@ export function CellModal({
                         <Badge variant="secondary" className="ml-1 text-xs">
                           Display only
                         </Badge>
+                      )}
+                      {scope === 'admin' && onEditDetail && (item.detailIds?.length ?? 0) > 0 && (
+                        <span className="mt-1 flex flex-wrap gap-1">
+                          {item.detailIds!.map((id, n) => (
+                            <button
+                              key={id}
+                              type="button"
+                              onClick={() => onEditDetail(id)}
+                              className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+                            >
+                              <Pencil className="size-3" aria-hidden />
+                              Edit{item.detailIds!.length > 1 ? ` #${n + 1}` : ''}
+                            </button>
+                          ))}
+                        </span>
                       )}
                     </td>
                     <td className="py-1.5 text-right tabular-nums">

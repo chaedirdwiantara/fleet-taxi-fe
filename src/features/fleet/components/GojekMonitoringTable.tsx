@@ -42,7 +42,10 @@ const SUMMARY: IdentityCol[] = [
   { id: 'totalDeduction', label: 'Total Deduction', width: 128 },
   { id: 'totalDue', label: 'Total Due (Target)', width: 128 },
   { id: 'gap', label: 'Gap', width: 104 },
-  { id: 'outstanding', label: 'Outstanding', width: 132 },
+  // Bln Ini = the selected month's own delta; Total = accumulated from the
+  // plate's first imported month up to (and including) the selected month.
+  { id: 'outstandingMonth', label: 'Outstanding Bln Ini', width: 132 },
+  { id: 'outstanding', label: 'Outstanding Total', width: 132 },
 ];
 
 const HEAD_BG = 'bg-primary text-primary-foreground';
@@ -168,6 +171,7 @@ export function GojekMonitoringTable({
           {grid.rows.map((row, idx) => {
             const gap = row.summary.gap;
             const outstanding = row.summary.outstanding;
+            const outstandingMonth = row.summary.outstandingMonth ?? 0;
             const noCol = colAt('no')!;
             const rpCol = colAt('rentalPartner');
             const plateCol = colAt('plate')!;
@@ -362,6 +366,20 @@ export function GojekMonitoringTable({
                 >
                   {nf(gap)}
                 </td>
+                {/* + merah = outstanding bulan ini nambah; − hijau = berkurang
+                    (overpayment bulan ini menurunkan saldo kumulatif) */}
+                <td
+                  className={cn(
+                    'border-r border-b bg-white px-2 py-1 text-right tabular-nums dark:bg-slate-950',
+                    outstandingMonth > 0
+                      ? 'text-red-600'
+                      : outstandingMonth < 0
+                        ? 'text-emerald-600'
+                        : undefined,
+                  )}
+                >
+                  {outstandingMonth > 0 ? `+${nf(outstandingMonth)}` : nf(outstandingMonth)}
+                </td>
                 <td
                   className={cn(
                     'border-r border-b px-2 py-1 text-right font-semibold tabular-nums',
@@ -395,6 +413,7 @@ export function GojekMonitoringTable({
             (() => {
               const totalGap = grid.tableTotals.totalDeduction - grid.tableTotals.totalDue;
               const totalOut = grid.tableTotals.outstanding;
+              const totalOutMonth = grid.tableTotals.outstandingMonth ?? 0;
               // sticky bottom applied per-cell (not on <tr>, which WebKit ignores)
               const foot =
                 'sticky bottom-0 border-b border-r bg-indigo-50 px-2 py-1.5 text-right tabular-nums dark:bg-indigo-950';
@@ -417,6 +436,18 @@ export function GojekMonitoringTable({
                   <td className={foot}>{rp(grid.tableTotals.totalDue)}</td>
                   <td className={cn(foot, totalGap < 0 ? 'text-red-600' : 'text-emerald-600')}>
                     {nf(totalGap)}
+                  </td>
+                  <td
+                    className={cn(
+                      foot,
+                      totalOutMonth > 0
+                        ? 'text-red-600'
+                        : totalOutMonth < 0
+                          ? 'text-emerald-600'
+                          : undefined,
+                    )}
+                  >
+                    {totalOutMonth > 0 ? `+${nf(totalOutMonth)}` : nf(totalOutMonth)}
                   </td>
                   <td
                     className={cn(

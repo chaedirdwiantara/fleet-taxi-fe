@@ -5,20 +5,22 @@ Standar visual & komponen untuk seluruh UI (admin console + partner portal). Sem
 ## 1. Foundations
 
 ### Warna (token, bukan nilai)
+
 Token didefinisikan di `src/index.css` (oklch, light + `.dark`). **Selalu pakai kelas token** — jangan hex/oklch inline.
 
-| Token | Semantik |
-|---|---|
-| `primary` | Aksi utama (biru) — tombol submit, link aktif, ring fokus |
-| `destructive` | Aksi merusak / error |
-| `secondary` / `muted` / `accent` | Surface & teks sekunder (slate) |
-| `card` / `popover` / `border` / `input` | Surface & garis |
-| `sidebar-*` | Khusus sidebar navigasi |
-| `chart-1..5` | Seri chart: 1=biru (utama), 2=teal, 3=amber, 4=violet, 5=rose — pakai berurutan |
+| Token                                   | Semantik                                                                        |
+| --------------------------------------- | ------------------------------------------------------------------------------- |
+| `primary`                               | Aksi utama (biru) — tombol submit, link aktif, ring fokus                       |
+| `destructive`                           | Aksi merusak / error                                                            |
+| `secondary` / `muted` / `accent`        | Surface & teks sekunder (slate)                                                 |
+| `card` / `popover` / `border` / `input` | Surface & garis                                                                 |
+| `sidebar-*`                             | Khusus sidebar navigasi                                                         |
+| `chart-1..5`                            | Seri chart: 1=biru (utama), 2=teal, 3=amber, 4=violet, 5=rose — pakai berurutan |
 
 Pengecualian sah: legenda status fleet-monitoring (`src/features/fleet/lib/thresholds.ts`) memakai kelas palette Tailwind (red/yellow/green/purple/orange/blue/gray) karena meniru legenda spreadsheet bisnis — jangan diganti token.
 
 ### Typography
+
 - Font: **Inter Variable** (self-host `@fontsource-variable/inter`, token `--font-sans`).
 - Skala: `text-xs` meta/badge · `text-sm` body & tabel (default dashboard) · `text-base` form mobile · `text-lg`–`text-xl` judul section/card · `text-2xl` judul halaman.
 - **Dilarang ukuran arbitrer** (`text-[10px]` dll.). Minimum `text-xs`.
@@ -26,6 +28,7 @@ Pengecualian sah: legenda status fleet-monitoring (`src/features/fleet/lib/thres
 - Uang selalu diformat via `src/lib/money` (`formatRupiah`), tanggal via `src/lib/datetime` (WIB).
 
 ### Spacing, radius, breakpoint
+
 - Grid 4px: `gap-2` intra-komponen, `gap-4` antar-field/card, `gap-6`/`p-6` antar-section.
 - Padding halaman: `p-4 md:p-6` (sudah di AppShell `<main>`).
 - Radius: pakai `rounded-md/lg/xl` (turunan `--radius`), jangan nilai arbitrer.
@@ -54,12 +57,12 @@ Pengecualian sah: legenda status fleet-monitoring (`src/features/fleet/lib/thres
 
 ## 5. Do / Don't
 
-| Do | Don't |
-|---|---|
-| `bg-primary text-primary-foreground` | `bg-[#3f51b5] text-white` |
-| `text-xs` | `text-[10px]` |
-| Varian CVA di `ui/button.tsx` | 12 class utility di call-site |
-| `formatRupiah(amount)` | `Rp ${amount.toLocaleString()}` |
-| `Form` + `FormMessage` | `<p className="text-destructive">` manual |
-| `EmptyState` | `<div>Tidak ada data</div>` polos |
-| Uji 375px + dark mode | Hanya cek desktop light |
+| Do                                   | Don't                                     |
+| ------------------------------------ | ----------------------------------------- |
+| `bg-primary text-primary-foreground` | `bg-[#3f51b5] text-white`                 |
+| `text-xs`                            | `text-[10px]`                             |
+| Varian CVA di `ui/button.tsx`        | 12 class utility di call-site             |
+| `formatRupiah(amount)`               | `Rp ${amount.toLocaleString()}`           |
+| `Form` + `FormMessage`               | `<p className="text-destructive">` manual |
+| `EmptyState`                         | `<div>Tidak ada data</div>` polos         |
+| Uji 375px + dark mode                | Hanya cek desktop light                   |

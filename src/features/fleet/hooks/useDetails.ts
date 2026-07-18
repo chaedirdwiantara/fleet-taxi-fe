@@ -66,13 +66,12 @@ export function useEditDriver(platform: Platform) {
       if (error) throwEnvelope(error);
       return unwrap(data) as { updated: number };
     },
-    onSuccess: (_data, input) => {
-      // detail edits change the pivot (re-plating merges a manual row into a
-      // plate; setoran toggle moves money in/out of the counted totals).
-      qc.invalidateQueries({ queryKey: ['fleet', platform, 'grid'] });
-      if (input.detailId != null) {
-        qc.invalidateQueries({ queryKey: qk.fleet.detail(platform, input.detailId) });
-      }
+    onSuccess: () => {
+      // detail edits change the pivot AND every aggregate (re-plating merges a
+      // manual row into a plate; setoran toggle moves money in/out of the
+      // counted totals) — refresh the whole platform family: grid, cell,
+      // summary, performers, detail.
+      qc.invalidateQueries({ queryKey: ['fleet', platform] });
     },
   });
 }
