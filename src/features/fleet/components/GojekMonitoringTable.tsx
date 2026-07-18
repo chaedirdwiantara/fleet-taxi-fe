@@ -45,8 +45,8 @@ const SUMMARY: IdentityCol[] = [
   { id: 'outstanding', label: 'Outstanding', width: 132 },
 ];
 
-const HEAD_BG = 'bg-[#3f51b5] text-white';
-const SUMMARY_BG = 'bg-[#4CAF50] text-white';
+const HEAD_BG = 'bg-primary text-primary-foreground';
+const SUMMARY_BG = 'bg-green-600 text-white';
 const nf = formatNumberID;
 const rp = formatRupiah;
 
@@ -206,7 +206,7 @@ export function GojekMonitoringTable({
                   title={row.detailId !== null ? 'Manual Payment tanpa plat' : row.plateRaw}
                 >
                   {row.detailId !== null ? (
-                    <span className="rounded bg-[#9c27b0]/15 px-1.5 py-0.5 text-[10px] font-medium text-[#9c27b0] dark:bg-[#9c27b0]/25 dark:text-purple-300">
+                    <span className="rounded bg-purple-600/15 px-1.5 py-0.5 text-xs font-medium text-purple-700 dark:bg-purple-600/25 dark:text-purple-300">
                       Tanpa Plat
                     </span>
                   ) : (
@@ -245,7 +245,7 @@ export function GojekMonitoringTable({
                   )}
                   {row.isExited && (
                     <span
-                      className="mt-0.5 inline-flex items-center gap-1 rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-semibold text-white"
+                      className="mt-0.5 inline-flex items-center gap-1 rounded bg-red-600 px-1.5 py-0.5 text-xs font-semibold text-white"
                       title={
                         row.exitedLastSeen
                           ? `Driver keluar — terakhir muncul di import: ${formatDateID(row.exitedLastSeen)}`
@@ -276,7 +276,7 @@ export function GojekMonitoringTable({
                       {row.dueSegments.map((seg) => (
                         <div key={`${seg.amount}-${seg.fromDay}`} className="whitespace-nowrap">
                           {nf(seg.amount)}{' '}
-                          <span className="text-[10px] text-slate-400">
+                          <span className="text-xs text-slate-400">
                             ({seg.fromDay}
                             {seg.toDay !== seg.fromDay ? `–${seg.toDay}` : ''})
                           </span>
@@ -366,9 +366,9 @@ export function GojekMonitoringTable({
                   className={cn(
                     'border-r border-b px-2 py-1 text-right font-semibold tabular-nums',
                     outstanding > 0
-                      ? 'bg-[#ffcccc] text-red-900'
+                      ? 'bg-red-200 text-red-900'
                       : outstanding < 0
-                        ? 'bg-[#00ff00] text-slate-900'
+                        ? 'bg-green-400 text-slate-900'
                         : 'bg-white dark:bg-slate-950',
                   )}
                 >
@@ -422,9 +422,9 @@ export function GojekMonitoringTable({
                     className={cn(
                       'sticky bottom-0 border-r border-b px-2 py-1.5 text-right tabular-nums',
                       totalOut > 0
-                        ? 'bg-[#ffcccc] text-red-900'
+                        ? 'bg-red-200 text-red-900'
                         : totalOut < 0
-                          ? 'bg-[#00ff00] text-slate-900'
+                          ? 'bg-green-400 text-slate-900'
                           : 'bg-indigo-50 dark:bg-indigo-950',
                     )}
                   >

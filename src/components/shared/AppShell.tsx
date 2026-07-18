@@ -157,7 +157,7 @@ function SidebarContent({
       <div className="flex h-14 items-center gap-2 border-b px-4">
         <Car className="size-5 text-primary" aria-hidden />
         <span className="text-sm font-semibold tracking-tight">fleet-taxi.id</span>
-        <span className="ml-auto rounded bg-muted px-1.5 py-0.5 text-[10px] tracking-wide text-muted-foreground uppercase">
+        <span className="ml-auto rounded bg-muted px-1.5 py-0.5 text-xs tracking-wide text-muted-foreground uppercase">
           {audience}
         </span>
       </div>

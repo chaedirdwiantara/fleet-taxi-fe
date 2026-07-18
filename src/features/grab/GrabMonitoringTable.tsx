@@ -34,8 +34,8 @@ const SUMMARY: IdentityCol[] = [
   { id: 'rides', label: 'Total Rides', width: 96 },
 ];
 
-const HEAD_BG = 'bg-[#3f51b5] text-white';
-const SUMMARY_BG = 'bg-[#4CAF50] text-white';
+const HEAD_BG = 'bg-primary text-primary-foreground';
+const SUMMARY_BG = 'bg-green-600 text-white';
 const nf = formatNumberID;
 const rp = formatRupiah;
 
@@ -269,7 +269,7 @@ export function GrabMonitoringTable({
                       className={cn(
                         'border-r border-b px-1 py-1 text-right tabular-nums',
                         val > 0
-                          ? 'bg-[#e8f5e9] font-semibold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200'
+                          ? 'bg-green-50 font-semibold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200'
                           : 'bg-white text-slate-400 dark:bg-slate-950',
                       )}
                       style={{ width: DAY_W }}

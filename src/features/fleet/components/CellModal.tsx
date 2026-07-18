@@ -63,7 +63,7 @@ export function CellModal({
                     <td className="py-1.5 pr-2">
                       {item.label}
                       {item.isDisplayOnly && (
-                        <Badge variant="secondary" className="ml-1 text-[10px]">
+                        <Badge variant="secondary" className="ml-1 text-xs">
                           Display only
                         </Badge>
                       )}
@@ -71,12 +71,12 @@ export function CellModal({
                     <td className="py-1.5 text-right tabular-nums">
                       {nf(item.displayAmount)}
                       {item.countedAmount !== item.displayAmount && (
-                        <div className="text-[11px] text-muted-foreground">
+                        <div className="text-xs text-muted-foreground">
                           Counted: {nf(item.countedAmount)}
                         </div>
                       )}
                       {item.note && (
-                        <div className="text-[11px] text-amber-600">Keterangan: {item.note}</div>
+                        <div className="text-xs text-amber-600">Keterangan: {item.note}</div>
                       )}
                     </td>
                   </tr>
@@ -105,7 +105,7 @@ export function CellModal({
               </tfoot>
             </table>
             {breakdown.data.hasDisplayOnlyManualPayment && (
-              <p className="mt-2 text-[11px] text-muted-foreground">
+              <p className="mt-2 text-xs text-muted-foreground">
                 Manual Payment berlabel display-only tetap tampil di sel, tetapi tidak masuk hitung
                 setoran.
               </p>

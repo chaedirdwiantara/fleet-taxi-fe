@@ -106,7 +106,7 @@ export function DebtTable({
                   <Badge
                     variant="outline"
                     className={cn(
-                      'mt-1 px-1.5 py-0 text-[10px] uppercase',
+                      'mt-1 px-1.5 py-0 text-xs uppercase',
                       row.status === 'aktif'
                         ? 'border-emerald-500/40 text-emerald-600 dark:text-emerald-400'
                         : 'border-muted-foreground/30 text-muted-foreground',
@@ -142,7 +142,7 @@ export function DebtTable({
                       variant="destructive"
                       className="flex-col items-end gap-0 bg-destructive/10 px-2 py-1 text-destructive"
                     >
-                      <span className="text-[10px] leading-tight font-normal">
+                      <span className="text-xs leading-tight font-normal">
                         Tidak Tercover Deposit
                       </span>
                       <span className="tabular-nums">
