@@ -32,7 +32,12 @@ export type FleetRow = {
     totalDeduction: number;
     calculatedTarget: number; // "Total Due (Target)"
     gap: number; // totalDeduction - calculatedTarget
-    outstanding: number; // headline all-time number
+    // "Outstanding Total": cumulative Σdue − Σpaid from the plate's first
+    // imported row up to the END of the selected month (negative = credit).
+    outstanding: number;
+    // "Outstanding Bln Ini": the selected month's own delta. Optional so the
+    // grid tolerates a backend that predates the field (FE-ahead deploy window).
+    outstandingMonth?: number;
   };
   driverHistory: string[];
   // Driver keluar: plate stopped appearing in imports (auto-clears when it
@@ -44,6 +49,18 @@ export type FleetRow = {
 // One Setoran target value and the day range it was active (backend RLE).
 export type DueSegment = { amount: number; fromDay: number; toDay: number };
 
+// "Data Mentah Tanpa Plat": an unprocessed Manual Payment imported without a
+// plate. Lives outside the pivot/summary until an admin processes it (assigns
+// a plate + status setoran via edit-driver), then merges into its plate's row.
+export type RawManualRow = {
+  detailId: number;
+  transactionDate: string; // YYYY-MM-DD
+  driverName: string;
+  amount: number;
+  isManualPaymentSetoran: number | null;
+  note: string | null;
+};
+
 export type FleetGrid = {
   month: number;
   year: number;
@@ -53,8 +70,13 @@ export type FleetGrid = {
   tableTotals: {
     totalDeduction: number;
     totalDue: number;
-    outstanding: number;
+    outstanding: number; // Outstanding Total (cumulative ≤ selected month)
+    outstandingMonth?: number; // Outstanding Bln Ini (optional: older backend)
   };
+  // Admin processing queue — always empty on the partner surface (an unplated
+  // row can never match the partner's plate scope). Optional: older backend.
+  rawRows?: RawManualRow[];
+  rawTotalAmount?: number;
   availableRentalPartners: string[];
   availablePlates: { plate: string; type: string }[];
 };
@@ -66,6 +88,9 @@ export type CellBreakdownItem = {
   countedAmount: number;
   note: string | null;
   isDisplayOnly: boolean; // manual "tidak masuk setoran"
+  // Backing fleet_import_details ids — non-empty for Manual Payment items, so
+  // the admin modal can re-open each one in the Edit form (re-toggle setoran).
+  detailIds?: number[];
 };
 
 export type CellBreakdown = {
@@ -82,7 +107,10 @@ export type CellBreakdown = {
 export type GlobalSummary = {
   totalDeduction: number; // Total Setoran
   totalDue: number; // Total Target (Due)
-  totalOutstanding: number; // Total Outstanding / Gap (active plates only)
+  // Total Outstanding / Gap: cumulative up to the selected month (active plates)
+  totalOutstanding: number;
+  // The selected month's delta of that balance. Optional: older backend.
+  totalOutstandingMonth?: number;
   outstandingDriverKeluar: number; // balance of plates gone from imports
   exitedCount: number; // exited plates that still owe (non-zero balance)
 };

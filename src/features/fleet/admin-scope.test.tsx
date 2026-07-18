@@ -49,6 +49,10 @@ describe('admin fleet monitoring — synced to partner-registered plates', () =>
       totalDue: rows.reduce((s, r) => s + r.summary.calculatedTarget, 0),
       // exited rows report on the Outstanding Driver Keluar card, not the main total
       totalOutstanding: rows.reduce((s, r) => s + (r.isExited ? 0 : r.summary.outstanding), 0),
+      totalOutstandingMonth: rows.reduce(
+        (s, r) => s + (r.isExited ? 0 : (r.summary.outstandingMonth ?? 0)),
+        0,
+      ),
       outstandingDriverKeluar: exited.reduce((s, r) => s + r.summary.outstanding, 0),
       exitedCount: exited.filter((r) => r.summary.outstanding !== 0).length,
     });
