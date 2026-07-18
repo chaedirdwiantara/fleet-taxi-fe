@@ -32,7 +32,7 @@ Env (`src/lib/env`, zod-validated at startup — missing vars = blank page): `VI
 - **Grid state lives in the URL.** Fleet search params are zod-validated with `.catch()` fallbacks (`features/fleet/searchSchema.ts`) and feed `qk.fleet.grid(search)` directly; cell deep-links use `<key>:<day>` via `parseCellParam`/`makeCellParam`. New grid state goes through the search schema, not component state.
 - **MSW is the single mock layer** for dev (`VITE_USE_MSW='true'`) and tests. Handler paths start with `*` so they match both the dev proxy base and the absolute test base. Keep `src/mocks/handlers.ts` + `fixtures/*` in sync with contract changes or tests fail (`onUnhandledRequest: 'error'`). Envelope helpers `ok`/`err` live in handlers.
 - Realtime: socket.io singleton on `/rt` (`src/lib/socket`), import-progress events only; `realtimeEnabled()` is false under MSW → callers poll instead.
-- Styling: Tailwind 4 CSS-first — no `tailwind.config.js`; tokens in `src/index.css` (oklch, dark via `@custom-variant`). shadcn (`new-york`, neutral) in `src/components/ui/`; compose classes with `cn()` from `src/lib/utils`. Alias `@` → `src/`.
+- Styling: Tailwind 4 CSS-first — no `tailwind.config.js`; tokens in `src/index.css` (oklch, blue primary + slate neutrals, dark via `@custom-variant` + `ThemeProvider`). shadcn (`new-york`) in `src/components/ui/`; compose classes with `cn()` from `src/lib/utils`. Alias `@` → `src/`. **DESIGN-SYSTEM.md is binding** — tokens only (no inline hex), `text-xs` minimum, Form primitive for new forms, Prettier is the formatter (`pnpm format`).
 - Tests: vitest config lives in `vite.config.ts`; setup in `src/test/setup.ts` (jest-dom, MSW lifecycle, ResizeObserver polyfill — jsdom lacks it for TanStack Virtual/Radix).
 
 ## Gotchas
