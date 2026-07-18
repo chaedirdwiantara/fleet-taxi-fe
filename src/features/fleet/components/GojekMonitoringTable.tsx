@@ -271,9 +271,9 @@ export function GojekMonitoringTable({
                 >
                   {/* target changed mid-month → list every value with its active
                       day range (legacy due_segments); otherwise the single target */}
-                  {row.dueSegments.length > 1 ? (
+                  {(row.dueSegments?.length ?? 0) > 1 ? (
                     <div className="space-y-0.5">
-                      {row.dueSegments.map((seg) => (
+                      {(row.dueSegments ?? []).map((seg) => (
                         <div key={`${seg.amount}-${seg.fromDay}`} className="whitespace-nowrap">
                           {nf(seg.amount)}{' '}
                           <span className="text-xs text-slate-400">

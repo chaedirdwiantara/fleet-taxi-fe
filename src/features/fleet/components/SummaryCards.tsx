@@ -29,10 +29,12 @@ export function SummaryCards({ summary }: { summary: GlobalSummary }) {
         },
         {
           label: 'Outstanding Driver Keluar',
-          value: summary.outstandingDriverKeluar,
+          // `?? 0` keeps the card sane if it renders against a backend that
+          // predates these fields (e.g. during a FE-ahead-of-BE deploy window).
+          value: summary.outstandingDriverKeluar ?? 0,
           icon: UserX,
           gradient: 'from-red-500 to-rose-400',
-          sub: `${summary.exitedCount} driver tidak lagi muncul di import`,
+          sub: `${summary.exitedCount ?? 0} driver tidak lagi muncul di import`,
         },
       ]}
     />
