@@ -344,6 +344,20 @@ export function makeGojekGlobalSummary(grid: GojekGridFixture) {
   };
 }
 
+// Click-through detail of the Outstanding Driver Keluar card: non-zero-balance
+// exited rows, outstanding descending — mirrors the backend's exitedDrivers.
+export function makeExitedDrivers(grid: GojekGridFixture) {
+  return grid.rows
+    .filter((r) => r.isExited && r.summary.outstanding !== 0)
+    .map((r) => ({
+      driverName: r.driverName,
+      plate: r.plateNorm,
+      lastSeen: r.exitedLastSeen ?? '',
+      outstanding: r.summary.outstanding,
+    }))
+    .sort((a, b) => b.outstanding - a.outstanding);
+}
+
 // Chart series for the dashboard: daily setoran trend + split per rental partner.
 export function makeGojekCharts(grid: GojekGridFixture) {
   const daily = Array.from({ length: grid.daysInMonth }, (_, i) => ({

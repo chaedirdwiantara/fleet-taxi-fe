@@ -4,6 +4,7 @@ import { qk } from '@/lib/query-client';
 import type {
   CellBreakdown,
   DriverActivity,
+  ExitedDriver,
   FleetCharts,
   FleetGrid,
   GlobalSummary,
@@ -98,6 +99,8 @@ export function useGojekSummaryQuery(p: {
       driverActivity: DriverActivity;
       charts: FleetCharts;
       availableRentalPartners: string[];
+      exitedDrivers: ExitedDriver[];
+      lastImportDate: string | null;
     }> => {
       const { data, error } = await api.GET('/admin/fleet/gojek/summary', {
         params: {
@@ -115,6 +118,8 @@ export function useGojekSummaryQuery(p: {
         driverActivity: DriverActivity;
         charts: FleetCharts;
         availableRentalPartners: string[];
+        exitedDrivers: ExitedDriver[];
+        lastImportDate: string | null;
       };
     },
     placeholderData: keepPreviousData,
@@ -172,6 +177,8 @@ export function usePartnerGojekSummaryQuery(p: { month: number; year: number; da
       globalSummary: GlobalSummary;
       driverActivity: DriverActivity;
       charts: FleetCharts;
+      exitedDrivers: ExitedDriver[];
+      lastImportDate: string | null;
     }> => {
       const { data, error } = await api.GET('/partner/portal/fleet/gojek/summary', {
         params: { query: { month: p.month, year: p.year, ...(p.day ? { day: p.day } : {}) } },
@@ -181,6 +188,8 @@ export function usePartnerGojekSummaryQuery(p: { month: number; year: number; da
         globalSummary: GlobalSummary;
         driverActivity: DriverActivity;
         charts: FleetCharts;
+        exitedDrivers: ExitedDriver[];
+        lastImportDate: string | null;
       };
     },
     placeholderData: keepPreviousData,

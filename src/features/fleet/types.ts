@@ -87,6 +87,15 @@ export type GlobalSummary = {
   exitedCount: number; // exited plates that still owe (non-zero balance)
 };
 
+// Click-through detail of the Outstanding Driver Keluar card: one row per
+// non-zero-balance exited plate, outstanding descending (backend-sorted).
+export type ExitedDriver = {
+  driverName: string;
+  plate: string;
+  lastSeen: string; // YYYY-MM-DD of the plate's last import row
+  outstanding: number;
+};
+
 export type FleetCharts = {
   daily: { day: number; total: number }[]; // setoran per hari
   byPartner: { partner: string; total: number }[]; // setoran per rental partner

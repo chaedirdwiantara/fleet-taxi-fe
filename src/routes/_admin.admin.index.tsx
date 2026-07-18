@@ -91,7 +91,11 @@ function AdminDashboard() {
         <div
           className={summary.isFetching ? 'space-y-5 opacity-70 transition-opacity' : 'space-y-5'}
         >
-          <SummaryCards summary={summary.data.globalSummary} />
+          <SummaryCards
+            summary={summary.data.globalSummary}
+            exitedDrivers={summary.data.exitedDrivers}
+            lastImportDate={summary.data.lastImportDate}
+          />
           <FleetChartsPanel charts={summary.data.charts} />
         </div>
       )}

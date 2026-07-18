@@ -3,6 +3,7 @@ import {
   makeGojekGrid,
   makeGrabGrid,
   makeGojekGlobalSummary,
+  makeExitedDrivers,
   makeGojekCharts,
   makeDriverActivity,
   makeGojekPerformers,
@@ -532,6 +533,8 @@ export const handlers = [
       driverActivity: makeDriverActivity(filtered, dayParam ? Number(dayParam) : undefined),
       charts: makeGojekCharts(filtered),
       availableRentalPartners: grid.availableRentalPartners,
+      exitedDrivers: makeExitedDrivers(filtered),
+      lastImportDate: `${year}-${String(month).padStart(2, '0')}-16`,
     });
   }),
 
@@ -1296,6 +1299,8 @@ export const handlers = [
       globalSummary: makeGojekGlobalSummary(grid),
       driverActivity: makeDriverActivity(grid, dayParam ? Number(dayParam) : undefined),
       charts: makeGojekCharts(grid),
+      exitedDrivers: makeExitedDrivers(grid),
+      lastImportDate: `${year}-${String(month).padStart(2, '0')}-16`,
     });
   }),
 
