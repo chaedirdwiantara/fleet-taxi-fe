@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { ThemeToggle } from '@/components/shared/ThemeToggle';
 import { cn } from '@/lib/utils';
 import type { SessionUser } from '@/features/auth/hooks';
 
@@ -201,6 +202,9 @@ export function AppShell({ audience, user, onLogout, logoutPending, children }: 
           <h1 className="truncate text-sm font-medium text-muted-foreground">
             Fleet / Deposit Reconciliation Dashboard
           </h1>
+          <div className="ml-auto">
+            <ThemeToggle />
+          </div>
         </header>
         <main className="min-w-0 flex-1 p-4 md:p-6">{children}</main>
       </div>
