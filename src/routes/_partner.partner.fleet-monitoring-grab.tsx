@@ -50,9 +50,24 @@ function PartnerGrabPage() {
         <div className={grid.isFetching ? 'opacity-60 transition-opacity' : undefined}>
           <GradientStatRow
             cards={[
-              { label: 'Total Pendapatan Terkumpul', value: grid.data.totals.earning, icon: Wallet, gradient: 'from-blue-500 to-sky-400' },
-              { label: 'Total Tarif Driver', value: grid.data.totals.driverFare, icon: Car, gradient: 'from-emerald-500 to-green-400' },
-              { label: 'Total Insentif', value: grid.data.totals.incentive, icon: Gift, gradient: 'from-orange-500 to-amber-400' },
+              {
+                label: 'Total Pendapatan Terkumpul',
+                value: grid.data.totals.earning,
+                icon: Wallet,
+                gradient: 'from-blue-500 to-sky-400',
+              },
+              {
+                label: 'Total Tarif Driver',
+                value: grid.data.totals.driverFare,
+                icon: Car,
+                gradient: 'from-emerald-500 to-green-400',
+              },
+              {
+                label: 'Total Insentif',
+                value: grid.data.totals.incentive,
+                icon: Gift,
+                gradient: 'from-orange-500 to-amber-400',
+              },
             ]}
           />
         </div>

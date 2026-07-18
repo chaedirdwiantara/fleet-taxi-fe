@@ -24,8 +24,17 @@ export const debtSearchSchema = z.object({
   // default mirrors the backend: the least-covered drivers first
   sortBy: z.enum(DEBT_SORT_FIELDS).catch(() => 'selisihDeposit' as const),
   sortOrder: z.enum(['asc', 'desc']).catch(() => 'asc' as const),
-  page: z.number().int().min(1).catch(() => 1),
-  pageSize: z.number().int().min(1).max(200).catch(() => 10),
+  page: z
+    .number()
+    .int()
+    .min(1)
+    .catch(() => 1),
+  pageSize: z
+    .number()
+    .int()
+    .min(1)
+    .max(200)
+    .catch(() => 10),
 });
 
 export type DebtSearch = z.infer<typeof debtSearchSchema>;

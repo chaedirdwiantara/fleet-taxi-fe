@@ -67,9 +67,7 @@ describe('Daftar Driver — synced roster list', () => {
     expect(screen.getAllByText('Manual').length).toBeGreaterThan(0);
     // roster is synced — no create affordance
     expect(screen.queryByRole('button', { name: /Tambah/i })).not.toBeInTheDocument();
-    expect(
-      screen.getByText(/tersinkron otomatis dari Fleet Monitoring/i),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/tersinkron otomatis dari Fleet Monitoring/i)).toBeInTheDocument();
   });
 
   it('filters by resign status via the select', async () => {
@@ -110,9 +108,7 @@ describe('Halaman edit driver — informasi', () => {
     await user.type(name, 'Dewi Lestari Putri');
     await user.click(screen.getByRole('button', { name: 'Simpan' }));
 
-    expect(
-      await screen.findByRole('heading', { name: 'Dewi Lestari Putri' }),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Dewi Lestari Putri' })).toBeInTheDocument();
     // baseline resets after a successful save
     await waitFor(() => expect(screen.getByRole('button', { name: 'Simpan' })).toBeDisabled());
   });
@@ -138,9 +134,7 @@ describe('Halaman edit driver — resign & pengembalian deposit', () => {
 
     await user.click(screen.getByRole('button', { name: 'Tandai Resign' }));
     const confirm = await screen.findByRole('alertdialog');
-    expect(
-      within(confirm).getByText(/akan ditandai resign dan dinonaktifkan/),
-    ).toBeInTheDocument();
+    expect(within(confirm).getByText(/akan ditandai resign dan dinonaktifkan/)).toBeInTheDocument();
     await user.click(within(confirm).getByRole('button', { name: 'Tandai Resign' }));
 
     expect(await screen.findByText('Resign')).toBeInTheDocument();
@@ -161,10 +155,7 @@ describe('Halaman edit driver — resign & pengembalian deposit', () => {
     ).toBeInTheDocument();
 
     // upload the proof, then the switch unlocks and the return goes through
-    await user.upload(
-      screen.getByLabelText('Pilih file Bukti Pengembalian Deposit'),
-      pdfFile(),
-    );
+    await user.upload(screen.getByLabelText('Pilih file Bukti Pengembalian Deposit'), pdfFile());
     await waitFor(() =>
       expect(screen.getByRole('switch', { name: 'Deposit dikembalikan' })).toBeEnabled(),
     );
@@ -202,8 +193,6 @@ describe('Halaman edit driver — resign & pengembalian deposit', () => {
     // back to the pre-resign card: the resign CTA returns, return UI goes away
     expect(await screen.findByRole('button', { name: 'Tandai Resign' })).toBeInTheDocument();
     expect(screen.queryByText('Resign')).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('switch', { name: 'Deposit dikembalikan' }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('switch', { name: 'Deposit dikembalikan' })).not.toBeInTheDocument();
   });
 });

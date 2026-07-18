@@ -85,15 +85,26 @@ export function ImportPanel({ platform }: { platform: Platform }) {
         <form onSubmit={onSubmit} className="flex flex-wrap items-end gap-2">
           <div className="grid gap-1.5">
             <Label htmlFor="import-file">File (.csv / .xlsx)</Label>
-            <Input id="import-file" ref={fileRef} type="file" accept=".csv,.xlsx" required className="w-64" />
+            <Input
+              id="import-file"
+              ref={fileRef}
+              type="file"
+              accept=".csv,.xlsx"
+              required
+              className="w-64"
+            />
           </div>
           <div className="grid gap-1.5">
             <Label>Bulan</Label>
             <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
-              <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-24">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 {MONTHS.map((m, i) => (
-                  <SelectItem key={m} value={String(i + 1)}>{m}</SelectItem>
+                  <SelectItem key={m} value={String(i + 1)}>
+                    {m}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -101,10 +112,14 @@ export function ImportPanel({ platform }: { platform: Platform }) {
           <div className="grid gap-1.5">
             <Label>Tahun</Label>
             <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
-              <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-24">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 {years.map((y) => (
-                  <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                  <SelectItem key={y} value={String(y)}>
+                    {y}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>

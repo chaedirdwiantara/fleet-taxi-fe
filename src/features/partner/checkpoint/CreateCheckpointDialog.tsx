@@ -89,10 +89,7 @@ export function CreateCheckpointDialog({
 
           <div className="space-y-1.5">
             <Label htmlFor="cp-type">Jenis Serah Terima</Label>
-            <Select
-              value={handoverType}
-              onValueChange={(v) => setHandoverType(v as HandoverType)}
-            >
+            <Select value={handoverType} onValueChange={(v) => setHandoverType(v as HandoverType)}>
               <SelectTrigger id="cp-type" className="w-full">
                 <SelectValue placeholder="Pilih jenis" />
               </SelectTrigger>

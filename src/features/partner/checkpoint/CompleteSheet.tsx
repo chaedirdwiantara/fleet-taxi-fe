@@ -140,10 +140,11 @@ export function CompleteSheet({
           <SignaturePad ref={counterpartSigRef} label="Tanda Tangan Pihak Penerima/Penyerah" />
 
           {missingItems.length > 0 && (
-            <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3" role="alert">
-              <p className="mb-1 text-sm font-medium text-destructive">
-                Checkpoint belum lengkap:
-              </p>
+            <div
+              className="rounded-md border border-destructive/40 bg-destructive/5 p-3"
+              role="alert"
+            >
+              <p className="mb-1 text-sm font-medium text-destructive">Checkpoint belum lengkap:</p>
               <ul className="list-inside list-disc space-y-0.5 text-xs text-destructive">
                 {missingItems.map((m) => (
                   <li key={m}>{m}</li>

@@ -85,8 +85,7 @@ export function TargetEditor({
         <DialogHeader>
           <DialogTitle>Edit target — {plate}</DialogTitle>
           <DialogDescription>
-            Kosongkan target harian agar server meng-infer dari baris “due”
-            (fallback Rp488.000).
+            Kosongkan target harian agar server meng-infer dari baris “due” (fallback Rp488.000).
           </DialogDescription>
         </DialogHeader>
 

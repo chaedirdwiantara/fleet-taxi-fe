@@ -53,39 +53,44 @@ export function FleetChartsPanel({
                 formatter={(v) => [formatRupiah(Number(v)), 'Setoran']}
                 labelFormatter={(d) => `Tanggal ${d}`}
               />
-              <Bar dataKey="total" name="Setoran" fill="var(--color-chart-1)" radius={[3, 3, 0, 0]} />
+              <Bar
+                dataKey="total"
+                name="Setoran"
+                fill="var(--color-chart-1)"
+                radius={[3, 3, 0, 0]}
+              />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
 
       {showPartnerSplit && (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Setoran per rental partner</CardTitle>
-        </CardHeader>
-        <CardContent className="h-64">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={charts.byPartner}
-                dataKey="total"
-                nameKey="partner"
-                innerRadius={45}
-                outerRadius={78}
-                paddingAngle={2}
-                label={({ name }) => String(name)}
-                fontSize={11}
-              >
-                {charts.byPartner.map((entry, i) => (
-                  <Cell key={entry.partner} fill={PARTNER_COLORS[i % PARTNER_COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(v) => [formatRupiah(Number(v)), 'Setoran']} />
-            </PieChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Setoran per rental partner</CardTitle>
+          </CardHeader>
+          <CardContent className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={charts.byPartner}
+                  dataKey="total"
+                  nameKey="partner"
+                  innerRadius={45}
+                  outerRadius={78}
+                  paddingAngle={2}
+                  label={({ name }) => String(name)}
+                  fontSize={11}
+                >
+                  {charts.byPartner.map((entry, i) => (
+                    <Cell key={entry.partner} fill={PARTNER_COLORS[i % PARTNER_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(v) => [formatRupiah(Number(v)), 'Setoran']} />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

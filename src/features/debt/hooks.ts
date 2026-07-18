@@ -1,5 +1,12 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { api, unwrapWithMeta, unwrap, ApiErrorException, type ApiError, type Meta } from '@/lib/api-client/client';
+import {
+  api,
+  unwrapWithMeta,
+  unwrap,
+  ApiErrorException,
+  type ApiError,
+  type Meta,
+} from '@/lib/api-client/client';
 import { env } from '@/lib/env';
 import { qk } from '@/lib/query-client';
 import type { DebtFilters, DebtListParams, DebtRow } from './types';
@@ -29,7 +36,11 @@ export function useDebtSummaryQuery(params: DebtListParams) {
     queryFn: async (): Promise<{ data: DebtRow[]; meta?: Meta }> => {
       const { data, error } = await api.GET('/partner/portal/debt-summary', {
         params: {
-          query: { ...filterQuery(params), page: String(params.page), pageSize: String(params.pageSize) },
+          query: {
+            ...filterQuery(params),
+            page: String(params.page),
+            pageSize: String(params.pageSize),
+          },
         },
       });
       if (error) throwEnvelope(error);

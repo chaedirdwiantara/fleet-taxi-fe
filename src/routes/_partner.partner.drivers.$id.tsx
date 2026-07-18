@@ -8,5 +8,10 @@ export const Route = createFileRoute('/_partner/partner/drivers/$id')({
 function DriverEditRoute() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
-  return <DriverEditPage id={Number(id)} onBack={() => navigate({ to: '/partner/drivers', search: { page: 1 } })} />;
+  return (
+    <DriverEditPage
+      id={Number(id)}
+      onBack={() => navigate({ to: '/partner/drivers', search: { page: 1 } })}
+    />
+  );
 }

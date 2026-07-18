@@ -7,12 +7,7 @@ import { qk } from '@/lib/query-client';
 import { ApiErrorException } from '@/lib/api-client/client';
 import { setSessionUser } from '@/mocks/handlers';
 import { partnerMe, adminMe } from '@/mocks/fixtures/partner';
-import {
-  fetchAdminSession,
-  fetchPartnerSession,
-  useAdminLogin,
-  usePartnerLogin,
-} from './hooks';
+import { fetchAdminSession, fetchPartnerSession, useAdminLogin, usePartnerLogin } from './hooks';
 
 const makeClient = () => new QueryClient({ defaultOptions: { queries: { retry: false } } });
 const wrapperFor =

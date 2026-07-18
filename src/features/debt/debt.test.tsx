@@ -92,9 +92,7 @@ describe('waLink', () => {
 
 describe('DebtTable', () => {
   it('flags uncovered drivers and renders the placeholder column', () => {
-    render(
-      <DebtTable rows={debtRows} sortBy="selisihDeposit" sortOrder="asc" onSort={() => {}} />,
-    );
+    render(<DebtTable rows={debtRows} sortBy="selisihDeposit" sortOrder="asc" onSort={() => {}} />);
     expect(screen.getByText('Cicilan Lainnya')).toBeInTheDocument();
     expect(screen.getAllByText('Tidak Tercover Deposit').length).toBeGreaterThan(0);
     // covered driver (HENDRA: deposit 2jt > tagihan 400rb) has no red badge row

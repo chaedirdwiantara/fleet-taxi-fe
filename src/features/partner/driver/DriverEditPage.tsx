@@ -55,11 +55,16 @@ function DriverEditView({ detail, onBack }: { detail: DriverDetail; onBack: () =
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <Button variant="outline" size="icon-sm" aria-label="Kembali ke daftar driver" onClick={onBack}>
+        <Button
+          variant="outline"
+          size="icon-sm"
+          aria-label="Kembali ke daftar driver"
+          onClick={onBack}
+        >
           <ArrowLeft />
         </Button>
         <div className="min-w-0">
-          <h2 className="truncate text-lg font-semibold leading-tight">{detail.name}</h2>
+          <h2 className="truncate text-lg leading-tight font-semibold">{detail.name}</h2>
           {detail.driverCode && (
             <p className="font-mono text-xs text-muted-foreground">{detail.driverCode}</p>
           )}
@@ -95,8 +100,7 @@ function InfoCard({ detail }: { detail: DriverDetail }) {
   const patch = (p: Partial<MasterFormValues>) => setValues((prev) => ({ ...prev, ...p }));
 
   const dirty =
-    isActive !== baseline.isActive ||
-    JSON.stringify(values) !== JSON.stringify(baseline.values);
+    isActive !== baseline.isActive || JSON.stringify(values) !== JSON.stringify(baseline.values);
   const canSubmit = dirty && values.name.trim() !== '';
 
   const submit = (e: React.FormEvent) => {
@@ -340,8 +344,8 @@ function LifecycleCard({ detail }: { detail: DriverDetail }) {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Batalkan resign?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    {detail.name} kembali ke roster dan status pengembalian deposit akan
-                    direset (catatan &quot;deposit dikembalikan&quot; dihapus).
+                    {detail.name} kembali ke roster dan status pengembalian deposit akan direset
+                    (catatan &quot;deposit dikembalikan&quot; dihapus).
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

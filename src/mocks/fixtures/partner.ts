@@ -30,8 +30,18 @@ export const superAdminMe = {
 // grids show data out of the box. Norms match the mock grid vehicles
 // (makeGojekGrid → B{1000+i}XYZ, makeGrabGrid → B{2000+i}GRB).
 export const seedPartnerPlates = [
-  { id: 1, plateNumber: 'B 1000 XYZ', plateNumberNorm: 'B1000XYZ', vehicleType: 'Premium - BYD M6' },
-  { id: 2, plateNumber: 'B 1001 XYZ', plateNumberNorm: 'B1001XYZ', vehicleType: 'Reguler - Avanza' },
+  {
+    id: 1,
+    plateNumber: 'B 1000 XYZ',
+    plateNumberNorm: 'B1000XYZ',
+    vehicleType: 'Premium - BYD M6',
+  },
+  {
+    id: 2,
+    plateNumber: 'B 1001 XYZ',
+    plateNumberNorm: 'B1001XYZ',
+    vehicleType: 'Reguler - Avanza',
+  },
   { id: 3, plateNumber: 'B 2000 GRB', plateNumberNorm: 'B2000GRB', vehicleType: 'Reguler - Xenia' },
 ];
 
@@ -113,7 +123,8 @@ export function makeCheckpointPoints(
     pointKey,
     label: POINT_LABELS[pointKey]!,
     passed: opts.passed === undefined ? null : opts.passed,
-    note: pointKey === 'tires_wheels' && opts.passed !== undefined ? 'Ban depan kiri mulai aus' : null,
+    note:
+      pointKey === 'tires_wheels' && opts.passed !== undefined ? 'Ban depan kiri mulai aus' : null,
     media: opts.withPhoto
       ? [
           {

@@ -161,7 +161,11 @@ function NewPresetRow() {
       </TableCell>
       <TableCell className="text-right">
         <Button size="sm" disabled={!valid || upsert.isPending} onClick={add}>
-          {upsert.isPending ? <Loader2 className="animate-spin" aria-hidden /> : <Plus aria-hidden />}
+          {upsert.isPending ? (
+            <Loader2 className="animate-spin" aria-hidden />
+          ) : (
+            <Plus aria-hidden />
+          )}
           Tambah Tipe
         </Button>
       </TableCell>

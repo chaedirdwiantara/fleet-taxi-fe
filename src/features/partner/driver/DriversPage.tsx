@@ -61,7 +61,13 @@ export function DriversPage({
   // placeholder data; lastPage < page guards re-patch loops).
   const rowCount = list.data?.rows.length;
   useEffect(() => {
-    if (list.isSuccess && !list.isFetching && rowCount === 0 && search.page > 1 && lastPage < search.page) {
+    if (
+      list.isSuccess &&
+      !list.isFetching &&
+      rowCount === 0 &&
+      search.page > 1 &&
+      lastPage < search.page
+    ) {
       onPatch({ page: Math.max(1, lastPage) });
     }
   }, [list.isSuccess, list.isFetching, rowCount, search.page, lastPage, onPatch]);
@@ -79,7 +85,7 @@ export function DriversPage({
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <div className="relative w-full sm:w-72">
           <Search
-            className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+            className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
             aria-hidden
           />
           <Input
@@ -87,13 +93,13 @@ export function DriversPage({
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
             placeholder="Cari nama / kode / email…"
-            className="pl-8 pr-8"
+            className="pr-8 pl-8"
           />
           {searchText !== '' && (
             <button
               type="button"
               aria-label="Hapus pencarian"
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground hover:text-foreground"
+              className="absolute top-1/2 right-2 -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground hover:text-foreground"
               onClick={() => setSearchText('')}
             >
               <X className="size-4" />

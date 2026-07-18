@@ -117,7 +117,7 @@ export function DebtTable({
                 </TableCell>
                 <TableCell className="whitespace-nowrap">{row.cabang}</TableCell>
                 <TableCell className="whitespace-nowrap">{row.koordinator}</TableCell>
-                <TableCell className="whitespace-nowrap font-medium">
+                <TableCell className="font-medium whitespace-nowrap">
                   {row.lastPlate || '-'}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
@@ -142,7 +142,7 @@ export function DebtTable({
                       variant="destructive"
                       className="flex-col items-end gap-0 bg-destructive/10 px-2 py-1 text-destructive"
                     >
-                      <span className="text-[10px] font-normal leading-tight">
+                      <span className="text-[10px] leading-tight font-normal">
                         Tidak Tercover Deposit
                       </span>
                       <span className="tabular-nums">
@@ -150,7 +150,7 @@ export function DebtTable({
                       </span>
                     </Badge>
                   ) : (
-                    <span className="tabular-nums text-emerald-600 dark:text-emerald-400">
+                    <span className="text-emerald-600 tabular-nums dark:text-emerald-400">
                       {row.selisihDeposit === 0 ? '-' : formatRupiah(row.selisihDeposit)}
                     </span>
                   )}

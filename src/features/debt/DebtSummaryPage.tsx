@@ -108,8 +108,8 @@ export function DebtSummaryPage({
             </div>
             <DialogTitle className="text-center">Fitur Dalam Pengembangan</DialogTitle>
             <DialogDescription className="text-center">
-              Halaman Debt Summary masih dalam tahap pengembangan dan akan segera dirilis. Data
-              yang ditampilkan saat ini belum final.
+              Halaman Debt Summary masih dalam tahap pengembangan dan akan segera dirilis. Data yang
+              ditampilkan saat ini belum final.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="sm:justify-center">
@@ -168,7 +168,7 @@ export function DebtSummaryPage({
           </Button>
           <div className="relative">
             <Search
-              className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+              className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
               aria-hidden
             />
             <Input
@@ -176,14 +176,14 @@ export function DebtSummaryPage({
               onChange={(e) => setSearchText(e.target.value)}
               placeholder="Cari driver / plat…"
               aria-label="Cari driver atau plat"
-              className="h-8 w-full pl-8 pr-8 sm:w-56"
+              className="h-8 w-full pr-8 pl-8 sm:w-56"
             />
             {searchText && (
               <button
                 type="button"
                 onClick={() => setSearchText('')}
                 aria-label="Hapus pencarian"
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="absolute top-1/2 right-2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
                 <X className="size-4" />
               </button>

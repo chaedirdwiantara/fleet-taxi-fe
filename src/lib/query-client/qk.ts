@@ -17,8 +17,13 @@ export const qk = {
 
   fleet: {
     all: ['fleet'] as const, // invalidation prefix for every admin fleet query
-    grid: (p: { platform: Platform; month: number; year: number; rentalPartner: string[]; plate?: string }) =>
-      ['fleet', p.platform, 'grid', p] as const,
+    grid: (p: {
+      platform: Platform;
+      month: number;
+      year: number;
+      rentalPartner: string[];
+      plate?: string;
+    }) => ['fleet', p.platform, 'grid', p] as const,
     cell: (p: { platform: Platform; key: string; day: number; month: number; year: number }) =>
       ['fleet', p.platform, 'cell', p] as const,
     imports: (platform: Platform) => ['fleet', platform, 'imports'] as const,
@@ -32,8 +37,7 @@ export const qk = {
       day?: number;
       rentalPartner?: string;
     }) => ['fleet', p.platform, 'summary', p] as const,
-    target: (platform: Platform, plate: string) =>
-      ['fleet', platform, 'target', plate] as const,
+    target: (platform: Platform, plate: string) => ['fleet', platform, 'target', plate] as const,
     detail: (platform: Platform, detailId: number) =>
       ['fleet', platform, 'detail', detailId] as const,
     exceptions: (p: { month: number; year: number }) =>
@@ -83,8 +87,13 @@ export const qk = {
     },
     // Driver management (roster auto-synced from Fleet Monitoring).
     driver: {
-      drivers: (p: { q?: string; plate?: string; active?: string; resigned?: string; page: number }) =>
-        ['partner', 'driver', 'list', p] as const,
+      drivers: (p: {
+        q?: string;
+        plate?: string;
+        active?: string;
+        resigned?: string;
+        page: number;
+      }) => ['partner', 'driver', 'list', p] as const,
       detail: (id: number) => ['partner', 'driver', 'detail', id] as const,
     },
     // Rental Monitoring (own rental transactions + COGS presets).

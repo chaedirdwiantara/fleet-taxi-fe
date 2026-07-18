@@ -11,12 +11,18 @@ describe('cellTone (legacy 8-state, priority order)', () => {
   });
 
   it('counted >= target → target (green)', () => {
-    expect(cellTone(facts({ displayAmount: TARGET, countedAmount: TARGET }), TARGET)).toBe('target');
-    expect(cellTone(facts({ displayAmount: TARGET * 2, countedAmount: TARGET * 2 }), TARGET)).toBe('target');
+    expect(cellTone(facts({ displayAmount: TARGET, countedAmount: TARGET }), TARGET)).toBe(
+      'target',
+    );
+    expect(cellTone(facts({ displayAmount: TARGET * 2, countedAmount: TARGET * 2 }), TARGET)).toBe(
+      'target',
+    );
   });
 
   it('counted < target → below (yellow)', () => {
-    expect(cellTone(facts({ displayAmount: TARGET - 1, countedAmount: TARGET - 1 }), TARGET)).toBe('below');
+    expect(cellTone(facts({ displayAmount: TARGET - 1, countedAmount: TARGET - 1 }), TARGET)).toBe(
+      'below',
+    );
   });
 
   it('present but Rp0 → zero (red)', () => {
@@ -24,31 +30,73 @@ describe('cellTone (legacy 8-state, priority order)', () => {
   });
 
   it('manual payment → manual (purple)', () => {
-    expect(cellTone(facts({ displayAmount: 200_000, countedAmount: 200_000, isManualPayment: true }), TARGET)).toBe('manual');
+    expect(
+      cellTone(
+        facts({ displayAmount: 200_000, countedAmount: 200_000, isManualPayment: true }),
+        TARGET,
+      ),
+    ).toBe('manual');
   });
 
   it('display-only manual with no counted → manual (purple)', () => {
-    expect(cellTone(facts({ displayAmount: 200_000, countedAmount: 0, hasDisplayOnlyManualPayment: true }), TARGET)).toBe('manual');
+    expect(
+      cellTone(
+        facts({ displayAmount: 200_000, countedAmount: 0, hasDisplayOnlyManualPayment: true }),
+        TARGET,
+      ),
+    ).toBe('manual');
   });
 
   it('mixed (deduction + manual) → mixed (orange), wins over manual', () => {
-    expect(cellTone(facts({ displayAmount: 600_000, countedAmount: 600_000, isMixed: true, isManualPayment: true }), TARGET)).toBe('mixed');
+    expect(
+      cellTone(
+        facts({
+          displayAmount: 600_000,
+          countedAmount: 600_000,
+          isMixed: true,
+          isManualPayment: true,
+        }),
+        TARGET,
+      ),
+    ).toBe('mixed');
   });
 
   it('exception, no money → bebas (blue) / nonop (gray)', () => {
-    expect(cellTone(facts({ exception: { isBebasSetoran: true, keterangan: 'RENTAL' } }), TARGET)).toBe('bebas');
-    expect(cellTone(facts({ exception: { isBebasSetoran: false, keterangan: 'PERBAIKAN' } }), TARGET)).toBe('nonop');
+    expect(
+      cellTone(facts({ exception: { isBebasSetoran: true, keterangan: 'RENTAL' } }), TARGET),
+    ).toBe('bebas');
+    expect(
+      cellTone(facts({ exception: { isBebasSetoran: false, keterangan: 'PERBAIKAN' } }), TARGET),
+    ).toBe('nonop');
   });
 
   it('spreadsheet money WINS over an exception marker (brief §2.A)', () => {
     // exception present but there IS money → tone from the money, not the exception
-    expect(cellTone(facts({ displayAmount: TARGET, countedAmount: TARGET, exception: { isBebasSetoran: true, keterangan: 'RENTAL' } }), TARGET)).toBe('target');
+    expect(
+      cellTone(
+        facts({
+          displayAmount: TARGET,
+          countedAmount: TARGET,
+          exception: { isBebasSetoran: true, keterangan: 'RENTAL' },
+        }),
+        TARGET,
+      ),
+    ).toBe('target');
   });
 });
 
 describe('toneClass / toneClickable', () => {
   it('every tone maps to a distinct non-empty class', () => {
-    const tones: CellTone[] = ['empty', 'zero', 'below', 'target', 'manual', 'mixed', 'bebas', 'nonop'];
+    const tones: CellTone[] = [
+      'empty',
+      'zero',
+      'below',
+      'target',
+      'manual',
+      'mixed',
+      'bebas',
+      'nonop',
+    ];
     tones.forEach((t) => expect(toneClass(t)).toBeTruthy());
     expect(new Set(tones.map(toneClass)).size).toBe(tones.length);
   });

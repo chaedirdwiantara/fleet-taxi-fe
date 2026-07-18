@@ -31,7 +31,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { useAdminSession } from '@/features/auth/hooks';
 import {
   useAdminUsersQuery,
@@ -221,7 +228,11 @@ function UserAdminTab() {
             </div>
             <div className="sm:col-span-2">
               <Button type="submit" disabled={!canSubmit || create.isPending}>
-                {create.isPending ? <Loader2 className="animate-spin" aria-hidden /> : <Plus aria-hidden />}
+                {create.isPending ? (
+                  <Loader2 className="animate-spin" aria-hidden />
+                ) : (
+                  <Plus aria-hidden />
+                )}
                 Buat User Admin
               </Button>
               {create.isError && (
@@ -570,9 +581,7 @@ function UsersTable({
               {columns.map((c) => (
                 <TableCell
                   key={c}
-                  className={
-                    c === 'nama' ? 'font-medium' : c === 'aksi' ? 'text-right' : undefined
-                  }
+                  className={c === 'nama' ? 'font-medium' : c === 'aksi' ? 'text-right' : undefined}
                 >
                   {c === 'aksi' ? (
                     <UserActions
@@ -695,7 +704,13 @@ function EditUserDialog({
         </DialogHeader>
         {/* keyed remount so the form re-seeds from the freshly-opened user */}
         {open && (
-          <EditUserForm key={user.id} user={user} type={type} partners={partners} onClose={onClose} />
+          <EditUserForm
+            key={user.id}
+            user={user}
+            type={type}
+            partners={partners}
+            onClose={onClose}
+          />
         )}
       </DialogContent>
     </Dialog>
@@ -748,7 +763,12 @@ function EditUserForm({
     <form onSubmit={submit} className="grid gap-3" noValidate>
       <div className="space-y-1.5">
         <Label htmlFor="eu-name">Nama Lengkap</Label>
-        <Input id="eu-name" value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+        <Input
+          id="eu-name"
+          value={fullName}
+          onChange={(e) => setFullName(e.target.value)}
+          required
+        />
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="eu-email">Email</Label>
@@ -799,7 +819,10 @@ function EditUserForm({
 
       <div className="space-y-1.5">
         <Label htmlFor="eu-status">Status</Label>
-        <Select value={isActive ? 'active' : 'inactive'} onValueChange={(v) => setIsActive(v === 'active')}>
+        <Select
+          value={isActive ? 'active' : 'inactive'}
+          onValueChange={(v) => setIsActive(v === 'active')}
+        >
           <SelectTrigger id="eu-status" className="w-full">
             <SelectValue />
           </SelectTrigger>

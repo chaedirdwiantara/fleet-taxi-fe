@@ -5,8 +5,18 @@ import { currentMonthWIB, currentYearWIB } from '@/lib/datetime';
 // The whole grid state lives in the URL: shareable, back-button friendly,
 // and it keys the Query cache directly.
 export const fleetSearchSchema = z.object({
-  month: z.number().int().min(1).max(12).catch(() => currentMonthWIB()),
-  year: z.number().int().min(2020).max(2100).catch(() => currentYearWIB()),
+  month: z
+    .number()
+    .int()
+    .min(1)
+    .max(12)
+    .catch(() => currentMonthWIB()),
+  year: z
+    .number()
+    .int()
+    .min(2020)
+    .max(2100)
+    .catch(() => currentYearWIB()),
   rentalPartner: z.array(z.string()).catch([]),
   plate: z.string().optional().catch(undefined),
   // "<plateNorm|compositeKey>:<day>" → deep-linkable day-breakdown modal

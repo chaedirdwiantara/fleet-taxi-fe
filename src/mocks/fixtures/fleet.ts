@@ -19,7 +19,16 @@ const RENTAL_PARTNERS = ['BHISA', 'BHINEKA', 'INTERNAL'];
 const REGIONS = ['Halim', 'Cawang', 'Bekasi'];
 const DELIVERY_BATCHES = ['Batch 1', 'Batch 2'];
 const VEHICLE_TYPES = ['Premium - BYD M6', 'Reguler - Avanza', 'Reguler - Xenia'];
-const DRIVERS = ['Budi Santoso', 'Agus Wijaya', 'Siti Rahma', 'Dedi Kurniawan', 'Rina Marlina', 'Joko Susilo', 'Andi Pratama', 'Wawan Setiawan'];
+const DRIVERS = [
+  'Budi Santoso',
+  'Agus Wijaya',
+  'Siti Rahma',
+  'Dedi Kurniawan',
+  'Rina Marlina',
+  'Joko Susilo',
+  'Andi Pratama',
+  'Wawan Setiawan',
+];
 const CITIES = ['Jakarta', 'Bekasi', 'Tangerang'];
 
 export function daysInMonth(month: number, year: number): number {
@@ -55,7 +64,13 @@ type GojekDay = {
     displayTotal: number;
     countedTotal: number;
     hasDisplayOnlyManualPayment: boolean;
-    items: { label: string; displayAmount: number; countedAmount: number; note: string | null; isDisplayOnly: boolean }[];
+    items: {
+      label: string;
+      displayAmount: number;
+      countedAmount: number;
+      note: string | null;
+      isDisplayOnly: boolean;
+    }[];
   } | null;
 };
 
@@ -138,8 +153,20 @@ function buildGojekRow(i: number, month: number, year: number, dim: number) {
           countedTotal: counted,
           hasDisplayOnlyManualPayment: false,
           items: [
-            { label: 'Deduction', displayAmount: ded, countedAmount: ded, note: null, isDisplayOnly: false },
-            { label: 'Manual Payment', displayAmount: man, countedAmount: man, note: null, isDisplayOnly: false },
+            {
+              label: 'Deduction',
+              displayAmount: ded,
+              countedAmount: ded,
+              note: null,
+              isDisplayOnly: false,
+            },
+            {
+              label: 'Manual Payment',
+              displayAmount: man,
+              countedAmount: man,
+              note: null,
+              isDisplayOnly: false,
+            },
           ],
         },
       };
@@ -162,7 +189,15 @@ function buildGojekRow(i: number, month: number, year: number, dim: number) {
               displayTotal: amount,
               countedTotal: amount,
               hasDisplayOnlyManualPayment: false,
-              items: [{ label: 'Deduction', displayAmount: amount, countedAmount: amount, note: null, isDisplayOnly: false }],
+              items: [
+                {
+                  label: 'Deduction',
+                  displayAmount: amount,
+                  countedAmount: amount,
+                  note: null,
+                  isDisplayOnly: false,
+                },
+              ],
             }
           : null,
     };
@@ -346,7 +381,11 @@ export function makeDriverActivity(grid: GojekGridFixture, day?: number) {
     selectedDayTotalDeduction: grid.dailyTotals[selectedDay] ?? 0,
     inactiveList: inactive.slice(0, 25).map((r) => ({
       name: r.driverName,
-      status: r.days[selectedDay]?.exception ? (r.days[selectedDay]?.exception?.isBebasSetoran ? 'Rental (bebas setoran)' : 'Tidak beroperasi') : 'Belum setor',
+      status: r.days[selectedDay]?.exception
+        ? r.days[selectedDay]?.exception?.isBebasSetoran
+          ? 'Rental (bebas setoran)'
+          : 'Tidak beroperasi'
+        : 'Belum setor',
       vehicle: r.plateRaw,
     })),
   };

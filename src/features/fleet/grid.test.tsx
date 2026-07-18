@@ -29,7 +29,9 @@ describe('GojekMonitoringTable (faithful legacy pivot)', () => {
     expect(screen.getByText('Total Deduction')).toBeInTheDocument();
     expect(screen.getByText('Outstanding')).toBeInTheDocument();
     // day headers 1..30
-    const dayHeaders = screen.getAllByRole('columnheader').filter((h) => /^\d+$/.test(h.textContent ?? ''));
+    const dayHeaders = screen
+      .getAllByRole('columnheader')
+      .filter((h) => /^\d+$/.test(h.textContent ?? ''));
     expect(dayHeaders.length).toBe(grid.daysInMonth);
   });
 
@@ -77,9 +79,7 @@ describe('GojekMonitoringTable (faithful legacy pivot)', () => {
         1: { day: 1, displayAmount: 0, countedAmount: 0, exception: null, detail: null },
       },
     };
-    render(
-      <GojekMonitoringTable grid={{ ...base, rows: [row] }} onCellClick={vi.fn()} />,
-    );
+    render(<GojekMonitoringTable grid={{ ...base, rows: [row] }} onCellClick={vi.fn()} />);
     const zeroCells = screen.getAllByText('0');
     expect(zeroCells.length).toBeGreaterThan(0);
   });

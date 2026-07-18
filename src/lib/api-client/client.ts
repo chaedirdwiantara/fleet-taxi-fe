@@ -21,8 +21,7 @@ export type ApiErrorDetail = { field: string; message: string };
 export type ApiError = { code: string; message: string; details?: ApiErrorDetail[] };
 
 export type Envelope<T> =
-  | { success: true; data: T; meta?: Meta }
-  | { success: false; error: ApiError };
+  { success: true; data: T; meta?: Meta } | { success: false; error: ApiError };
 
 export class ApiErrorException extends Error {
   readonly code: string;

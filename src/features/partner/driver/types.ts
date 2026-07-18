@@ -19,7 +19,13 @@ export const SOURCE_LABELS: Record<DriverSource, string> = {
 export const DEPOSIT_RETURN_STATUSES = ['none', 'waiting', 'approved', 'rejected'] as const;
 export type DepositReturnStatus = (typeof DEPOSIT_RETURN_STATUSES)[number];
 
-export const DOCUMENT_KINDS = ['ktp', 'sim', 'skck', 'deposit_proof', 'deposit_return_proof'] as const;
+export const DOCUMENT_KINDS = [
+  'ktp',
+  'sim',
+  'skck',
+  'deposit_proof',
+  'deposit_return_proof',
+] as const;
 export type DriverDocumentKind = (typeof DOCUMENT_KINDS)[number];
 
 /**

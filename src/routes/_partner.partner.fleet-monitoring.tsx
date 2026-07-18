@@ -80,7 +80,9 @@ function PartnerGojekPage() {
         <p className="text-sm text-destructive">Gagal memuat ringkasan: {summary.error.message}</p>
       )}
       {summary.isSuccess && (
-        <div className={summary.isFetching ? 'space-y-4 opacity-70 transition-opacity' : 'space-y-4'}>
+        <div
+          className={summary.isFetching ? 'space-y-4 opacity-70 transition-opacity' : 'space-y-4'}
+        >
           <SummaryCards summary={summary.data.globalSummary} />
           {/* No per-partner split here — a partner only ever sees itself. */}
           <FleetChartsPanel charts={summary.data.charts} showPartnerSplit={false} />

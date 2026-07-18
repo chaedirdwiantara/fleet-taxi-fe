@@ -48,7 +48,13 @@ export function useGojekCellQuery(p: {
   enabled: boolean;
 }) {
   return useQuery({
-    queryKey: qk.fleet.cell({ platform: 'gojek', key: p.plate, day: p.day, month: p.month, year: p.year }),
+    queryKey: qk.fleet.cell({
+      platform: 'gojek',
+      key: p.plate,
+      day: p.day,
+      month: p.month,
+      year: p.year,
+    }),
     queryFn: async (): Promise<CellBreakdown> => {
       const { data, error } = await api.GET('/admin/fleet/gojek/cell', {
         params: { query: { plate: p.plate, day: p.day, month: p.month, year: p.year } },
@@ -141,7 +147,13 @@ export function usePartnerGojekCellQuery(p: {
   enabled: boolean;
 }) {
   return useQuery({
-    queryKey: qk.partner.fleet.cell({ platform: 'gojek', key: p.plate, day: p.day, month: p.month, year: p.year }),
+    queryKey: qk.partner.fleet.cell({
+      platform: 'gojek',
+      key: p.plate,
+      day: p.day,
+      month: p.month,
+      year: p.year,
+    }),
     queryFn: async (): Promise<CellBreakdown> => {
       const { data, error } = await api.GET('/partner/portal/fleet/gojek/cell', {
         params: { query: { plate: p.plate, day: p.day, month: p.month, year: p.year } },

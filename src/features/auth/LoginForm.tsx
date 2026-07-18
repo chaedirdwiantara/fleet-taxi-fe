@@ -5,13 +5,7 @@ import { useRouter } from '@tanstack/react-router';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ApiErrorException } from '@/lib/api-client/client';
 import { useAdminLogin, usePartnerLogin } from './hooks';
 
@@ -24,12 +18,22 @@ type LoginValues = z.infer<typeof loginSchema>;
 
 const COPY = {
   admin: { title: 'Admin Console', desc: 'Masuk sebagai admin fleet-taxi.id', home: '/admin' },
-  partner: { title: 'Portal Partner', desc: 'Masuk sebagai partner fleet-taxi.id', home: '/partner' },
+  partner: {
+    title: 'Portal Partner',
+    desc: 'Masuk sebagai partner fleet-taxi.id',
+    home: '/partner',
+  },
 } as const;
 
 // Shared login form parameterized by audience — each uses its own auth
 // endpoint (admin console vs partner portal) and its own landing page.
-export function LoginForm({ audience, redirect }: { audience: 'admin' | 'partner'; redirect?: string }) {
+export function LoginForm({
+  audience,
+  redirect,
+}: {
+  audience: 'admin' | 'partner';
+  redirect?: string;
+}) {
   const router = useRouter();
   const copy = COPY[audience];
   // hooks called unconditionally; pick by audience
@@ -87,14 +91,15 @@ export function LoginForm({ audience, redirect }: { audience: 'admin' | 'partner
               {...form.register('password')}
             />
             {form.formState.errors.password && (
-              <p className="text-sm text-destructive">
-                {form.formState.errors.password.message}
-              </p>
+              <p className="text-sm text-destructive">{form.formState.errors.password.message}</p>
             )}
           </div>
 
           {apiError && (
-            <div role="alert" className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <div
+              role="alert"
+              className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+            >
               {apiError.message}
               {apiError.details?.map((d) => (
                 <div key={d.field}>

@@ -112,7 +112,10 @@ export function PlateCombobox({
               >
                 <Check
                   aria-hidden
-                  className={cn('size-4 shrink-0', p.plateNumber === value ? 'opacity-100' : 'opacity-0')}
+                  className={cn(
+                    'size-4 shrink-0',
+                    p.plateNumber === value ? 'opacity-100' : 'opacity-0',
+                  )}
                 />
                 <span className="truncate">
                   {p.plateNumber}

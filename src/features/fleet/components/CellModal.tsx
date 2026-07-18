@@ -48,7 +48,9 @@ export function CellModal({
           </DialogDescription>
         </DialogHeader>
 
-        {breakdown.isPending && <p className="py-4 text-sm text-muted-foreground">Memuat rincian…</p>}
+        {breakdown.isPending && (
+          <p className="py-4 text-sm text-muted-foreground">Memuat rincian…</p>
+        )}
         {breakdown.isError && (
           <p className="py-4 text-sm text-destructive">Gagal memuat: {breakdown.error.message}</p>
         )}
@@ -90,18 +92,22 @@ export function CellModal({
               <tfoot>
                 <tr className="bg-muted/50 font-semibold">
                   <td className="py-1.5 pr-2">Total Display</td>
-                  <td className="py-1.5 text-right tabular-nums">{nf(breakdown.data.displayTotal)}</td>
+                  <td className="py-1.5 text-right tabular-nums">
+                    {nf(breakdown.data.displayTotal)}
+                  </td>
                 </tr>
                 <tr className="font-semibold">
                   <td className="py-1.5 pr-2">Total Counted</td>
-                  <td className="py-1.5 text-right tabular-nums">{nf(breakdown.data.countedTotal)}</td>
+                  <td className="py-1.5 text-right tabular-nums">
+                    {nf(breakdown.data.countedTotal)}
+                  </td>
                 </tr>
               </tfoot>
             </table>
             {breakdown.data.hasDisplayOnlyManualPayment && (
               <p className="mt-2 text-[11px] text-muted-foreground">
-                Manual Payment berlabel display-only tetap tampil di sel, tetapi tidak masuk
-                hitung setoran.
+                Manual Payment berlabel display-only tetap tampil di sel, tetapi tidak masuk hitung
+                setoran.
               </p>
             )}
           </div>

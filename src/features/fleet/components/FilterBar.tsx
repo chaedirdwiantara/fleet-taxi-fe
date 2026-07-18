@@ -16,8 +16,18 @@ import { currentYearWIB } from '@/lib/datetime';
 import type { FleetSearch } from '../searchSchema';
 
 const MONTH_NAMES = [
-  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+  'Januari',
+  'Februari',
+  'Maret',
+  'April',
+  'Mei',
+  'Juni',
+  'Juli',
+  'Agustus',
+  'September',
+  'Oktober',
+  'November',
+  'Desember',
 ];
 
 type FilterBarProps = {
@@ -57,10 +67,7 @@ export function FilterBar({ search, rentalPartnerOptions, onChange }: FilterBarP
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Select
-        value={String(search.month)}
-        onValueChange={(v) => onChange({ month: Number(v) })}
-      >
+      <Select value={String(search.month)} onValueChange={(v) => onChange({ month: Number(v) })}>
         <SelectTrigger className="w-36" aria-label="Bulan">
           <SelectValue />
         </SelectTrigger>

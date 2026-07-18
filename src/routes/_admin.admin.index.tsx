@@ -88,7 +88,9 @@ function AdminDashboard() {
         <p className="text-sm text-destructive">Gagal memuat: {summary.error.message}</p>
       )}
       {summary.isSuccess && (
-        <div className={summary.isFetching ? 'space-y-5 opacity-70 transition-opacity' : 'space-y-5'}>
+        <div
+          className={summary.isFetching ? 'space-y-5 opacity-70 transition-opacity' : 'space-y-5'}
+        >
           <SummaryCards summary={summary.data.globalSummary} />
           <FleetChartsPanel charts={summary.data.charts} />
         </div>

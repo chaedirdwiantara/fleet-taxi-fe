@@ -67,7 +67,7 @@ export function RentalTable({
                 )}
               </TableCell>
               <TableCell>
-                <div className="whitespace-nowrap text-sm">
+                <div className="text-sm whitespace-nowrap">
                   {formatDateID(item.displayStartDate)} – {formatDateID(item.displayEndDate)}
                 </div>
                 <Badge className="mt-1 border-transparent bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-400">
@@ -97,7 +97,7 @@ export function RentalTable({
                   ) : (
                     <Badge
                       variant="outline"
-                      className="whitespace-nowrap border-destructive/40 text-destructive"
+                      className="border-destructive/40 whitespace-nowrap text-destructive"
                     >
                       Belum Dibayar
                     </Badge>

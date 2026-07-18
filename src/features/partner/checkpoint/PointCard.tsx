@@ -51,7 +51,7 @@ export function PointCard({
             )}
           />
           <div className="min-w-0 flex-1">
-            <h3 className="text-sm font-semibold leading-tight">
+            <h3 className="text-sm leading-tight font-semibold">
               {index + 1}. {point.label}
             </h3>
             <p className="text-xs text-muted-foreground">{POINT_HINTS[point.pointKey]}</p>
@@ -86,10 +86,18 @@ export function PointCard({
           <p
             className={cn(
               'text-sm font-medium',
-              point.passed ? 'text-emerald-600' : point.passed === false ? 'text-destructive' : 'text-muted-foreground',
+              point.passed
+                ? 'text-emerald-600'
+                : point.passed === false
+                  ? 'text-destructive'
+                  : 'text-muted-foreground',
             )}
           >
-            {point.passed ? 'Lulus inspeksi' : point.passed === false ? 'Tidak lulus inspeksi' : 'Belum dinilai'}
+            {point.passed
+              ? 'Lulus inspeksi'
+              : point.passed === false
+                ? 'Tidak lulus inspeksi'
+                : 'Belum dinilai'}
           </p>
         )}
 
@@ -117,7 +125,7 @@ export function PointCard({
           <div className="rounded-md border bg-muted/40 p-2">
             <button
               type="button"
-              className="flex w-full min-h-9 items-center justify-between text-xs font-medium text-muted-foreground"
+              className="flex min-h-9 w-full items-center justify-between text-xs font-medium text-muted-foreground"
               onClick={() => setShowComparison((s) => !s)}
               aria-expanded={showComparison}
             >

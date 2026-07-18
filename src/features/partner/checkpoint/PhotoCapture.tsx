@@ -93,7 +93,7 @@ export function PhotoCapture({
                 variant="destructive"
                 size="icon-sm"
                 aria-label="Hapus foto"
-                className="absolute -right-1.5 -top-1.5 size-6 rounded-full shadow"
+                className="absolute -top-1.5 -right-1.5 size-6 rounded-full shadow"
                 disabled={remove.isPending}
                 onClick={() => remove.mutate(m.id)}
               >
@@ -107,7 +107,7 @@ export function PhotoCapture({
           <div className="flex aspect-square flex-col gap-1.5">
             <button
               type="button"
-              className="flex flex-1 min-h-11 items-center justify-center gap-1 rounded-md border border-dashed text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground disabled:opacity-50"
+              className="flex min-h-11 flex-1 items-center justify-center gap-1 rounded-md border border-dashed text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground disabled:opacity-50"
               onClick={openCamera}
               disabled={upload.isPending}
             >
@@ -120,7 +120,7 @@ export function PhotoCapture({
             </button>
             <button
               type="button"
-              className="flex flex-1 min-h-11 items-center justify-center gap-1 rounded-md border border-dashed text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground disabled:opacity-50"
+              className="flex min-h-11 flex-1 items-center justify-center gap-1 rounded-md border border-dashed text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground disabled:opacity-50"
               onClick={() => galleryRef.current?.click()}
               disabled={upload.isPending}
             >
@@ -155,7 +155,7 @@ export function PhotoCapture({
             variant="outline"
             size="icon-sm"
             aria-label="Tutup"
-            className="absolute right-3 top-3"
+            className="absolute top-3 right-3"
             onClick={() => setPreview(null)}
           >
             <X className="size-4" />

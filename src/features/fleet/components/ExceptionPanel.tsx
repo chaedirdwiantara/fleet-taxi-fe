@@ -155,7 +155,9 @@ export function ExceptionPanel({
                       {formatDateID(exc.exceptionDate)}
                     </span>
                     {exc.keterangan && (
-                      <span className="ml-1 truncate text-muted-foreground">· {exc.keterangan}</span>
+                      <span className="ml-1 truncate text-muted-foreground">
+                        · {exc.keterangan}
+                      </span>
                     )}
                     <Badge variant={exc.isBebasSetoran ? 'secondary' : 'outline'} className="ml-2">
                       {exc.isBebasSetoran ? 'Bebas Target' : 'Tetap Ditagih'}

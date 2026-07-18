@@ -7,9 +7,20 @@ const throwEnvelope = (error: unknown): never => {
   throw new ApiErrorException((error as { error: ApiError }).error);
 };
 
-export function useGrabGridQuery(p: { month: number; year: number; rentalPartner: string[]; plate?: string }) {
+export function useGrabGridQuery(p: {
+  month: number;
+  year: number;
+  rentalPartner: string[];
+  plate?: string;
+}) {
   return useQuery({
-    queryKey: qk.fleet.grid({ platform: 'grab', month: p.month, year: p.year, rentalPartner: p.rentalPartner, plate: p.plate }),
+    queryKey: qk.fleet.grid({
+      platform: 'grab',
+      month: p.month,
+      year: p.year,
+      rentalPartner: p.rentalPartner,
+      plate: p.plate,
+    }),
     queryFn: async (): Promise<GrabGrid> => {
       const { data, error } = await api.GET('/admin/fleet/grab/grid', {
         params: {
@@ -35,7 +46,13 @@ export function useGrabDriverDetailQuery(p: {
   enabled: boolean;
 }) {
   return useQuery({
-    queryKey: qk.fleet.cell({ platform: 'grab', key: p.compositeKey, day: 1, month: p.month, year: p.year }),
+    queryKey: qk.fleet.cell({
+      platform: 'grab',
+      key: p.compositeKey,
+      day: 1,
+      month: p.month,
+      year: p.year,
+    }),
     queryFn: async (): Promise<GrabDriverDetail> => {
       const { data, error } = await api.GET('/admin/fleet/grab/cell', {
         params: { query: { compositeKey: p.compositeKey, day: 1, month: p.month, year: p.year } },
@@ -70,7 +87,13 @@ export function usePartnerGrabDriverDetailQuery(p: {
   enabled: boolean;
 }) {
   return useQuery({
-    queryKey: qk.partner.fleet.cell({ platform: 'grab', key: p.compositeKey, day: 1, month: p.month, year: p.year }),
+    queryKey: qk.partner.fleet.cell({
+      platform: 'grab',
+      key: p.compositeKey,
+      day: 1,
+      month: p.month,
+      year: p.year,
+    }),
     queryFn: async (): Promise<GrabDriverDetail> => {
       const { data, error } = await api.GET('/partner/portal/fleet/grab/cell', {
         params: { query: { compositeKey: p.compositeKey, day: 1, month: p.month, year: p.year } },

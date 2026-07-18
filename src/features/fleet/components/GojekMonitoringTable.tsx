@@ -90,7 +90,10 @@ export function GojekMonitoringTable({
 
   return (
     <div className="relative max-h-[78svh] overflow-auto rounded-lg border">
-      <table className="border-separate border-spacing-0 text-xs" style={{ minWidth: idW + days.length * DAY_W + identityWidth(SUMMARY) }}>
+      <table
+        className="border-separate border-spacing-0 text-xs"
+        style={{ minWidth: idW + days.length * DAY_W + identityWidth(SUMMARY) }}
+      >
         <thead>
           {/* Row 1: identity (rowspan 2) + Tanggal group + Summary group */}
           <tr>
@@ -99,7 +102,7 @@ export function GojekMonitoringTable({
                 key={c.id}
                 rowSpan={2}
                 className={cn(
-                  'sticky top-0 z-30 border-b border-r border-indigo-300/40 px-2 py-2 text-center font-semibold',
+                  'sticky top-0 z-30 border-r border-b border-indigo-300/40 px-2 py-2 text-center font-semibold',
                   HEAD_BG,
                   i === identity.length - 1 && 'border-r-2 border-r-slate-300',
                 )}
@@ -110,7 +113,10 @@ export function GojekMonitoringTable({
             ))}
             <th
               colSpan={days.length}
-              className={cn('sticky top-0 z-20 h-8 border-b border-r border-indigo-300/40 px-2 py-0 text-left align-middle font-semibold', HEAD_BG)}
+              className={cn(
+                'sticky top-0 z-20 h-8 border-r border-b border-indigo-300/40 px-2 py-0 text-left align-middle font-semibold',
+                HEAD_BG,
+              )}
             >
               {/* pinned past the frozen columns so the label stays visible
                   while the ~31-day band scrolls horizontally */}
@@ -120,7 +126,10 @@ export function GojekMonitoringTable({
             </th>
             <th
               colSpan={SUMMARY.length}
-              className={cn('sticky top-0 z-20 h-8 border-b border-l-2 border-l-slate-300 px-2 py-0 text-center align-middle font-semibold', SUMMARY_BG)}
+              className={cn(
+                'sticky top-0 z-20 h-8 border-b border-l-2 border-l-slate-300 px-2 py-0 text-center align-middle font-semibold',
+                SUMMARY_BG,
+              )}
             >
               Summary
             </th>
@@ -130,7 +139,10 @@ export function GojekMonitoringTable({
             {days.map((d) => (
               <th
                 key={d}
-                className={cn('sticky top-8 z-20 border-b border-r border-indigo-300/30 px-1 py-1 text-center font-medium', HEAD_BG)}
+                className={cn(
+                  'sticky top-8 z-20 border-r border-b border-indigo-300/30 px-1 py-1 text-center font-medium',
+                  HEAD_BG,
+                )}
                 style={{ width: DAY_W, minWidth: DAY_W }}
               >
                 {d}
@@ -140,7 +152,7 @@ export function GojekMonitoringTable({
               <th
                 key={c.id}
                 className={cn(
-                  'sticky top-8 z-20 border-b border-r px-1 py-1 text-center font-medium',
+                  'sticky top-8 z-20 border-r border-b px-1 py-1 text-center font-medium',
                   SUMMARY_BG,
                   i === 0 && 'border-l-2 border-l-slate-300',
                 )}
@@ -166,7 +178,11 @@ export function GojekMonitoringTable({
             return (
               <tr key={row.plateNorm} className="group">
                 <td
-                  className={cn(stickyBase, 'px-2 py-1 text-center text-slate-500', lastBorder(noCol.isLast))}
+                  className={cn(
+                    stickyBase,
+                    'px-2 py-1 text-center text-slate-500',
+                    lastBorder(noCol.isLast),
+                  )}
                   style={{ left: noCol.left, width: noCol.width }}
                 >
                   {idx + 1}
@@ -174,14 +190,18 @@ export function GojekMonitoringTable({
                 {rpCol && rpSpans[idx] !== undefined && (
                   <td
                     rowSpan={rpSpans[idx]}
-                    className="sticky z-10 border-b border-r bg-slate-50 px-2 py-1 text-center align-middle font-semibold dark:bg-slate-900"
+                    className="sticky z-10 border-r border-b bg-slate-50 px-2 py-1 text-center align-middle font-semibold dark:bg-slate-900"
                     style={{ left: rpCol.left, width: rpCol.width }}
                   >
                     {row.rentalPartner || '-'}
                   </td>
                 )}
                 <td
-                  className={cn(stickyBase, 'truncate px-2 py-1 text-center font-semibold', lastBorder(plateCol.isLast))}
+                  className={cn(
+                    stickyBase,
+                    'truncate px-2 py-1 text-center font-semibold',
+                    lastBorder(plateCol.isLast),
+                  )}
                   style={{ left: plateCol.left, width: plateCol.width, maxWidth: plateCol.width }}
                   title={row.detailId !== null ? 'Manual Payment tanpa plat' : row.plateRaw}
                 >
@@ -194,7 +214,11 @@ export function GojekMonitoringTable({
                   )}
                 </td>
                 <td
-                  className={cn(stickyBase, 'truncate px-2 py-1 text-center text-slate-600 dark:text-slate-300', lastBorder(typeCol.isLast))}
+                  className={cn(
+                    stickyBase,
+                    'truncate px-2 py-1 text-center text-slate-600 dark:text-slate-300',
+                    lastBorder(typeCol.isLast),
+                  )}
                   style={{ left: typeCol.left, width: typeCol.width, maxWidth: typeCol.width }}
                   title={row.vehicleType}
                 >
@@ -202,7 +226,11 @@ export function GojekMonitoringTable({
                 </td>
                 <td
                   className={cn(stickyBase, 'px-2 py-1 text-left', lastBorder(driverCol.isLast))}
-                  style={{ left: driverCol.left, width: driverCol.width, maxWidth: driverCol.width }}
+                  style={{
+                    left: driverCol.left,
+                    width: driverCol.width,
+                    maxWidth: driverCol.width,
+                  }}
                 >
                   {row.driverHistory.length > 0 ? (
                     <div className="space-y-0.5">
@@ -226,13 +254,19 @@ export function GojekMonitoringTable({
                     >
                       Keluar
                       {row.exitedLastSeen && (
-                        <span className="font-normal opacity-90">· {formatDateID(row.exitedLastSeen)}</span>
+                        <span className="font-normal opacity-90">
+                          · {formatDateID(row.exitedLastSeen)}
+                        </span>
                       )}
                     </span>
                   )}
                 </td>
                 <td
-                  className={cn(stickyBase, 'px-2 py-1 text-right tabular-nums', lastBorder(setoranCol.isLast))}
+                  className={cn(
+                    stickyBase,
+                    'px-2 py-1 text-right tabular-nums',
+                    lastBorder(setoranCol.isLast),
+                  )}
                   style={{ left: setoranCol.left, width: setoranCol.width }}
                 >
                   {/* target changed mid-month → list every value with its active
@@ -281,22 +315,27 @@ export function GojekMonitoringTable({
                   const exc = cell?.exception;
                   // In-data-but-Rp0 (pink) shows an explicit "0"; only days with
                   // no import data at all render the "-" placeholder.
-                  const label = exc && (cell?.displayAmount ?? 0) === 0
-                    ? exc.isBebasSetoran
-                      ? 'Rental'
-                      : (exc.keterangan ?? '').slice(0, 6)
-                    : cell
-                      ? cell.displayAmount > 0
-                        ? nf(cell.displayAmount)
-                        : '0'
-                      : '-';
+                  const label =
+                    exc && (cell?.displayAmount ?? 0) === 0
+                      ? exc.isBebasSetoran
+                        ? 'Rental'
+                        : (exc.keterangan ?? '').slice(0, 6)
+                      : cell
+                        ? cell.displayAmount > 0
+                          ? nf(cell.displayAmount)
+                          : '0'
+                        : '-';
                   return (
                     <td
                       key={d}
                       role={clickable ? 'button' : undefined}
-                      aria-label={clickable ? `${row.plateRaw || 'Tanpa Plat'} tanggal ${d}: ${label}` : undefined}
+                      aria-label={
+                        clickable
+                          ? `${row.plateRaw || 'Tanpa Plat'} tanggal ${d}: ${label}`
+                          : undefined
+                      }
                       className={cn(
-                        'border-b border-r px-1 py-1 text-right tabular-nums',
+                        'border-r border-b px-1 py-1 text-right tabular-nums',
                         toneClass(tone),
                         clickable && 'cursor-pointer hover:brightness-95',
                       )}
@@ -309,16 +348,30 @@ export function GojekMonitoringTable({
                   );
                 })}
 
-                <td className="border-b border-l-2 border-l-slate-300 border-r bg-white px-2 py-1 text-right tabular-nums dark:bg-slate-950">
+                <td className="border-r border-b border-l-2 border-l-slate-300 bg-white px-2 py-1 text-right tabular-nums dark:bg-slate-950">
                   {rp(row.summary.totalDeduction)}
                 </td>
-                <td className="border-b border-r bg-white px-2 py-1 text-right tabular-nums dark:bg-slate-950">
+                <td className="border-r border-b bg-white px-2 py-1 text-right tabular-nums dark:bg-slate-950">
                   {rp(row.summary.calculatedTarget)}
                 </td>
-                <td className={cn('border-b border-r bg-white px-2 py-1 text-right tabular-nums dark:bg-slate-950', gap < 0 ? 'text-red-600' : 'text-emerald-600')}>
+                <td
+                  className={cn(
+                    'border-r border-b bg-white px-2 py-1 text-right tabular-nums dark:bg-slate-950',
+                    gap < 0 ? 'text-red-600' : 'text-emerald-600',
+                  )}
+                >
                   {nf(gap)}
                 </td>
-                <td className={cn('border-b border-r px-2 py-1 text-right font-semibold tabular-nums', outstanding > 0 ? 'bg-[#ffcccc] text-red-900' : outstanding < 0 ? 'bg-[#00ff00] text-slate-900' : 'bg-white dark:bg-slate-950')}>
+                <td
+                  className={cn(
+                    'border-r border-b px-2 py-1 text-right font-semibold tabular-nums',
+                    outstanding > 0
+                      ? 'bg-[#ffcccc] text-red-900'
+                      : outstanding < 0
+                        ? 'bg-[#00ff00] text-slate-900'
+                        : 'bg-white dark:bg-slate-950',
+                  )}
+                >
                   {rp(outstanding)}
                 </td>
               </tr>
@@ -326,7 +379,10 @@ export function GojekMonitoringTable({
           })}
           {grid.rows.length === 0 && (
             <tr>
-              <td colSpan={identity.length + days.length + SUMMARY.length} className="border-b px-3 py-10 text-slate-500">
+              <td
+                colSpan={identity.length + days.length + SUMMARY.length}
+                className="border-b px-3 py-10 text-slate-500"
+              >
                 {/* sticky: keeps the message inside the visible viewport of the
                     horizontally scrollable pivot instead of centering it across
                     the full ~3000px table width */}
@@ -340,12 +396,13 @@ export function GojekMonitoringTable({
               const totalGap = grid.tableTotals.totalDeduction - grid.tableTotals.totalDue;
               const totalOut = grid.tableTotals.outstanding;
               // sticky bottom applied per-cell (not on <tr>, which WebKit ignores)
-              const foot = 'sticky bottom-0 border-b border-r bg-indigo-50 px-2 py-1.5 text-right tabular-nums dark:bg-indigo-950';
+              const foot =
+                'sticky bottom-0 border-b border-r bg-indigo-50 px-2 py-1.5 text-right tabular-nums dark:bg-indigo-950';
               return (
                 <tr className="font-semibold">
                   <td
                     colSpan={identity.length}
-                    className="sticky bottom-0 left-0 z-20 border-b border-r-2 border-r-slate-300 bg-indigo-50 px-2 py-1.5 text-right dark:bg-indigo-950"
+                    className="sticky bottom-0 left-0 z-20 border-r-2 border-b border-r-slate-300 bg-indigo-50 px-2 py-1.5 text-right dark:bg-indigo-950"
                   >
                     TOTAL HARI INI
                   </td>
@@ -354,13 +411,21 @@ export function GojekMonitoringTable({
                       {grid.dailyTotals[d] > 0 ? nf(grid.dailyTotals[d]) : '-'}
                     </td>
                   ))}
-                  <td className={cn(foot, 'border-l-2 border-l-slate-300')}>{rp(grid.tableTotals.totalDeduction)}</td>
+                  <td className={cn(foot, 'border-l-2 border-l-slate-300')}>
+                    {rp(grid.tableTotals.totalDeduction)}
+                  </td>
                   <td className={foot}>{rp(grid.tableTotals.totalDue)}</td>
-                  <td className={cn(foot, totalGap < 0 ? 'text-red-600' : 'text-emerald-600')}>{nf(totalGap)}</td>
+                  <td className={cn(foot, totalGap < 0 ? 'text-red-600' : 'text-emerald-600')}>
+                    {nf(totalGap)}
+                  </td>
                   <td
                     className={cn(
-                      'sticky bottom-0 border-b border-r px-2 py-1.5 text-right tabular-nums',
-                      totalOut > 0 ? 'bg-[#ffcccc] text-red-900' : totalOut < 0 ? 'bg-[#00ff00] text-slate-900' : 'bg-indigo-50 dark:bg-indigo-950',
+                      'sticky bottom-0 border-r border-b px-2 py-1.5 text-right tabular-nums',
+                      totalOut > 0
+                        ? 'bg-[#ffcccc] text-red-900'
+                        : totalOut < 0
+                          ? 'bg-[#00ff00] text-slate-900'
+                          : 'bg-indigo-50 dark:bg-indigo-950',
                     )}
                   >
                     {rp(totalOut)}

@@ -34,7 +34,10 @@ describe('Daftarkan Plat — CRUD over own registered plates', () => {
 
     let created!: { plateNumberNorm: string };
     await act(async () => {
-      created = await result.current.mutateAsync({ plateNumber: 'b 1002 xyz', vehicleType: 'Innova' });
+      created = await result.current.mutateAsync({
+        plateNumber: 'b 1002 xyz',
+        vehicleType: 'Innova',
+      });
     });
     expect(created.plateNumberNorm).toBe('B1002XYZ');
 
