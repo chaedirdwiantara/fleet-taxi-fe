@@ -6,7 +6,7 @@ import { routeTree } from './routeTree.gen';
 import { queryClient } from '@/lib/query-client';
 import { env } from '@/lib/env';
 import { ThemeProvider } from '@/components/shared/ThemeProvider';
-import '@fontsource-variable/inter';
+import '@fontsource-variable/inter/index.css';
 import './index.css';
 
 const router = createRouter({ routeTree });
