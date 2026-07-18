@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { CalendarClock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { cellTone, toneClass, toneClickable } from '../lib/thresholds';
-import { monthYearLabelID } from '@/lib/datetime';
+import { formatDateID, monthYearLabelID } from '@/lib/datetime';
 import { formatNumberID, formatRupiah } from '@/lib/money';
 import type { FleetGrid } from '../types';
 import { groupRowSpans, identityWidth, stickyLefts, type IdentityCol } from './stickyGrid';
@@ -215,12 +215,43 @@ export function GojekMonitoringTable({
                   ) : (
                     <span className="text-slate-400">-</span>
                   )}
+                  {row.isExited && (
+                    <span
+                      className="mt-0.5 inline-flex items-center gap-1 rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-semibold text-white"
+                      title={
+                        row.exitedLastSeen
+                          ? `Driver keluar — terakhir muncul di import: ${formatDateID(row.exitedLastSeen)}`
+                          : 'Driver keluar'
+                      }
+                    >
+                      Keluar
+                      {row.exitedLastSeen && (
+                        <span className="font-normal opacity-90">· {formatDateID(row.exitedLastSeen)}</span>
+                      )}
+                    </span>
+                  )}
                 </td>
                 <td
                   className={cn(stickyBase, 'px-2 py-1 text-right tabular-nums', lastBorder(setoranCol.isLast))}
                   style={{ left: setoranCol.left, width: setoranCol.width }}
                 >
-                  {nf(row.dailyTarget)}
+                  {/* target changed mid-month → list every value with its active
+                      day range (legacy due_segments); otherwise the single target */}
+                  {row.dueSegments.length > 1 ? (
+                    <div className="space-y-0.5">
+                      {row.dueSegments.map((seg) => (
+                        <div key={`${seg.amount}-${seg.fromDay}`} className="whitespace-nowrap">
+                          {nf(seg.amount)}{' '}
+                          <span className="text-[10px] text-slate-400">
+                            ({seg.fromDay}
+                            {seg.toDay !== seg.fromDay ? `–${seg.toDay}` : ''})
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    nf(row.dailyTarget)
+                  )}
                 </td>
                 {aksiCol && (
                   <td
@@ -243,7 +274,9 @@ export function GojekMonitoringTable({
 
                 {days.map((d) => {
                   const cell = row.days[d];
-                  const tone = cellTone(cell, row.dailyTarget);
+                  // per-day baseline: that day's own due amount when the target
+                  // changed mid-month, else the single monthly target
+                  const tone = cellTone(cell, row.dailyDue?.[d] ?? row.dailyTarget);
                   const clickable = !!cell && toneClickable(tone);
                   const exc = cell?.exception;
                   // In-data-but-Rp0 (pink) shows an explicit "0"; only days with
