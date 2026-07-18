@@ -42,10 +42,12 @@ started when `VITE_USE_MSW=false`.)
 ## 3. Publish `dist/` — pick one host
 
 **Cloudflare Pages** (same CDN as the current setup)
+
 - Build command `pnpm build`, output dir `dist`.
 - SPA fallback is automatic (or add `public/_redirects`: `/*  /index.html  200`).
 
 **AWS S3 + CloudFront**
+
 - `aws s3 sync dist/ s3://<bucket> --delete`
 - CloudFront: set **Default root object** `index.html`, and add a **custom error
   response**: HTTP 403 **and** 404 → response page `/index.html`, HTTP 200
@@ -53,6 +55,7 @@ started when `VITE_USE_MSW=false`.)
 - Invalidate cache after each deploy: `aws cloudfront create-invalidation --paths "/*"`.
 
 **nginx** (self-host)
+
 ```nginx
 location / { try_files $uri $uri/ /index.html; }
 ```

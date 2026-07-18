@@ -1270,7 +1270,7 @@ export interface components {
              *       "order:read"
              *     ]
              */
-            scopes?: unknown[][];
+            scopes?: string[];
             /**
              * @description Requests per minute
              * @example 60
@@ -1951,8 +1951,8 @@ export interface operations {
     GojekController_grid: {
         parameters: {
             query: {
-                month: string;
-                year: string;
+                month: number;
+                year: number;
                 plate?: string;
                 rentalPartner?: string[];
             };
@@ -1973,11 +1973,11 @@ export interface operations {
     GojekController_cell: {
         parameters: {
             query: {
-                month: string;
-                year: string;
+                month: number;
+                year: number;
                 /** @description Row key: normalized plate or manual_<detailId> */
                 plate: string;
-                day: string;
+                day: number;
             };
             header?: never;
             path?: never;
@@ -1996,8 +1996,8 @@ export interface operations {
     GojekController_detail: {
         parameters: {
             query?: {
-                month?: string;
-                year?: string;
+                month?: number;
+                year?: number;
             };
             header?: never;
             path: {
@@ -2039,9 +2039,9 @@ export interface operations {
     GojekController_summary: {
         parameters: {
             query: {
-                month: string;
-                year: string;
-                day?: string;
+                month: number;
+                year: number;
+                day?: number;
                 rentalPartner?: string[];
             };
             header?: never;
@@ -2185,8 +2185,8 @@ export interface operations {
     GrabController_grid: {
         parameters: {
             query: {
-                month: string;
-                year: string;
+                month: number;
+                year: number;
                 plate?: string;
                 rentalPartner?: string[];
             };
@@ -2207,11 +2207,11 @@ export interface operations {
     GrabController_cell: {
         parameters: {
             query: {
-                month: string;
-                year: string;
+                month: number;
+                year: number;
                 /** @description plate|city|driver */
                 compositeKey: string;
-                day?: unknown;
+                day?: number;
             };
             header?: never;
             path?: never;
@@ -2230,8 +2230,8 @@ export interface operations {
     GrabController_performers: {
         parameters: {
             query: {
-                month: string;
-                year: string;
+                month: number;
+                year: number;
             };
             header?: never;
             path?: never;
@@ -2322,8 +2322,8 @@ export interface operations {
     PortalController_orders: {
         parameters: {
             query?: {
-                page?: string;
-                pageSize?: string;
+                page?: number;
+                pageSize?: number;
                 tripStatus?: string;
             };
             header?: never;
@@ -2461,8 +2461,8 @@ export interface operations {
     PortalFleetController_gojekGrid: {
         parameters: {
             query: {
-                month: string;
-                year: string;
+                month: number;
+                year: number;
             };
             header?: never;
             path?: never;
@@ -2481,11 +2481,11 @@ export interface operations {
     PortalFleetController_gojekCell: {
         parameters: {
             query: {
-                month: string;
-                year: string;
+                month: number;
+                year: number;
                 /** @description Row key: normalized plate or manual_<detailId> */
                 plate: string;
-                day: string;
+                day: number;
             };
             header?: never;
             path?: never;
@@ -2504,9 +2504,9 @@ export interface operations {
     PortalFleetController_gojekSummary: {
         parameters: {
             query: {
-                month: string;
-                year: string;
-                day?: string;
+                month: number;
+                year: number;
+                day?: number;
             };
             header?: never;
             path?: never;
@@ -2585,8 +2585,8 @@ export interface operations {
     PortalFleetController_grabGrid: {
         parameters: {
             query: {
-                month: string;
-                year: string;
+                month: number;
+                year: number;
             };
             header?: never;
             path?: never;
@@ -2605,11 +2605,11 @@ export interface operations {
     PortalFleetController_grabCell: {
         parameters: {
             query: {
-                month: string;
-                year: string;
+                month: number;
+                year: number;
                 /** @description plate|city|driver */
                 compositeKey: string;
-                day?: unknown;
+                day?: number;
             };
             header?: never;
             path?: never;
@@ -3364,8 +3364,8 @@ export interface operations {
     PartnerOrdersController_list: {
         parameters: {
             query?: {
-                page?: string;
-                pageSize?: string;
+                page?: number;
+                pageSize?: number;
             };
             header?: never;
             path?: never;

@@ -80,7 +80,10 @@ export function useDeleteRental() {
 export function useUpdatePaymentStatus() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { id: number; paymentStatus: PaymentStatus }): Promise<RentalItem> => {
+    mutationFn: async (input: {
+      id: number;
+      paymentStatus: PaymentStatus;
+    }): Promise<RentalItem> => {
       const { data, error } = await api.PATCH('/partner/portal/rentals/{id}/payment-status', {
         params: { path: { id: input.id } },
         body: { paymentStatus: input.paymentStatus },
@@ -107,7 +110,11 @@ export function useCogsDefaultsQuery() {
 export function useUpsertCogsDefault() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (body: { key?: string; label: string; cogsPerDay: number }): Promise<CogsDefault> => {
+    mutationFn: async (body: {
+      key?: string;
+      label: string;
+      cogsPerDay: number;
+    }): Promise<CogsDefault> => {
       const { data, error } = await api.PUT('/partner/portal/rentals/cogs-defaults', { body });
       if (error) throwEnvelope(error);
       return unwrap(data) as CogsDefault;

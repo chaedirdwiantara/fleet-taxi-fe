@@ -103,9 +103,7 @@ describe('RentalMonitoringPage', () => {
     await user.click(await screen.findByRole('option', { name: /B 1000 XYZ/ }));
 
     // picking the BYD M6 plate auto-selects the m6_cloud COGS preset
-    await waitFor(() =>
-      expect(within(dialog).getByText(/COGS dipakai:/)).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(within(dialog).getByText(/COGS dipakai:/)).toBeInTheDocument());
 
     fireEvent.change(within(dialog).getByLabelText('Tanggal Mulai'), {
       target: { value: isoDay(20) },
@@ -194,9 +192,7 @@ describe('RentalMonitoringPage', () => {
 
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     // summary refreshes: nothing unpaid anymore
-    await waitFor(() =>
-      expect(screen.getByText('0 transaksi belum dibayar')).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText('0 transaksi belum dibayar')).toBeInTheDocument());
   });
 
   it('deletes a rental after the confirm dialog', async () => {

@@ -1,5 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api, unwrap, unwrapWithMeta, ApiErrorException, type ApiError } from '@/lib/api-client/client';
+import {
+  api,
+  unwrap,
+  unwrapWithMeta,
+  ApiErrorException,
+  type ApiError,
+} from '@/lib/api-client/client';
 import { env } from '@/lib/env';
 import { qk } from '@/lib/query-client';
 import { compressImage } from './compressImage';
@@ -187,10 +193,9 @@ export function useDeleteMedia(id: number) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (mediaId: number) => {
-      const { data, error } = await api.DELETE(
-        '/partner/portal/checkpoints/{id}/media/{mediaId}',
-        { params: { path: { id, mediaId } } },
-      );
+      const { data, error } = await api.DELETE('/partner/portal/checkpoints/{id}/media/{mediaId}', {
+        params: { path: { id, mediaId } },
+      });
       if (error) throwEnvelope(error);
       return unwrap(data);
     },
@@ -234,8 +239,7 @@ export function useUploadMedia(id: number) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: UploadMediaInput): Promise<CheckpointMedia> => {
-      const blob =
-        input.kind === 'photo' ? await compressImage(input.blob) : input.blob;
+      const blob = input.kind === 'photo' ? await compressImage(input.blob) : input.blob;
       const contentType = input.kind === 'photo' ? 'image/jpeg' : 'image/png';
 
       const { data: presignData, error: presignError } = await api.POST(

@@ -88,10 +88,7 @@ export function RentalFilterBar({
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="rental-sort">Urutkan</Label>
-        <Select
-          value={search.sortBy}
-          onValueChange={(v) => onPatch({ sortBy: v as RentalSortBy })}
-        >
+        <Select value={search.sortBy} onValueChange={(v) => onPatch({ sortBy: v as RentalSortBy })}>
           <SelectTrigger id="rental-sort" className="w-full">
             <SelectValue />
           </SelectTrigger>

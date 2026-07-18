@@ -64,9 +64,7 @@ export function RentalFormDialog({
           <DialogTitle>{initial ? 'Edit Rental Data' : 'Tambah Rental Data'}</DialogTitle>
         </DialogHeader>
         {/* keyed remount → the form re-initializes per picked row / fresh create */}
-        {open && (
-          <RentalForm key={initial?.id ?? 'create'} initial={initial} onClose={onClose} />
-        )}
+        {open && <RentalForm key={initial?.id ?? 'create'} initial={initial} onClose={onClose} />}
       </DialogContent>
     </Dialog>
   );
@@ -76,13 +74,7 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
   return <h3 className="text-sm font-semibold">{children}</h3>;
 }
 
-function RentalForm({
-  initial,
-  onClose,
-}: {
-  initial: RentalItem | null;
-  onClose: () => void;
-}) {
+function RentalForm({ initial, onClose }: { initial: RentalItem | null; onClose: () => void }) {
   const plates = usePartnerPlatesQuery();
   const cogsDefaults = useCogsDefaultsQuery();
   const create = useCreateRental();
@@ -225,7 +217,7 @@ function RentalForm({
                 <div className="sticky top-0 z-10 bg-popover p-1 pb-1.5">
                   <div className="relative">
                     <Search
-                      className="pointer-events-none absolute left-2 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                      className="pointer-events-none absolute top-1/2 left-2 size-4 -translate-y-1/2 text-muted-foreground"
                       aria-hidden
                     />
                     <Input
@@ -332,10 +324,7 @@ function RentalForm({
                 required
                 className="flex-1"
               />
-              <Select
-                value={priceUnit}
-                onValueChange={(v) => setPriceUnit(v as 'hari' | 'bulan')}
-              >
+              <Select value={priceUnit} onValueChange={(v) => setPriceUnit(v as 'hari' | 'bulan')}>
                 <SelectTrigger className="w-28" aria-label="Satuan harga">
                   <SelectValue />
                 </SelectTrigger>

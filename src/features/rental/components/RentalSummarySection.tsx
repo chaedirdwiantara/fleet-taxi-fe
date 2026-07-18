@@ -23,7 +23,7 @@ function GradientCard({ label, display, caption, icon: Icon, gradient }: StatCar
       <p className="text-sm font-medium opacity-90">{label}</p>
       <p className="mt-2 text-2xl font-bold tabular-nums sm:text-3xl">{display}</p>
       {caption && <p className="mt-1 text-xs opacity-90">{caption}</p>}
-      <Icon className="absolute -bottom-3 -right-2 size-20 opacity-20" aria-hidden />
+      <Icon className="absolute -right-2 -bottom-3 size-20 opacity-20" aria-hidden />
     </div>
   );
 }

@@ -17,8 +17,7 @@ import type { Platform } from '@/lib/query-client';
 import { useImportsQuery, useRollbackImport, type ImportBatch } from '../hooks/useImports';
 
 function StatusBadge({ status }: { status: ImportBatch['status'] }) {
-  const variant =
-    status === 'done' ? 'default' : status === 'failed' ? 'destructive' : 'secondary';
+  const variant = status === 'done' ? 'default' : status === 'failed' ? 'destructive' : 'secondary';
   return <Badge variant={variant}>{status}</Badge>;
 }
 
@@ -75,7 +74,7 @@ export function ImportHistoryTable({ platform }: { platform: Platform }) {
               <td className="text-right tabular-nums">
                 {(batch.totalRows ?? 0).toLocaleString('id-ID')}
               </td>
-              <td className="whitespace-nowrap text-xs text-muted-foreground">
+              <td className="text-xs whitespace-nowrap text-muted-foreground">
                 {formatDateTimeWIB(batch.createdAt)}
               </td>
               <td className="text-center">

@@ -27,3 +27,6 @@ src/routeTree.gen.ts
 
 # test
 coverage
+
+# local git worktrees
+.worktrees/

@@ -79,8 +79,8 @@ function CheckpointListPage() {
         <div>
           <h2 className="text-lg font-semibold">Checkpoint</h2>
           <p className="text-sm text-muted-foreground">
-            Dokumentasi serah terima kendaraan: foto tiap titik, penilaian, tanda tangan, dan
-            berita acara.
+            Dokumentasi serah terima kendaraan: foto tiap titik, penilaian, tanda tangan, dan berita
+            acara.
           </p>
         </div>
         <Button onClick={() => setCreateOpen(true)} className="shrink-0">
@@ -92,7 +92,7 @@ function CheckpointListPage() {
 
       <div className="relative">
         <Search
-          className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+          className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
           aria-hidden
         />
         <Input
@@ -100,7 +100,7 @@ function CheckpointListPage() {
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Cari nomor plat… (mis. 2437 atau B 2437 SNC)"
           aria-label="Cari riwayat checkpoint berdasarkan plat"
-          className="pl-9 pr-9"
+          className="pr-9 pl-9"
           autoComplete="off"
         />
         {search && (
@@ -109,7 +109,7 @@ function CheckpointListPage() {
             variant="ghost"
             size="icon-sm"
             aria-label="Bersihkan pencarian"
-            className="absolute right-1 top-1/2 -translate-y-1/2 text-muted-foreground"
+            className="absolute top-1/2 right-1 -translate-y-1/2 text-muted-foreground"
             onClick={() => setSearch('')}
           >
             <X className="size-4" />
@@ -224,7 +224,9 @@ function CheckpointListPage() {
       )}
 
       <div className="space-y-2">
-        {list.data?.rows.map((cp) => <CheckpointCard key={cp.id} checkpoint={cp} />)}
+        {list.data?.rows.map((cp) => (
+          <CheckpointCard key={cp.id} checkpoint={cp} />
+        ))}
       </div>
 
       {lastPage > 1 && (

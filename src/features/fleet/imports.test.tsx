@@ -4,7 +4,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { qk } from '@/lib/query-client';
 import { useImportProgress } from '@/lib/socket/useImportProgress';
-import { useUploadImport, useRollbackImport, useImportsQuery, type ImportBatch } from './hooks/useImports';
+import {
+  useUploadImport,
+  useRollbackImport,
+  useImportsQuery,
+  type ImportBatch,
+} from './hooks/useImports';
 import { api, unwrap } from '@/lib/api-client/client';
 
 // fake socket.io-client surface — handlers captured per event
@@ -36,7 +41,12 @@ describe('useImportProgress (socket patches the Query cache, kickoff §8)', () =
     expect(fakeSocket.emit).toHaveBeenCalledWith('join', { importId: 5 });
 
     act(() => {
-      socketHandlers.get('import:progress')!({ importId: 5, processed: 400, total: 800, percent: 50 });
+      socketHandlers.get('import:progress')!({
+        importId: 5,
+        processed: 400,
+        total: 800,
+        percent: 50,
+      });
     });
     expect(client.getQueryData(qk.fleet.importStatus('gojek', '5'))).toMatchObject({
       status: 'processing',

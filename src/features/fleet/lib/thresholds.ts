@@ -53,18 +53,18 @@ export function cellTone(facts: DayFacts | undefined, dailyTarget: number): Cell
   return 'empty';
 }
 
-// Tailwind classes mirroring the legacy palette:
-//   green #00ff00 · yellow #ffeb3b · red #ffcccc · purple #9c27b0
-//   orange #ff9800 · blue #2196F3 · gray #9e9e9e
+// Tailwind palette classes carrying the legacy spreadsheet legend semantics
+// (red=zero, yellow=below target, green=on target, purple=manual, orange=mixed,
+// blue=bebas, gray=non-op).
 const TONE_CLASSES: Record<CellTone, string> = {
   empty: 'bg-white text-slate-400 dark:bg-slate-900 dark:text-slate-600',
-  zero: 'bg-[#ffcccc] text-slate-900',
-  below: 'bg-[#ffeb3b] text-slate-900',
-  target: 'bg-[#00ff00] text-slate-900 font-bold',
-  manual: 'bg-[#9c27b0] text-white font-bold text-center',
-  mixed: 'bg-[#ff9800] text-white font-bold text-center',
-  bebas: 'bg-[#2196F3] text-white font-bold text-center',
-  nonop: 'bg-[#9e9e9e] text-white font-bold text-center',
+  zero: 'bg-red-200 text-slate-900',
+  below: 'bg-yellow-300 text-slate-900',
+  target: 'bg-green-400 text-slate-900 font-bold',
+  manual: 'bg-purple-600 text-white font-bold text-center',
+  mixed: 'bg-orange-500 text-white font-bold text-center',
+  bebas: 'bg-blue-500 text-white font-bold text-center',
+  nonop: 'bg-gray-500 text-white font-bold text-center',
 };
 
 export function toneClass(tone: CellTone): string {

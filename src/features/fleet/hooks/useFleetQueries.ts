@@ -26,8 +26,8 @@ export function useGojekGridQuery(p: {
       const { data, error } = await api.GET('/admin/fleet/gojek/grid', {
         params: {
           query: {
-            month: String(p.month),
-            year: String(p.year),
+            month: p.month,
+            year: p.year,
             ...(p.rentalPartner.length ? { rentalPartner: p.rentalPartner } : {}),
             ...(p.plate ? { plate: p.plate } : {}),
           },
@@ -48,10 +48,16 @@ export function useGojekCellQuery(p: {
   enabled: boolean;
 }) {
   return useQuery({
-    queryKey: qk.fleet.cell({ platform: 'gojek', key: p.plate, day: p.day, month: p.month, year: p.year }),
+    queryKey: qk.fleet.cell({
+      platform: 'gojek',
+      key: p.plate,
+      day: p.day,
+      month: p.month,
+      year: p.year,
+    }),
     queryFn: async (): Promise<CellBreakdown> => {
       const { data, error } = await api.GET('/admin/fleet/gojek/cell', {
-        params: { query: { plate: p.plate, day: String(p.day), month: String(p.month), year: String(p.year) } },
+        params: { query: { plate: p.plate, day: p.day, month: p.month, year: p.year } },
       });
       if (error) throwEnvelope(error);
       return unwrap(data) as CellBreakdown;
@@ -66,7 +72,7 @@ export function usePerformersQuery(p: { platform: 'gojek' | 'grab'; month: numbe
     queryFn: async (): Promise<Performers> => {
       const { data, error } = await api.GET(
         p.platform === 'gojek' ? '/admin/fleet/gojek/performers' : '/admin/fleet/grab/performers',
-        { params: { query: { month: String(p.month), year: String(p.year) } } },
+        { params: { query: { month: p.month, year: p.year } } },
       );
       if (error) throwEnvelope(error);
       return unwrap(data) as Performers;
@@ -96,9 +102,9 @@ export function useGojekSummaryQuery(p: {
       const { data, error } = await api.GET('/admin/fleet/gojek/summary', {
         params: {
           query: {
-            month: String(p.month),
-            year: String(p.year),
-            ...(p.day ? { day: String(p.day) } : {}),
+            month: p.month,
+            year: p.year,
+            ...(p.day ? { day: p.day } : {}),
             ...(p.rentalPartner ? { rentalPartner: [p.rentalPartner] } : {}),
           },
         },
@@ -124,7 +130,7 @@ export function usePartnerGojekGridQuery(p: { month: number; year: number }) {
     queryKey: qk.partner.fleet.grid({ platform: 'gojek', ...p }),
     queryFn: async (): Promise<FleetGrid> => {
       const { data, error } = await api.GET('/partner/portal/fleet/gojek/grid', {
-        params: { query: { month: String(p.month), year: String(p.year) } },
+        params: { query: { month: p.month, year: p.year } },
       });
       if (error) throwEnvelope(error);
       return unwrap(data) as FleetGrid;
@@ -141,10 +147,16 @@ export function usePartnerGojekCellQuery(p: {
   enabled: boolean;
 }) {
   return useQuery({
-    queryKey: qk.partner.fleet.cell({ platform: 'gojek', key: p.plate, day: p.day, month: p.month, year: p.year }),
+    queryKey: qk.partner.fleet.cell({
+      platform: 'gojek',
+      key: p.plate,
+      day: p.day,
+      month: p.month,
+      year: p.year,
+    }),
     queryFn: async (): Promise<CellBreakdown> => {
       const { data, error } = await api.GET('/partner/portal/fleet/gojek/cell', {
-        params: { query: { plate: p.plate, day: String(p.day), month: String(p.month), year: String(p.year) } },
+        params: { query: { plate: p.plate, day: p.day, month: p.month, year: p.year } },
       });
       if (error) throwEnvelope(error);
       return unwrap(data) as CellBreakdown;
@@ -162,7 +174,7 @@ export function usePartnerGojekSummaryQuery(p: { month: number; year: number; da
       charts: FleetCharts;
     }> => {
       const { data, error } = await api.GET('/partner/portal/fleet/gojek/summary', {
-        params: { query: { month: String(p.month), year: String(p.year), ...(p.day ? { day: String(p.day) } : {}) } },
+        params: { query: { month: p.month, year: p.year, ...(p.day ? { day: p.day } : {}) } },
       });
       if (error) throwEnvelope(error);
       return unwrap(data) as {

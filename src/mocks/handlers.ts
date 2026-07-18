@@ -84,8 +84,20 @@ type MockException = {
   isBebasSetoran: boolean;
 };
 const exceptionState: MockException[] = [
-  { id: 1, vehiclePlate: 'B1003XYZ', exceptionDate: '2026-06-10', keterangan: 'maintenance', isBebasSetoran: true },
-  { id: 2, vehiclePlate: 'B1007XYZ', exceptionDate: '2026-06-12', keterangan: 'rental', isBebasSetoran: false },
+  {
+    id: 1,
+    vehiclePlate: 'B1003XYZ',
+    exceptionDate: '2026-06-10',
+    keterangan: 'maintenance',
+    isBebasSetoran: true,
+  },
+  {
+    id: 2,
+    vehiclePlate: 'B1007XYZ',
+    exceptionDate: '2026-06-12',
+    keterangan: 'rental',
+    isBebasSetoran: false,
+  },
 ];
 let nextExceptionId = 100;
 
@@ -105,7 +117,9 @@ const registeredNorms = () => new Set(platesState.map((p) => p.plateNumberNorm))
 const overlayPlateTypes = <T extends { rows: { plateNorm: string; vehicleType: string }[] }>(
   grid: T,
 ): T => {
-  const byNorm = new Map(platesState.filter((p) => p.vehicleType).map((p) => [p.plateNumberNorm, p.vehicleType!]));
+  const byNorm = new Map(
+    platesState.filter((p) => p.vehicleType).map((p) => [p.plateNumberNorm, p.vehicleType!]),
+  );
   for (const row of grid.rows) {
     if (!row.vehicleType && byNorm.has(row.plateNorm)) row.vehicleType = byNorm.get(row.plateNorm)!;
   }
@@ -130,7 +144,12 @@ let nextCheckpointPointId = 1_000;
 // presigned-but-unconfirmed uploads: mediaId → target row info
 const pendingCheckpointMedia = new Map<
   number,
-  { checkpointId: number; pointKey?: string; kind: MockCheckpointMedia['kind']; contentType: string }
+  {
+    checkpointId: number;
+    pointKey?: string;
+    kind: MockCheckpointMedia['kind'];
+    contentType: string;
+  }
 >();
 
 /** Reset checkpoint mocks to the seed (call between tests for isolation). */
@@ -202,8 +221,18 @@ type RentalUpsertBody = Partial<
   }
 >;
 
-const rentalFromBody = (body: RentalUpsertBody, id: number, createdAt: string): SeedRental | null => {
-  if (!body.plateNumber || !body.startDate || !body.endDate || body.price == null || body.cogsPerDay == null) {
+const rentalFromBody = (
+  body: RentalUpsertBody,
+  id: number,
+  createdAt: string,
+): SeedRental | null => {
+  if (
+    !body.plateNumber ||
+    !body.startDate ||
+    !body.endDate ||
+    body.price == null ||
+    body.cogsPerDay == null
+  ) {
     return null;
   }
   const pricePerDay = body.priceUnit === 'bulan' ? Math.round(body.price / 30) : body.price;
@@ -310,7 +339,9 @@ const applyDriverMasterData = (d: SeedDriver, body: DriverPatchBody) => {
     const name = body.name.trim();
     if (
       name.toLowerCase() !== d.name.toLowerCase() &&
-      driversState.some((other) => other.id !== d.id && other.name.toLowerCase() === name.toLowerCase())
+      driversState.some(
+        (other) => other.id !== d.id && other.name.toLowerCase() === name.toLowerCase(),
+      )
     ) {
       return err(409, 'CONFLICT', 'Nama driver sudah terdaftar');
     }
@@ -378,7 +409,14 @@ const driverHasUploaded = (d: SeedDriver, kind: SeedDriverDocument['kind']) =>
   d.documents.some((doc) => doc.kind === kind && doc.status === 'uploaded');
 
 // ---- Mock user-management state (super_admin: create/list users & partners) --
-type MockPartner = { id: number; code: string; name: string; type: string | null; isActive: boolean; createdAt: string };
+type MockPartner = {
+  id: number;
+  code: string;
+  name: string;
+  type: string | null;
+  isActive: boolean;
+  createdAt: string;
+};
 type MockManagedUser = {
   id: number;
   email: string;
@@ -392,11 +430,38 @@ type MockManagedUser = {
 };
 
 const seedPartners: MockPartner[] = [
-  { id: 7, code: 'BHISA', name: 'Bhisa Shuttle', type: 'shuttle', isActive: true, createdAt: '2026-05-01T03:00:00.000Z' },
+  {
+    id: 7,
+    code: 'BHISA',
+    name: 'Bhisa Shuttle',
+    type: 'shuttle',
+    isActive: true,
+    createdAt: '2026-05-01T03:00:00.000Z',
+  },
 ];
 const seedManagedUsers: MockManagedUser[] = [
-  { id: 1, email: 'admin@fleet-taxi.id', fullName: 'Fleet Admin', isActive: true, mustChangePassword: false, roles: ['admin'], createdAt: '2026-05-01T03:00:00.000Z', lastLoginAt: '2026-07-04T09:00:00.000Z', partner: null },
-  { id: 42, email: 'ops@bhisa.id', fullName: 'Bhisa Operations', isActive: true, mustChangePassword: false, roles: ['partner'], createdAt: '2026-05-02T03:00:00.000Z', lastLoginAt: null, partner: { id: 7, code: 'BHISA', name: 'Bhisa Shuttle', type: 'shuttle' } },
+  {
+    id: 1,
+    email: 'admin@fleet-taxi.id',
+    fullName: 'Fleet Admin',
+    isActive: true,
+    mustChangePassword: false,
+    roles: ['admin'],
+    createdAt: '2026-05-01T03:00:00.000Z',
+    lastLoginAt: '2026-07-04T09:00:00.000Z',
+    partner: null,
+  },
+  {
+    id: 42,
+    email: 'ops@bhisa.id',
+    fullName: 'Bhisa Operations',
+    isActive: true,
+    mustChangePassword: false,
+    roles: ['partner'],
+    createdAt: '2026-05-02T03:00:00.000Z',
+    lastLoginAt: null,
+    partner: { id: 7, code: 'BHISA', name: 'Bhisa Shuttle', type: 'shuttle' },
+  },
 ];
 
 let partnersState: MockPartner[] = seedPartners.map((p) => ({ ...p }));
@@ -433,7 +498,10 @@ export const handlers = [
     const grid = overlayPlateTypes(scopeGojekGrid(makeGojekGrid(month, year), registeredNorms()));
     // The SERVER returns the filtered pivot (kickoff §5) — emulate that here.
     const partners = url.searchParams.getAll('rentalPartner');
-    const plate = url.searchParams.get('plate')?.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const plate = url.searchParams
+      .get('plate')
+      ?.toUpperCase()
+      .replace(/[^A-Z0-9]/g, '');
     let rows = grid.rows;
     if (partners.length) rows = rows.filter((r) => partners.includes(r.rentalPartner));
     if (plate) rows = rows.filter((r) => r.plateNorm.includes(plate));
@@ -455,9 +523,7 @@ export const handlers = [
       ? scopeGojekGrid(
           grid,
           new Set(
-            grid.rows
-              .filter((r) => partners.includes(r.rentalPartner))
-              .map((r) => r.plateNorm),
+            grid.rows.filter((r) => partners.includes(r.rentalPartner)).map((r) => r.plateNorm),
           ),
         )
       : grid;
@@ -476,7 +542,10 @@ export const handlers = [
       int(url.searchParams.get('year'), 2026),
     );
     const partners = url.searchParams.getAll('rentalPartner');
-    const plate = url.searchParams.get('plate')?.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const plate = url.searchParams
+      .get('plate')
+      ?.toUpperCase()
+      .replace(/[^A-Z0-9]/g, '');
     let rows = grid.rows;
     if (partners.length) rows = rows.filter((r) => partners.includes(r.rentalPartner));
     if (plate) rows = rows.filter((r) => r.plateNumber.includes(plate));
@@ -753,14 +822,21 @@ export const handlers = [
     const denied = requireSuperAdmin();
     if (denied) return denied;
     const type = new URL(request.url).searchParams.get('type') === 'partner' ? 'partner' : 'admin';
-    const rows = managedUsersState.filter((u) => (type === 'partner' ? u.partner !== null : u.partner === null));
+    const rows = managedUsersState.filter((u) =>
+      type === 'partner' ? u.partner !== null : u.partner === null,
+    );
     return ok(rows, { page: 1, pageSize: 50, total: rows.length });
   }),
 
   http.post('*/admin/users', async ({ request }) => {
     const denied = requireSuperAdmin();
     if (denied) return denied;
-    const body = (await request.json()) as { email?: string; fullName?: string; password?: string; roles?: string[] };
+    const body = (await request.json()) as {
+      email?: string;
+      fullName?: string;
+      password?: string;
+      roles?: string[];
+    };
     const email = (body.email ?? '').trim().toLowerCase();
     if (!email || !body.fullName?.trim() || !body.roles?.length) {
       return err(422, 'VALIDATION_ERROR', 'email, fullName, dan roles wajib diisi');
@@ -1069,36 +1145,31 @@ export const handlers = [
   }),
 
   // Dev upload sink — the mock just acknowledges the bytes.
-  http.put('*/partner/portal/checkpoints/media/:mediaId/upload', () =>
-    ok({ stored: true }),
-  ),
+  http.put('*/partner/portal/checkpoints/media/:mediaId/upload', () => ok({ stored: true })),
 
-  http.post(
-    '*/partner/portal/checkpoints/:id/media/:mediaId/confirm',
-    ({ params }) => {
-      const pending = pendingCheckpointMedia.get(Number(params.mediaId));
-      const cp = findCheckpoint(params.id);
-      if (!pending || !cp || pending.checkpointId !== cp.id) {
-        return err(404, 'NOT_FOUND', 'Media tidak ditemukan');
-      }
-      pendingCheckpointMedia.delete(Number(params.mediaId));
-      const media: MockCheckpointMedia = {
-        id: Number(params.mediaId),
-        kind: pending.kind,
-        contentType: pending.contentType,
-        status: 'uploaded',
-        url: MOCK_PHOTO_URL,
-      };
-      if (pending.kind === 'photo') {
-        cp.points.find((p) => p.pointKey === pending.pointKey)?.media.push(media);
-      } else {
-        // Re-signing supersedes the previous signature of the same kind
-        cp.signatures = cp.signatures.filter((s) => s.kind !== pending.kind);
-        cp.signatures.push(media);
-      }
-      return HttpResponse.json({ success: true, data: media }, { status: 201 });
-    },
-  ),
+  http.post('*/partner/portal/checkpoints/:id/media/:mediaId/confirm', ({ params }) => {
+    const pending = pendingCheckpointMedia.get(Number(params.mediaId));
+    const cp = findCheckpoint(params.id);
+    if (!pending || !cp || pending.checkpointId !== cp.id) {
+      return err(404, 'NOT_FOUND', 'Media tidak ditemukan');
+    }
+    pendingCheckpointMedia.delete(Number(params.mediaId));
+    const media: MockCheckpointMedia = {
+      id: Number(params.mediaId),
+      kind: pending.kind,
+      contentType: pending.contentType,
+      status: 'uploaded',
+      url: MOCK_PHOTO_URL,
+    };
+    if (pending.kind === 'photo') {
+      cp.points.find((p) => p.pointKey === pending.pointKey)?.media.push(media);
+    } else {
+      // Re-signing supersedes the previous signature of the same kind
+      cp.signatures = cp.signatures.filter((s) => s.kind !== pending.kind);
+      cp.signatures.push(media);
+    }
+    return HttpResponse.json({ success: true, data: media }, { status: 201 });
+  }),
 
   http.delete('*/partner/portal/checkpoints/:id', ({ params }) => {
     const cp = findCheckpoint(params.id);
@@ -1141,7 +1212,8 @@ export const handlers = [
 
     const details: { field: string; message: string }[] = [];
     for (const p of cp.points) {
-      if (p.passed == null) details.push({ field: p.pointKey, message: `${p.label}: belum dinilai` });
+      if (p.passed == null)
+        details.push({ field: p.pointKey, message: `${p.label}: belum dinilai` });
       if (!p.media.some((m) => m.kind === 'photo' && m.status === 'uploaded')) {
         details.push({ field: p.pointKey, message: `${p.label}: belum ada foto` });
       }
@@ -1159,7 +1231,10 @@ export const handlers = [
     }
     if (details.length) {
       return HttpResponse.json(
-        { success: false, error: { code: 'VALIDATION_ERROR', message: 'Checkpoint belum lengkap', details } },
+        {
+          success: false,
+          error: { code: 'VALIDATION_ERROR', message: 'Checkpoint belum lengkap', details },
+        },
         { status: 400 },
       );
     }
@@ -1345,7 +1420,12 @@ export const handlers = [
       return ok({ ...existing });
     }
     const key =
-      body.key ?? body.label.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+      body.key ??
+      body.label
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_|_$/g, '');
     const created = { key, label: body.label.trim(), cogsPerDay: body.cogsPerDay };
     cogsDefaultsState.push(created);
     return ok({ ...created });
@@ -1391,11 +1471,16 @@ export const handlers = [
     }
     const sortVal = (r: (typeof items)[number]) => {
       switch (sortBy) {
-        case 'duration': return r.days;
-        case 'status': return r.paymentStatus;
-        case 'omset': return r.omset;
-        case 'cogs': return r.cogsTotal;
-        default: return r.startDate;
+        case 'duration':
+          return r.days;
+        case 'status':
+          return r.paymentStatus;
+        case 'omset':
+          return r.omset;
+        case 'cogs':
+          return r.cogsTotal;
+        default:
+          return r.startDate;
       }
     };
     items.sort((a, b) => {
@@ -1417,7 +1502,10 @@ export const handlers = [
       paidAdditionalCost: sum(paid, (r) => r.additionalCost),
       paidNettProfit: sum(paid, (r) => r.nettProfit),
     };
-    const byType = new Map<string, { cogsType: string; gross: number; cogs: number; nett: number; count: number }>();
+    const byType = new Map<
+      string,
+      { cogsType: string; gross: number; cogs: number; nett: number; count: number }
+    >();
     for (const r of paid) {
       const key = r.cogsType ?? 'lainnya';
       const row = byType.get(key) ?? { cogsType: key, gross: 0, cogs: 0, nett: 0, count: 0 };
@@ -1434,7 +1522,11 @@ export const handlers = [
     const body = (await request.json()) as RentalUpsertBody;
     const created = rentalFromBody(body, nextRentalId, new Date().toISOString());
     if (!created) {
-      return err(422, 'VALIDATION_ERROR', 'plateNumber, startDate, endDate, price, dan cogsPerDay wajib diisi');
+      return err(
+        422,
+        'VALIDATION_ERROR',
+        'plateNumber, startDate, endDate, price, dan cogsPerDay wajib diisi',
+      );
     }
     nextRentalId += 1;
     rentalsState.push(created);
@@ -1459,7 +1551,11 @@ export const handlers = [
     const body = (await request.json()) as RentalUpsertBody;
     const updated = rentalFromBody(body, rentalsState[idx].id, rentalsState[idx].createdAt);
     if (!updated) {
-      return err(422, 'VALIDATION_ERROR', 'plateNumber, startDate, endDate, price, dan cogsPerDay wajib diisi');
+      return err(
+        422,
+        'VALIDATION_ERROR',
+        'plateNumber, startDate, endDate, price, dan cogsPerDay wajib diisi',
+      );
     }
     rentalsState[idx] = updated;
     return ok(presentRental(updated));
@@ -1517,34 +1613,31 @@ export const handlers = [
     }),
   ),
 
-  http.post(
-    '*/partner/portal/drivers/documents/:driverId/:documentId/confirm',
-    ({ params }) => {
-      const d = findDriver(params.driverId);
-      const pending = pendingDriverDocs.get(Number(params.documentId));
-      const doc = d?.documents.find((x) => String(x.id) === params.documentId);
-      if (!d || !pending || pending.driverId !== d.id || !doc) {
-        return err(404, 'NOT_FOUND', 'Dokumen tidak ditemukan');
-      }
-      pendingDriverDocs.delete(Number(params.documentId));
-      doc.status = 'uploaded';
-      // Single-instance kinds: the confirmed upload supersedes the previous one.
-      d.documents = d.documents.filter((x) => x.kind !== doc.kind || x.id === doc.id);
-      return HttpResponse.json(
-        {
-          success: true,
-          data: {
-            id: doc.id,
-            kind: doc.kind,
-            contentType: doc.contentType,
-            status: doc.status,
-            url: `/partner/portal/drivers/documents/${doc.id}/file`,
-          },
+  http.post('*/partner/portal/drivers/documents/:driverId/:documentId/confirm', ({ params }) => {
+    const d = findDriver(params.driverId);
+    const pending = pendingDriverDocs.get(Number(params.documentId));
+    const doc = d?.documents.find((x) => String(x.id) === params.documentId);
+    if (!d || !pending || pending.driverId !== d.id || !doc) {
+      return err(404, 'NOT_FOUND', 'Dokumen tidak ditemukan');
+    }
+    pendingDriverDocs.delete(Number(params.documentId));
+    doc.status = 'uploaded';
+    // Single-instance kinds: the confirmed upload supersedes the previous one.
+    d.documents = d.documents.filter((x) => x.kind !== doc.kind || x.id === doc.id);
+    return HttpResponse.json(
+      {
+        success: true,
+        data: {
+          id: doc.id,
+          kind: doc.kind,
+          contentType: doc.contentType,
+          status: doc.status,
+          url: `/partner/portal/drivers/documents/${doc.id}/file`,
         },
-        { status: 201 },
-      );
-    },
-  ),
+      },
+      { status: 201 },
+    );
+  }),
 
   http.delete('*/partner/portal/drivers/documents/:driverId/:documentId', ({ params }) => {
     const d = findDriver(params.driverId);

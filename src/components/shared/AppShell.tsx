@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { ThemeToggle } from '@/components/shared/ThemeToggle';
 import { cn } from '@/lib/utils';
 import type { SessionUser } from '@/features/auth/hooks';
 
@@ -34,7 +35,12 @@ const NAV: Record<Audience, NavEntry[]> = {
     { to: '/admin', label: 'Dashboard', icon: LayoutDashboard },
     { to: '/admin/fleet-monitoring', label: 'Fleet Monitoring — Gojek', icon: Table2 },
     { to: '/admin/fleet-monitoring-grab', label: 'Fleet Monitoring — Grab', icon: Car },
-    { to: '/admin/user-management', label: 'Manajemen Akun', icon: Users, requireRole: 'super_admin' },
+    {
+      to: '/admin/user-management',
+      label: 'Manajemen Akun',
+      icon: Users,
+      requireRole: 'super_admin',
+    },
   ],
   partner: [
     { to: '/partner/fleet-monitoring', label: 'Fleet Monitoring — Gojek', icon: Table2 },
@@ -59,7 +65,15 @@ const roleAllows = (user: SessionUser | null | undefined, requireRole?: string) 
 const LINK_CLASS =
   'flex items-center gap-2 rounded-md px-3 py-2 text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground [&.active]:bg-sidebar-accent [&.active]:font-medium';
 
-function NavLink({ item, onNavigate, indented = false }: { item: NavLeaf; onNavigate?: () => void; indented?: boolean }) {
+function NavLink({
+  item,
+  onNavigate,
+  indented = false,
+}: {
+  item: NavLeaf;
+  onNavigate?: () => void;
+  indented?: boolean;
+}) {
   return (
     <Link
       to={item.to}
@@ -111,7 +125,7 @@ function NavGroupItem({
         />
       </button>
       {open && (
-        <div className="ml-4 mt-0.5 space-y-0.5 border-l border-sidebar-border pl-1">
+        <div className="mt-0.5 ml-4 space-y-0.5 border-l border-sidebar-border pl-1">
           {children.map((child) => (
             <NavLink key={child.to} item={child} onNavigate={onNavigate} indented />
           ))}
@@ -143,7 +157,7 @@ function SidebarContent({
       <div className="flex h-14 items-center gap-2 border-b px-4">
         <Car className="size-5 text-primary" aria-hidden />
         <span className="text-sm font-semibold tracking-tight">fleet-taxi.id</span>
-        <span className="ml-auto rounded bg-muted px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+        <span className="ml-auto rounded bg-muted px-1.5 py-0.5 text-xs tracking-wide text-muted-foreground uppercase">
           {audience}
         </span>
       </div>
@@ -164,7 +178,13 @@ function SidebarContent({
           <div className="truncate">{user?.email}</div>
           {user?.partner && <div className="truncate">Partner: {user.partner.name}</div>}
         </div>
-        <Button variant="outline" size="sm" className="w-full" onClick={onLogout} disabled={logoutPending}>
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full"
+          onClick={onLogout}
+          disabled={logoutPending}
+        >
           <LogOut aria-hidden />
           {logoutPending ? 'Keluar…' : 'Keluar'}
         </Button>
@@ -201,6 +221,9 @@ export function AppShell({ audience, user, onLogout, logoutPending, children }: 
           <h1 className="truncate text-sm font-medium text-muted-foreground">
             Fleet / Deposit Reconciliation Dashboard
           </h1>
+          <div className="ml-auto">
+            <ThemeToggle />
+          </div>
         </header>
         <main className="min-w-0 flex-1 p-4 md:p-6">{children}</main>
       </div>

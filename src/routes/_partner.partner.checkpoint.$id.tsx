@@ -175,7 +175,9 @@ function CheckpointDetailView({ detail }: { detail: CheckpointDetail }) {
           <Info label="Telepon" value={detail.counterpartPhone ?? '-'} />
           <Info
             label="Odometer"
-            value={detail.odometerKm != null ? `${detail.odometerKm.toLocaleString('id-ID')} km` : '-'}
+            value={
+              detail.odometerKm != null ? `${detail.odometerKm.toLocaleString('id-ID')} km` : '-'
+            }
           />
           <Info
             label="Baterai"
@@ -260,8 +262,8 @@ function CheckpointDetailView({ detail }: { detail: CheckpointDetail }) {
           {isDraft ? (
             <Button className="h-12 w-full" onClick={() => setCompleteOpen(true)}>
               <CheckCircle2 aria-hidden />
-              Selesaikan Checkpoint ({assessed}/{detail.points.length} dinilai ·{' '}
-              {photographed}/{detail.points.length} difoto)
+              Selesaikan Checkpoint ({assessed}/{detail.points.length} dinilai · {photographed}/
+              {detail.points.length} difoto)
             </Button>
           ) : (
             <Button
@@ -281,11 +283,7 @@ function CheckpointDetailView({ detail }: { detail: CheckpointDetail }) {
         </div>
       </div>
 
-      <CompleteSheet
-        checkpointId={detail.id}
-        open={completeOpen}
-        onOpenChange={setCompleteOpen}
-      />
+      <CompleteSheet checkpointId={detail.id} open={completeOpen} onOpenChange={setCompleteOpen} />
     </div>
   );
 }

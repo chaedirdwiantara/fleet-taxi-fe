@@ -34,7 +34,10 @@ describe('Daftarkan Plat — CRUD over own registered plates', () => {
 
     let created!: { plateNumberNorm: string };
     await act(async () => {
-      created = await result.current.mutateAsync({ plateNumber: 'b 1002 xyz', vehicleType: 'Innova' });
+      created = await result.current.mutateAsync({
+        plateNumber: 'b 1002 xyz',
+        vehicleType: 'Innova',
+      });
     });
     expect(created.plateNumberNorm).toBe('B1002XYZ');
 
@@ -98,6 +101,8 @@ describe('partner fleet monitoring — scoped to registered plates', () => {
       totalDeduction: 0,
       totalDue: 0,
       totalOutstanding: 0,
+      outstandingDriverKeluar: 0,
+      exitedCount: 0,
     });
   });
 });

@@ -121,7 +121,7 @@ export function RentalMonitoringPage({
             </Button>
             <div className="relative w-full sm:ml-auto sm:w-72">
               <Search
-                className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+                className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
                 aria-hidden
               />
               <Input
@@ -129,13 +129,13 @@ export function RentalMonitoringPage({
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
                 placeholder="Cari plat, customer, area…"
-                className="pl-8 pr-8"
+                className="pr-8 pl-8"
               />
               {searchText !== '' && (
                 <button
                   type="button"
                   aria-label="Hapus pencarian"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground hover:text-foreground"
+                  className="absolute top-1/2 right-2 -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground hover:text-foreground"
                   onClick={() => setSearchText('')}
                 >
                   <X className="size-4" />

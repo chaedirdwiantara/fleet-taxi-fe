@@ -41,7 +41,7 @@ export function DriverTable({
         <TableBody>
           {items.map((item) => (
             <TableRow key={item.id}>
-              <TableCell className="whitespace-nowrap font-mono text-sm">
+              <TableCell className="font-mono text-sm whitespace-nowrap">
                 {item.driverCode ?? '-'}
               </TableCell>
               <TableCell className="font-semibold">{item.name}</TableCell>
@@ -49,8 +49,8 @@ export function DriverTable({
                 <SourceBadge source={item.source} />
               </TableCell>
               <TableCell className="whitespace-nowrap">{item.plateNumber || '-'}</TableCell>
-              <TableCell className="whitespace-nowrap text-sm">{item.phone || '-'}</TableCell>
-              <TableCell className="whitespace-nowrap text-sm">
+              <TableCell className="text-sm whitespace-nowrap">{item.phone || '-'}</TableCell>
+              <TableCell className="text-sm whitespace-nowrap">
                 {item.simExpired ? formatDateID(item.simExpired) : '-'}
               </TableCell>
               <TableCell>

@@ -22,6 +22,11 @@ export type FleetRow = {
   // the fleet_import_details.id so the Edit form can re-plate / toggle setoran.
   detailId: number | null;
   dailyTarget: number; // "Setoran" column (inferred or fleet_target)
+  // Per-day due amounts + their backend-computed ranges. When the target
+  // changed mid-month (>1 segment) the Setoran column lists each value with
+  // its active days; dailyDue is also the per-day cell-tone baseline.
+  dailyDue: Record<number, number | undefined>;
+  dueSegments: DueSegment[];
   days: Record<number, DayCellValue | undefined>; // sparse map keyed by day
   summary: {
     totalDeduction: number;
@@ -30,7 +35,14 @@ export type FleetRow = {
     outstanding: number; // headline all-time number
   };
   driverHistory: string[];
+  // Driver keluar: plate stopped appearing in imports (auto-clears when it
+  // reappears). exitedLastSeen = last import date it was seen (YYYY-MM-DD).
+  isExited: boolean;
+  exitedLastSeen: string | null;
 };
+
+// One Setoran target value and the day range it was active (backend RLE).
+export type DueSegment = { amount: number; fromDay: number; toDay: number };
 
 export type FleetGrid = {
   month: number;
@@ -70,7 +82,9 @@ export type CellBreakdown = {
 export type GlobalSummary = {
   totalDeduction: number; // Total Setoran
   totalDue: number; // Total Target (Due)
-  totalOutstanding: number; // Total Outstanding / Gap
+  totalOutstanding: number; // Total Outstanding / Gap (active plates only)
+  outstandingDriverKeluar: number; // balance of plates gone from imports
+  exitedCount: number; // exited plates that still owe (non-zero balance)
 };
 
 export type FleetCharts = {

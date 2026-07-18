@@ -50,7 +50,9 @@ describe('admin user-management hooks (super_admin only)', () => {
 
   it('creates an admin user (mustChangePassword=true) and rejects a duplicate email (409)', async () => {
     setSessionUser(superAdminMe);
-    const { result } = renderHook(() => useCreateAdminUser(), { wrapper: wrapperFor(makeClient()) });
+    const { result } = renderHook(() => useCreateAdminUser(), {
+      wrapper: wrapperFor(makeClient()),
+    });
 
     let created!: { mustChangePassword?: boolean; roles: string[] };
     await act(async () => {
@@ -84,7 +86,11 @@ describe('admin user-management hooks (super_admin only)', () => {
     const { result: partner } = renderHook(() => useCreatePartner(), { wrapper });
     let created!: { id: number; code: string };
     await act(async () => {
-      created = await partner.current.mutateAsync({ code: 'NEWCO', name: 'New Co', type: 'shuttle' });
+      created = await partner.current.mutateAsync({
+        code: 'NEWCO',
+        name: 'New Co',
+        type: 'shuttle',
+      });
     });
     expect(created.code).toBe('NEWCO');
 
@@ -163,14 +169,16 @@ describe('ApiKeyDialog — rawKey shown once', () => {
   it('renders the raw key with a one-time warning and a copy control', () => {
     render(
       <ApiKeyDialog
-        apiKey={{ id: 1, keyPrefix: 'ftk_mockkey0', rawKey: 'ftk_mockkey0000000000000000000000000000000000' }}
+        apiKey={{
+          id: 1,
+          keyPrefix: 'ftk_mockkey0',
+          rawKey: 'ftk_mockkey0000000000000000000000000000000000',
+        }}
         onClose={() => {}}
       />,
       { wrapper: wrapperFor(makeClient()) },
     );
-    expect(
-      screen.getByText('ftk_mockkey0000000000000000000000000000000000'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('ftk_mockkey0000000000000000000000000000000000')).toBeInTheDocument();
     expect(screen.getByText(/hanya ditampilkan sekali/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Salin API key/i })).toBeInTheDocument();
   });

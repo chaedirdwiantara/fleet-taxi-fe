@@ -47,10 +47,9 @@ describe('checkpoint — dokumentasi serah terima', () => {
 
   it('searches by partial plate and filters by WIB month/year', async () => {
     // "1000" is a fragment of B1000XYZ — partial match must find both seeds
-    const { result: partial } = renderHook(
-      () => useCheckpointsQuery({ page: 1, plate: '1000' }),
-      { wrapper: wrapperFor(makeClient()) },
-    );
+    const { result: partial } = renderHook(() => useCheckpointsQuery({ page: 1, plate: '1000' }), {
+      wrapper: wrapperFor(makeClient()),
+    });
     await waitFor(() => expect(partial.current.isSuccess).toBe(true));
     expect(partial.current.data!.meta?.total).toBe(2);
 

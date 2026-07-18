@@ -2,11 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
-import {
-  useCreateException,
-  useDeleteException,
-  useExceptionsQuery,
-} from './hooks/useExceptions';
+import { useCreateException, useDeleteException, useExceptionsQuery } from './hooks/useExceptions';
 
 const makeClient = () => new QueryClient({ defaultOptions: { queries: { retry: false } } });
 const wrapperFor =

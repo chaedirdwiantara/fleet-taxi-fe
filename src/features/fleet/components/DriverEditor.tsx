@@ -68,8 +68,7 @@ export function DriverEditor({
       ? {
           driverName: row.driverName ?? '',
           vehiclePlate: originalPlate,
-          isManualPaymentSetoran:
-            isManual && detail.data?.isManualPaymentSetoran === 0 ? '0' : '1',
+          isManualPaymentSetoran: isManual && detail.data?.isManualPaymentSetoran === 0 ? '0' : '1',
           manualPaymentNote: detail.data?.manualPaymentNote ?? '',
           fleetTarget: target.data?.fleetTarget ? String(target.data.fleetTarget) : '',
           rentalPartner: target.data?.rentalPartner ?? row.rentalPartner ?? '',
@@ -97,8 +96,7 @@ export function DriverEditor({
         driverName: v.driverName,
         vehiclePlate: v.vehiclePlate,
         isManualPaymentSetoran: v.isManualPaymentSetoran === '0' ? 0 : 1,
-        manualPaymentNote:
-          v.isManualPaymentSetoran === '0' ? v.manualPaymentNote : undefined,
+        manualPaymentNote: v.isManualPaymentSetoran === '0' ? v.manualPaymentNote : undefined,
       });
     } else if (driverChanged || plateChanged) {
       await editDriver.mutateAsync({
@@ -165,7 +163,8 @@ export function DriverEditor({
             (A normal row's target 404 is the expected "Set Target" case, not an error.) */}
         {isManual && detail.isError && (
           <p className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-            Gagal memuat detail transaksi: {detail.error.message}. Periksa kembali sebelum menyimpan.
+            Gagal memuat detail transaksi: {detail.error.message}. Periksa kembali sebelum
+            menyimpan.
           </p>
         )}
 
@@ -214,7 +213,9 @@ export function DriverEditor({
             )}
 
             <div className="mt-1 border-t pt-3">
-              <p className="mb-2 text-xs font-medium text-muted-foreground">Target &amp; Grouping</p>
+              <p className="mb-2 text-xs font-medium text-muted-foreground">
+                Target &amp; Grouping
+              </p>
               <div className="grid gap-3">
                 {field('fleetTarget', 'Target harian (Rp)', {
                   type: 'number',

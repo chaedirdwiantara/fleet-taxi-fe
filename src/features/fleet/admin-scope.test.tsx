@@ -43,10 +43,14 @@ describe('admin fleet monitoring — synced to partner-registered plates', () =>
     await waitFor(() => expect(summary.current.isSuccess).toBe(true));
 
     const rows = grid.current.data!.rows;
+    const exited = rows.filter((r) => r.isExited);
     expect(summary.current.data!.globalSummary).toEqual({
       totalDeduction: rows.reduce((s, r) => s + r.summary.totalDeduction, 0),
       totalDue: rows.reduce((s, r) => s + r.summary.calculatedTarget, 0),
-      totalOutstanding: rows.reduce((s, r) => s + r.summary.outstanding, 0),
+      // exited rows report on the Outstanding Driver Keluar card, not the main total
+      totalOutstanding: rows.reduce((s, r) => s + (r.isExited ? 0 : r.summary.outstanding), 0),
+      outstandingDriverKeluar: exited.reduce((s, r) => s + r.summary.outstanding, 0),
+      exitedCount: exited.filter((r) => r.summary.outstanding !== 0).length,
     });
   });
 });

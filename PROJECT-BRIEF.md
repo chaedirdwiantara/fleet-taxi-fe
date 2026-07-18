@@ -30,6 +30,7 @@ Two screens only: **`/admin/fleet-monitoring` (Gojek)** and **`/admin/fleet-moni
 **This is NOT realtime GPS.** It is a monthly **deposit/earnings reconciliation grid**. An admin manually exports a CSV/XLSX from the Gojek or Grab partner portal, uploads it here; the backend parses & stores the rows; the dashboard renders a **per-vehicle 31-day pivot grid**.
 
 **Common flow (both platforms):**
+
 1. Admin uploads a CSV/XLSX for a chosen **period (month + year)** → a new **import batch** is created and rows parsed **asynchronously** (queued job) with progress feedback.
 2. Dashboard renders a pivot: **rows = vehicles**, **columns = days 1..31 + summary columns**.
 3. Cells are **color-coded by threshold** (target vs actual). **Click a cell → modal** showing that day's transaction breakdown.
@@ -38,6 +39,7 @@ Two screens only: **`/admin/fleet-monitoring` (Gojek)** and **`/admin/fleet-moni
 6. Scale: **~50–500 vehicles × 31 days**.
 
 **Gojek core logic (must be preserved exactly — see legacy `AdminFleetMonitoringController::getIndex`):**
+
 - Only rows whose `type` matches `deduction`, `due`, or `Manual Payment` participate.
 - Plates are normalized: `preg_replace('/[^A-Z0-9]/', '', strtoupper(plate))`. **Unplated manual payments** get a synthetic key `manual_<detail_id>` and are shown separately.
 - **`due`** rows establish the vehicle's activity date range and feed an **inferred daily target** (see below).
@@ -49,12 +51,14 @@ Two screens only: **`/admin/fleet-monitoring` (Gojek)** and **`/admin/fleet-moni
   where `all_time_deduction_days = COUNT(DISTINCT date)` of deduction rows across **all** imports for that plate. Both counted manual payments (add to deduction) and uncounted manual payments (`all_time_manual_uncounted`) **reduce** outstanding.
 
 **Gojek data model (legacy tables to redesign):**
+
 - `fleet_imports` — batch: filename, period_month, period_year, imported_by.
 - `fleet_import_details` — transaction_date, driver_id, driver_name, vehicle_plate, amount, `type ∈ {deduction, due, manual}`, reference, `is_manual_payment_setoran` flag + note.
 - `fleet_targets` — vehicle_plate (unique), fleet_target, rental_partner, delivery_batch, service_area, vehicle_type, region.
 - `fleet_exceptions` — vehicle_plate, date, keterangan, `is_bebas_setoran`.
 
 **Grab data model & logic (see legacy `AdminFleetMonitoringGrabController`):**
+
 - Pivot key is a **composite** `plate|city|driver`. Daily cell value = `total_earning_collected` summed per day. Summary columns aggregate earning, incentive, driver_fare, rides, online_hours, bookings, cancellations, fulfillment rate.
 - `grab_imports` — filename, period_month, period_year, **total_row**, imported_by, **import_time_seconds**.
 - `grab_import_details` — date, plate_number, city, car_model, driver_name, tiering, partner_name, driver_phone_number, total_online_hours, total_bookings, total_rides, cancel_by_driver, fullfilment_rate, driver_cancellation_rate, driver_fare, toll_and_others, total_incentive, total_earning_collected, composite_key.
@@ -68,6 +72,7 @@ Covers **`/partner/login` and everything under `/partner/`**, PLUS a **machine-t
 **B1. Partner Portal (human, role-based)** — legacy CRUDBooster **privilege id 12 ("Partner")**. Partners log in, view their **own** orders / dashboard / metrics, and **export PDF/Excel**. A partner sees **only its own data** (per-partner data scoping).
 
 **B2. External Partner REST API (machine-to-machine)** — for third-party integrations: shuttle partners (**Bhisa / Bhineka**) and **hotel** partners. Legacy versioned endpoints (`app/Http/Controllers/Api/BhisaOrderController.php`, `HelperController::bhinekapricelist`):
+
 - `GET /partner/v1/pricelist` — route/car pricelist.
 - `GET /partner/v1/order/create` — create an order (pickup_code, destination_code, car_types_id, pickup_at). Legacy validates destination/pickup against a pool whitelist (`EVISTA_HALIM`, `BHISA_CAWANG`) and handles swap-trip logic.
 - `GET /partner/v1/order/history` — the partner's order history.
@@ -78,7 +83,9 @@ Legacy auth is a **primitive hardcoded token whitelist** (`ApiPartnerAuth::handl
 Partner touches these entities: **orders** (`trx_orders`), cars, drivers, pricelist, hotel routes, shuttle pools.
 
 > ### ✅ OPEN QUESTION #1 — RESOLVED (2026-07-05, from `evista-backup-20260606.sql`)
+>
 > **Confirmed legacy partner (privilege 12 "Partner") screen inventory:**
+>
 > 1. `cms_menus_privileges` grants privilege 12 exactly **two menus**: #257 "All Dashboard" (folder) and #209 **"Dashboard" → `AdminDashboardController@getMaindashboard`**. That is the ONLY screen a legacy partner sees; the controller sets an `is_partner` flag (line ~609) and the dashboard view renders a partner-restricted variant.
 > 2. The 103 `cms_privileges_roles` module grants for privilege 12 are a **blanket seed** (identical grants copied to all new privileges by `2026_04_02_000000_seed_privileges_roles_for_new_privileges.php`) — they do NOT represent intentional partner screens and must not be rebuilt.
 > 3. External `/partner/v1` routes confirmed in `routes/api.php` lines 364–370 (GET pricelist / order/create / order/history / order/detail/{id}, middleware `auth.api.partner`). Business rules confirmed: pool whitelist `EVISTA_HALIM` + `BHISA_CAWANG`; valid combos price 65 000 (price_list_id 1: BHISA_CAWANG→EVISTA_HALIM… id 2: reverse); `is_swap_trip = 1` when destination is `EVISTA_HALIM`; orders created as `order_type='later'`.
@@ -91,17 +98,17 @@ Partner touches these entities: **orders** (`trx_orders`), cars, drivers, pricel
 
 Decided by the user — do not re-litigate.
 
-| Layer | Choice |
-|---|---|
-| **Frontend** | React 19 + Vite + TypeScript; Tailwind CSS + shadcn/ui; **TanStack Table v8 + TanStack Virtual** (the 31-day grid); TanStack Query; routing via TanStack Router or React Router; charts via **Recharts**. Consider **Refine.dev** to accelerate admin CRUD/RBAC screens. |
-| **Backend** | **NestJS** (Node 22 LTS, TypeScript). Serves internal dashboard API + partner portal API + versioned external partner API (`/partner/v1`, `@nestjs/swagger`). |
-| **Database** | **PostgreSQL 16/17** (fresh schema). **Drizzle ORM** for schema/migrations/CRUD; heavy aggregation as **hand-written window-function / CTE SQL** via Drizzle `` sql`` ``. **PostGIS available but dormant** (future GPS/map). |
-| **Auth / RBAC** | **Cookie sessions** for humans (admin + partner portal); **per-partner hashed bearer API keys** for the external partner API; **CASL** for roles + per-partner data scoping. |
-| **Jobs / queue** | **BullMQ + Redis** — async spreadsheet import, batch rollback (future: GPS ingestion). |
-| **Realtime** | **Socket.IO** (`@nestjs/websockets`) + `@socket.io/redis-adapter`. Light usage in R1 (import progress); scaffolded for future GPS/live-map. |
-| **Spreadsheet** | Import: **ExcelJS (streaming) + Papaparse**. Export: **ExcelJS**. |
-| **PDF** | **@react-pdf/renderer** (Playwright if high fidelity needed). |
-| **Future maps** | **MapLibre GL JS + react-map-gl + PostGIS** — **NOT built in R1**. |
+| Layer            | Choice                                                                                                                                                                                                                                                                   |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Frontend**     | React 19 + Vite + TypeScript; Tailwind CSS + shadcn/ui; **TanStack Table v8 + TanStack Virtual** (the 31-day grid); TanStack Query; routing via TanStack Router or React Router; charts via **Recharts**. Consider **Refine.dev** to accelerate admin CRUD/RBAC screens. |
+| **Backend**      | **NestJS** (Node 22 LTS, TypeScript). Serves internal dashboard API + partner portal API + versioned external partner API (`/partner/v1`, `@nestjs/swagger`).                                                                                                            |
+| **Database**     | **PostgreSQL 16/17** (fresh schema). **Drizzle ORM** for schema/migrations/CRUD; heavy aggregation as **hand-written window-function / CTE SQL** via Drizzle ` sql` ``. **PostGIS available but dormant** (future GPS/map).                                              |
+| **Auth / RBAC**  | **Cookie sessions** for humans (admin + partner portal); **per-partner hashed bearer API keys** for the external partner API; **CASL** for roles + per-partner data scoping.                                                                                             |
+| **Jobs / queue** | **BullMQ + Redis** — async spreadsheet import, batch rollback (future: GPS ingestion).                                                                                                                                                                                   |
+| **Realtime**     | **Socket.IO** (`@nestjs/websockets`) + `@socket.io/redis-adapter`. Light usage in R1 (import progress); scaffolded for future GPS/live-map.                                                                                                                              |
+| **Spreadsheet**  | Import: **ExcelJS (streaming) + Papaparse**. Export: **ExcelJS**.                                                                                                                                                                                                        |
+| **PDF**          | **@react-pdf/renderer** (Playwright if high fidelity needed).                                                                                                                                                                                                            |
+| **Future maps**  | **MapLibre GL JS + react-map-gl + PostGIS** — **NOT built in R1**.                                                                                                                                                                                                       |
 
 ---
 
@@ -131,11 +138,11 @@ Built in **separate chats**. This PROJECT-BRIEF.md is the shared contract that k
 
 Socket.IO namespace `/rt`. Clients join a per-user/per-import room. Events:
 
-| Event | Direction | Payload | Meaning |
-|---|---|---|---|
+| Event             | Direction     | Payload                                   | Meaning                               |
+| ----------------- | ------------- | ----------------------------------------- | ------------------------------------- |
 | `import:progress` | server→client | `{ importId, processed, total, percent }` | Async import row-processing progress. |
-| `import:done` | server→client | `{ importId, rowsInserted, durationMs }` | Import finished successfully. |
-| `import:failed` | server→client | `{ importId, error }` | Import failed; batch rolled back. |
+| `import:done`     | server→client | `{ importId, rowsInserted, durationMs }`  | Import finished successfully.         |
+| `import:failed`   | server→client | `{ importId, error }`                     | Import failed; batch rolled back.     |
 
 Future (GPS) events are **reserved, not implemented in R1**.
 
@@ -331,59 +338,70 @@ Supporting reference tables (`cars`, `drivers`, `car_types`, `pricelist`, `hotel
 ### Standard JSON envelope
 
 **Success:**
+
 ```json
 { "success": true, "data": <payload>, "meta": { "page": 1, "pageSize": 50, "total": 320 } }
 ```
+
 `meta` present only for paginated/list responses.
 
 **Error:**
+
 ```json
-{ "success": false, "error": { "code": "VALIDATION_ERROR", "message": "Human readable", "details": [ { "field": "pickup_at", "message": "required" } ] } }
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Human readable",
+    "details": [{ "field": "pickup_at", "message": "required" }]
+  }
+}
 ```
+
 HTTP status reflects the error class (400/401/403/404/409/422/429/500). `error.code` is a stable machine string.
 
 ### 6.1 Internal Admin — Fleet (auth: **cookie session**, roles: admin/super_admin via CASL)
 
-| Method | Path | Purpose |
-|---|---|---|
-| GET | `/admin/fleet/gojek/grid` | Gojek 31-day pivot grid for `?month&year&rental_partner[]&plate`. |
-| GET | `/admin/fleet/gojek/cell` | One vehicle+day breakdown (cell-click modal). |
-| GET | `/admin/fleet/grab/grid` | Grab 31-day pivot grid (composite plate\|city\|driver). |
-| GET | `/admin/fleet/grab/cell` | One Grab vehicle+day breakdown. |
-| POST | `/admin/fleet/{platform}/imports` | Upload CSV/XLSX for a period → enqueue async parse; returns `importId`. |
-| GET | `/admin/fleet/{platform}/imports` | List import batches (filename, period, status, counts). |
-| DELETE | `/admin/fleet/{platform}/imports/:id` | **Rollback** a whole import batch (queued). |
-| GET | `/admin/fleet/{platform}/imports/:id` | Import status/progress (also via Socket.IO). |
+| Method  | Path                                     | Purpose                                                                            |
+| ------- | ---------------------------------------- | ---------------------------------------------------------------------------------- |
+| GET     | `/admin/fleet/gojek/grid`                | Gojek 31-day pivot grid for `?month&year&rental_partner[]&plate`.                  |
+| GET     | `/admin/fleet/gojek/cell`                | One vehicle+day breakdown (cell-click modal).                                      |
+| GET     | `/admin/fleet/grab/grid`                 | Grab 31-day pivot grid (composite plate\|city\|driver).                            |
+| GET     | `/admin/fleet/grab/cell`                 | One Grab vehicle+day breakdown.                                                    |
+| POST    | `/admin/fleet/{platform}/imports`        | Upload CSV/XLSX for a period → enqueue async parse; returns `importId`.            |
+| GET     | `/admin/fleet/{platform}/imports`        | List import batches (filename, period, status, counts).                            |
+| DELETE  | `/admin/fleet/{platform}/imports/:id`    | **Rollback** a whole import batch (queued).                                        |
+| GET     | `/admin/fleet/{platform}/imports/:id`    | Import status/progress (also via Socket.IO).                                       |
 | GET/PUT | `/admin/fleet/{platform}/targets/:plate` | Read / edit driver + target metadata (daily target, rental partner, region, etc.). |
-| GET | `/admin/fleet/gojek/exceptions` | List exceptions for `?month&year`. |
-| POST | `/admin/fleet/gojek/exceptions` | Create/mark an exception (rental/maintenance/free-day). |
-| DELETE | `/admin/fleet/gojek/exceptions/:id` | Delete an exception. |
-| GET | `/admin/fleet/{platform}/performers` | Top/bottom performers for the period. |
+| GET     | `/admin/fleet/gojek/exceptions`          | List exceptions for `?month&year`.                                                 |
+| POST    | `/admin/fleet/gojek/exceptions`          | Create/mark an exception (rental/maintenance/free-day).                            |
+| DELETE  | `/admin/fleet/gojek/exceptions/:id`      | Delete an exception.                                                               |
+| GET     | `/admin/fleet/{platform}/performers`     | Top/bottom performers for the period.                                              |
 
 `{platform}` ∈ `gojek | grab`.
 
 ### 6.2 Partner Portal — human, role-based (auth: **cookie session**, role: partner, **row-scoped to own `partner_id`**)
 
-| Method | Path | Purpose |
-|---|---|---|
-| POST | `/partner/portal/login` | Partner portal login → sets session cookie. |
-| POST | `/partner/portal/logout` | End session. |
-| GET | `/partner/portal/me` | Current partner user + partner profile. |
-| GET | `/partner/portal/dashboard` | Partner metrics/summary widgets. |
-| GET | `/partner/portal/orders` | List **own** orders (paginated, filterable). |
-| GET | `/partner/portal/orders/:id` | One own order detail. |
-| GET | `/partner/portal/orders/export` | Export orders as PDF or Excel (`?format=pdf\|xlsx`). |
+| Method | Path                            | Purpose                                              |
+| ------ | ------------------------------- | ---------------------------------------------------- |
+| POST   | `/partner/portal/login`         | Partner portal login → sets session cookie.          |
+| POST   | `/partner/portal/logout`        | End session.                                         |
+| GET    | `/partner/portal/me`            | Current partner user + partner profile.              |
+| GET    | `/partner/portal/dashboard`     | Partner metrics/summary widgets.                     |
+| GET    | `/partner/portal/orders`        | List **own** orders (paginated, filterable).         |
+| GET    | `/partner/portal/orders/:id`    | One own order detail.                                |
+| GET    | `/partner/portal/orders/export` | Export orders as PDF or Excel (`?format=pdf\|xlsx`). |
 
 > Exact screen set is **pending OPEN QUESTION #1** — extend this table once the privilege-12 inventory is confirmed.
 
 ### 6.3 External Partner API — machine-to-machine (auth: **Bearer hashed API key**, **rate-limited**, `/partner/v1`, OpenAPI-documented)
 
-| Method | Path | Purpose |
-|---|---|---|
-| GET | `/partner/v1/pricelist` | Route/car pricelist for the authenticated partner. |
-| POST | `/partner/v1/orders` | Create an order (`pickup_code`, `destination_code`, `car_types_id`, `pickup_at`). |
-| GET | `/partner/v1/orders` | Order history for the authenticated partner. |
-| GET | `/partner/v1/orders/:id` | One order's detail (own orders only). |
+| Method | Path                     | Purpose                                                                           |
+| ------ | ------------------------ | --------------------------------------------------------------------------------- |
+| GET    | `/partner/v1/pricelist`  | Route/car pricelist for the authenticated partner.                                |
+| POST   | `/partner/v1/orders`     | Create an order (`pickup_code`, `destination_code`, `car_types_id`, `pickup_at`). |
+| GET    | `/partner/v1/orders`     | Order history for the authenticated partner.                                      |
+| GET    | `/partner/v1/orders/:id` | One order's detail (own orders only).                                             |
 
 Notes: replaces legacy `GET /partner/v1/order/create|history|detail`. All requests scoped to the partner owning the API key; cross-partner access returns `403`. Rate-limit exceed → `429` with the standard error envelope.
 
@@ -400,6 +418,7 @@ Notes: replaces legacy `GET /partner/v1/order/create|history|detail`. All reques
 ### Environment variables
 
 **Backend (`fleet-taxi-dashboard-api`):**
+
 ```
 NODE_ENV
 PORT
@@ -415,6 +434,7 @@ SWAGGER_ENABLED
 ```
 
 **Frontend (`fleet-taxi-dashboard-web`):**
+
 ```
 VITE_API_BASE_URL           # https://api.fleet-taxi.id
 VITE_WS_URL                 # wss://api.fleet-taxi.id/rt
@@ -441,16 +461,19 @@ VITE_APP_ENV
 Consult these for exact business rules; **do not copy schema/framework code** — port the logic.
 
 **Fleet — Gojek:**
+
 - `app/Http/Controllers/AdminFleetMonitoringController.php` (~1139 lines) — grid pivot, inferred daily target, all-time outstanding, exceptions, edit driver/target, import, import list, delete import. Core methods: `getIndex` (pivot + outstanding), `postImport` (parse), `getManageException`/`postManageException`, `getImportList`, `getDeleteImport`, `getEditDriver`/`postEditDriver`.
 - `app/Http/Controllers/AdminFleetSummaryController.php` — summary aggregations (context).
 - Migrations: `2026_02_25_144832_create_trx_fleet_imports_table.php`, `2026_02_25_144833_create_trx_fleet_import_details_table.php`, `2026_02_27_235500_create_trx_fleet_targets_table.php`, `2026_03_08_091300_create_trx_fleet_exceptions_table.php`, plus alters `2026_03_18…vehicle_type`, `2026_03_28…manual_payment_setoran(+note)`, `2026_05_11…region_id`.
 - Views: `resources/views/admin/fleet-monitoring/` (legacy grid uses CSS `position: sticky` for frozen header/columns).
 
 **Fleet — Grab:**
+
 - `app/Http/Controllers/AdminFleetMonitoringGrabController.php` (~517 lines) — composite-key pivot, import, `getImportList`, `getRollback`.
 - Migrations: `2026_04_05_231000_create_trx_fleet_grab_tables_v2.php`, `2026_04_11_000001_create_trx_fleet_grab_targets_table.php`, menu `2026_04_05_224600_add_fleet_monitoring_grab_menu.php`.
 
 **Partner:**
+
 - `app/Http/Controllers/Api/BhisaOrderController.php` — external order create/history/detail; pool whitelist + swap-trip.
 - `app/Http/Controllers/Api/HelperController.php::bhinekapricelist` (~line 440) — pricelist.
 - `app/Http/Controllers/Apiv4/HotelController.php` — hotel config/routes.
@@ -465,6 +488,7 @@ Consult these for exact business rules; **do not copy schema/framework code** �
 ## 10. Milestones
 
 **R1 — the two features working end to end** (target release):
+
 - **Admin Fleet Monitoring (Gojek + Grab):** async queued CSV/XLSX import + progress; 31-day virtualized pivot grid; color thresholds; cell-click day breakdown; multi-select filters; top/bottom performers; exception calendar (Gojek); edit driver/target metadata; import list + full-batch rollback. Outstanding/target math ported exactly from legacy.
 - **Partner Portal:** login (cookie session), dashboard, own-orders list/detail, PDF/Excel export — screen set finalized after **OPEN QUESTION #1**.
 - **External Partner API `/partner/v1`:** pricelist, order create, order history/detail, secured by **per-partner hashed API keys**, rate-limited, **OpenAPI-documented**; frontend consumes a **generated typed client**.
@@ -475,4 +499,4 @@ Consult these for exact business rules; **do not copy schema/framework code** �
 
 ---
 
-*End of PROJECT-BRIEF.md — keep this file in sync in both repos.*
+_End of PROJECT-BRIEF.md — keep this file in sync in both repos._

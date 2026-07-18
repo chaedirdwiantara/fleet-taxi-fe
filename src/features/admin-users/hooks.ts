@@ -139,12 +139,10 @@ export function useCreateApiKey() {
       scopes?: string[];
       rateLimit?: number;
     }): Promise<ApiKeyCreated> => {
-      const { partnerId, scopes, ...body } = input;
+      const { partnerId, ...body } = input;
       const { data, error } = await api.POST('/admin/partners/{id}/api-keys', {
         params: { path: { id: partnerId } },
-        // The generated CreateApiKeyDto mis-declares scopes as unknown[][];
-        // the wire format is string[] — cast until the BE schema is fixed.
-        body: { ...body, scopes: scopes as unknown as unknown[][] | undefined },
+        body,
       });
       if (error) throwEnvelope(error);
       return unwrap(data) as ApiKeyCreated;
