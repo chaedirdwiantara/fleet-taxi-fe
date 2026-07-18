@@ -1,0 +1,6 @@
+dist
+src/routeTree.gen.ts
+src/lib/api-client/schema.d.ts
+public/mockServiceWorker.js
+pnpm-lock.yaml
+openapi.json
