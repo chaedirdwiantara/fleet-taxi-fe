@@ -89,7 +89,7 @@ export function GojekMonitoringTable({
   const lastBorder = (isLast: boolean) => (isLast ? 'border-r-2 border-r-slate-300' : 'border-r');
 
   return (
-    <div className="relative max-h-[78svh] overflow-auto rounded-lg border">
+    <div className="relative scrollbar-slim max-h-[78svh] overflow-auto rounded-lg border">
       <table
         className="border-separate border-spacing-0 text-xs"
         style={{ minWidth: idW + days.length * DAY_W + identityWidth(SUMMARY) }}

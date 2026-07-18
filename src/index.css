@@ -125,3 +125,35 @@
     font-variant-numeric: tabular-nums;
   }
 }
+
+/* Fixed-size slim scrollbar for the pivot tables. macOS overlay scrollbars
+   grow on hover and float OVER content, covering the sticky TOTAL row at the
+   container's bottom edge; styling the WebKit scrollbar opts the container
+   into classic always-on bars with a constant size that occupy their own
+   gutter instead of overlapping rows. Firefox has no ::-webkit-scrollbar, so
+   it gets `scrollbar-width: thin` — scoped to Firefox ONLY because Chrome
+   would otherwise prefer it over the ::-webkit styles and fall back to a
+   (thin) overlay bar again. */
+@utility scrollbar-slim {
+  @supports (-moz-appearance: none) {
+    scrollbar-width: thin;
+    scrollbar-color: var(--muted-foreground) transparent;
+  }
+  &::-webkit-scrollbar {
+    height: 10px;
+    width: 10px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--border);
+    border-radius: calc(infinity* 1px);
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: var(--muted-foreground);
+  }
+  &::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+}
