@@ -12,6 +12,7 @@ import {
   scopeGrabGrid,
   importBatches,
 } from './fixtures/fleet';
+import { makeActivityLogs } from './fixtures/activityLog';
 import {
   partnerMe,
   adminMe,
@@ -567,6 +568,75 @@ export const handlers = [
     if (partners.length) rows = rows.filter((r) => partners.includes(r.rentalPartner));
     if (plate) rows = rows.filter((r) => r.plateNumber.includes(plate));
     return ok({ ...grid, rows });
+  }),
+
+  // Grab dashboard summary — cards + charts derived from the same pivot the
+  // grid handler serves (mirrors GrabController.summary).
+  http.get('*/admin/fleet/grab/summary', ({ request }) => {
+    const url = new URL(request.url);
+    const month = int(url.searchParams.get('month'), 6);
+    const year = int(url.searchParams.get('year'), 2026);
+    const grid = makeGrabGrid(month, year);
+    const partners = url.searchParams.getAll('rentalPartner');
+    const rows = partners.length
+      ? grid.rows.filter((r) => partners.includes(r.rentalPartner))
+      : grid.rows;
+
+    const dailyTotals: Record<number, number> = {};
+    const byPartnerMap = new Map<string, number>();
+    let totalEarning = 0;
+    let totalRides = 0;
+    for (const row of rows) {
+      for (const [d, cell] of Object.entries(row.days)) {
+        dailyTotals[Number(d)] = (dailyTotals[Number(d)] ?? 0) + cell.earning;
+      }
+      byPartnerMap.set(
+        row.rentalPartner,
+        (byPartnerMap.get(row.rentalPartner) ?? 0) + row.summary.earning,
+      );
+      totalEarning += row.summary.earning;
+      totalRides += row.summary.rides;
+    }
+    return ok({
+      globalSummary: {
+        totalEarning,
+        totalDriverFare: rows.reduce((s, r) => s + r.summary.driverFare, 0),
+        totalIncentive: rows.reduce((s, r) => s + r.summary.incentive, 0),
+        totalRides,
+        activeVehicles: rows.length,
+      },
+      charts: {
+        daily: Array.from({ length: grid.daysInMonth }, (_, i) => ({
+          day: i + 1,
+          total: dailyTotals[i + 1] ?? 0,
+        })),
+        byPartner: [...byPartnerMap.entries()]
+          .map(([partner, total]) => ({ partner, total }))
+          .sort((a, b) => b.total - a.total),
+      },
+      availableRentalPartners: grid.availableRentalPartners,
+      lastImportDate: `${year}-${String(month).padStart(2, '0')}-16`,
+    });
+  }),
+
+  // Activity log (super_admin audit trail across both audiences).
+  http.get('*/admin/activity-logs', ({ request }) => {
+    const url = new URL(request.url);
+    const page = int(url.searchParams.get('page'), 1);
+    const pageSize = int(url.searchParams.get('pageSize'), 50);
+    const audience = url.searchParams.get('audience');
+    const action = url.searchParams.get('action');
+    const actor = url.searchParams.get('actor')?.toLowerCase();
+    let rows = makeActivityLogs();
+    if (audience) rows = rows.filter((r) => r.audience === audience);
+    if (action) rows = rows.filter((r) => r.action === action);
+    if (actor) rows = rows.filter((r) => r.actorEmail.toLowerCase().includes(actor));
+    const start = (page - 1) * pageSize;
+    return ok(rows.slice(start, start + pageSize), {
+      page,
+      pageSize,
+      total: rows.length,
+    });
   }),
 
   http.get('*/admin/fleet/gojek/cell', ({ request }) => {

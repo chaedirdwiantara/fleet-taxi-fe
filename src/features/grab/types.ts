@@ -51,3 +51,21 @@ export type GrabDriverDetail = {
   incentive: number;
   earning: number;
 };
+
+// Admin Grab dashboard summary (cards + charts); shape mirrors the Gojek
+// summary's charts so FleetChartsPanel is reused as-is.
+export type GrabSummary = {
+  globalSummary: {
+    totalEarning: number;
+    totalDriverFare: number;
+    totalIncentive: number;
+    totalRides: number;
+    activeVehicles: number;
+  };
+  charts: {
+    daily: { day: number; total: number }[];
+    byPartner: { partner: string; total: number }[];
+  };
+  availableRentalPartners: string[];
+  lastImportDate: string | null;
+};

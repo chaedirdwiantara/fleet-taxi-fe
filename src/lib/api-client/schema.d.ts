@@ -57,6 +57,23 @@ export interface paths {
         patch: operations["AdminUsersController_update"];
         trace?: never;
     };
+    "/admin/activity-logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Activity log of all accounts — admin console + partner portal (super_admin only) */
+        get: operations["AdminActivityLogsController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/auth/login": {
         parameters: {
             query?: never;
@@ -377,6 +394,23 @@ export interface paths {
         };
         /** 31-day earnings pivot grid (composite key plate|city|driver) */
         get: operations["GrabController_grid"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/fleet/grab/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Dashboard summary — cards + daily/by-partner charts */
+        get: operations["GrabController_summary"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1749,6 +1783,36 @@ export interface operations {
             };
         };
     };
+    AdminActivityLogsController_list: {
+        parameters: {
+            query?: {
+                page?: string;
+                pageSize?: string;
+                audience?: "admin" | "partner";
+                /** @description Filter by actor email (substring match) */
+                actor?: string;
+                action?: "auth.login.success" | "auth.login.failure" | "auth.logout" | "auth.password_change" | "mutation.create" | "mutation.update" | "mutation.delete";
+                /** @description Inclusive lower bound (ISO date) */
+                dateFrom?: string;
+                /** @description Inclusive upper bound (ISO date) */
+                dateTo?: string;
+                /** @description Free-text search over actor email, path, and resource */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     AuthController_login: {
         parameters: {
             query?: never;
@@ -2238,6 +2302,27 @@ export interface operations {
                 month: number;
                 year: number;
                 plate?: string;
+                rentalPartner?: string[];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GrabController_summary: {
+        parameters: {
+            query: {
+                month: number;
+                year: number;
                 rentalPartner?: string[];
             };
             header?: never;
