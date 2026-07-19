@@ -40,9 +40,34 @@ const seed = (): StoredRule[] => [
     note: 'Deposit 500.000',
     createdAt: '2026-07-01T03:00:00.000Z',
     entries: [
-      { seq: 1, date: '2026-07-02', amount: 25_000, dailySetoran: 150_000 },
-      { seq: 2, date: '2026-07-03', amount: 25_000, dailySetoran: 120_000 },
-      { seq: 3, date: '2026-07-05', amount: 25_000, dailySetoran: 100_000 },
+      // surplus mode (min 100.000): partial pay, a short day, then settle
+      {
+        seq: 1,
+        date: '2026-07-02',
+        dailySetoran: 150_000,
+        obligation: 100_000,
+        amount: 50_000,
+        paidCumulative: 50_000,
+        arrearsAfter: 0,
+      },
+      {
+        seq: 2,
+        date: '2026-07-03',
+        dailySetoran: 90_000,
+        obligation: 100_000,
+        amount: 0,
+        paidCumulative: 50_000,
+        arrearsAfter: 10_000,
+      },
+      {
+        seq: 3,
+        date: '2026-07-05',
+        dailySetoran: 135_000,
+        obligation: 110_000,
+        amount: 25_000,
+        paidCumulative: 75_000,
+        arrearsAfter: 0,
+      },
     ],
   },
   {
@@ -57,8 +82,25 @@ const seed = (): StoredRule[] => [
     note: null,
     createdAt: '2026-06-01T03:00:00.000Z',
     entries: [
-      { seq: 1, date: '2026-06-02', amount: 50_000, dailySetoran: 90_000 },
-      { seq: 2, date: '2026-06-03', amount: 50_000, dailySetoran: 80_000 },
+      // fixed mode (min null): full nominal per active day
+      {
+        seq: 1,
+        date: '2026-06-02',
+        dailySetoran: 90_000,
+        obligation: 0,
+        amount: 50_000,
+        paidCumulative: 50_000,
+        arrearsAfter: 0,
+      },
+      {
+        seq: 2,
+        date: '2026-06-03',
+        dailySetoran: 80_000,
+        obligation: 0,
+        amount: 50_000,
+        paidCumulative: 100_000,
+        arrearsAfter: 0,
+      },
     ],
   },
   {
@@ -90,11 +132,12 @@ export const driverOptions: DriverOption[] = [
   { driverName: 'YULIUS BAMBANG TRIUTOMO', lastPlate: 'B2451SNC' },
 ];
 
-/** Same rule→row presentation the BE presenter applies. */
+/** Same rule→row presentation the BE presenter applies (surplus ledger). */
 function present(rule: StoredRule): InstallmentRule {
-  const paidCount = rule.entries.length;
-  const totalPaid = paidCount * rule.installmentAmount;
+  const last = rule.entries.length > 0 ? rule.entries[rule.entries.length - 1]! : null;
+  const totalPaid = last?.paidCumulative ?? 0;
   const totalTarget = rule.installmentAmount * rule.installmentCount;
+  const lastPaid = [...rule.entries].reverse().find((e) => e.amount > 0) ?? null;
   return {
     id: rule.id,
     title: rule.title,
@@ -106,12 +149,13 @@ function present(rule: StoredRule): InstallmentRule {
     effectiveDate: rule.effectiveDate,
     note: rule.note,
     createdAt: rule.createdAt,
-    paidCount,
+    paidCount: Math.min(rule.installmentCount, Math.floor(totalPaid / rule.installmentAmount)),
     totalPaid,
     totalTarget,
     remaining: totalTarget - totalPaid,
-    status: paidCount >= rule.installmentCount ? 'lunas' : 'berjalan',
-    lastInstallmentDate: paidCount > 0 ? rule.entries[paidCount - 1]!.date : null,
+    setoranArrears: last?.arrearsAfter ?? 0,
+    status: totalPaid >= totalTarget ? 'lunas' : 'berjalan',
+    lastInstallmentDate: lastPaid?.date ?? null,
   };
 }
 
