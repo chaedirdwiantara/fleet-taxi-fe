@@ -60,19 +60,19 @@ export const qk = {
       detail: (id: number) => ['partner', 'checkpoint', 'detail', id] as const,
       comparison: (id: number) => ['partner', 'checkpoint', 'comparison', id] as const,
     },
-    // Debt Summary — the list params (filters/sort/pagination) key the cache.
-    debt: {
+    // Cicilan Deposit — installment rules per driver, history derived by BE.
+    cicilan: {
+      all: ['partner', 'cicilan'] as const, // invalidation prefix for every cicilan query
       list: (p: {
         status?: string;
-        cabang?: string;
-        koordinator?: string;
         search?: string;
         sortBy: string;
         sortOrder: string;
         page: number;
         pageSize: number;
-      }) => ['partner', 'debt', 'list', p] as const,
-      filters: ['partner', 'debt', 'filters'] as const,
+      }) => ['partner', 'cicilan', 'list', p] as const,
+      recap: (id: number) => ['partner', 'cicilan', 'recap', id] as const,
+      driverOptions: ['partner', 'cicilan', 'driver-options'] as const,
     },
     fleet: {
       all: ['partner', 'fleet'] as const, // invalidation prefix for every portal fleet query

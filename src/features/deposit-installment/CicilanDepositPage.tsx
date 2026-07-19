@@ -1,26 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Link } from '@tanstack/react-router';
-import {
-  ChevronLeft,
-  ChevronRight,
-  Construction,
-  FileSpreadsheet,
-  Info,
-  Loader2,
-  RefreshCw,
-  Search,
-  X,
-} from 'lucide-react';
+import { ChevronLeft, ChevronRight, PiggyBank, Plus, RefreshCw, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -29,25 +10,29 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { DebtFilterBar } from './components/DebtFilterBar';
-import { DebtTable } from './components/DebtTable';
-import { downloadDebtExport, useDebtFiltersQuery, useDebtSummaryQuery } from './hooks';
-import type { DebtSearch } from './searchSchema';
-import type { DebtListParams, DebtSortField } from './types';
+import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/components/shared/EmptyState';
+import { DeleteInstallmentDialog } from './components/DeleteInstallmentDialog';
+import { InstallmentFormDialog } from './components/InstallmentFormDialog';
+import { InstallmentTable } from './components/InstallmentTable';
+import { RekapSheet } from './components/RekapSheet';
+import { useInstallmentListQuery } from './hooks';
+import type { CicilanSearch } from './searchSchema';
+import type { InstallmentListParams, InstallmentRule, InstallmentSortField } from './types';
 
 const PAGE_SIZES = [10, 25, 50, 100];
+// Radix Select forbids empty-string values — sentinel for "Semua Status".
+const ALL = '__all';
 
-export function DebtSummaryPage({
+export function CicilanDepositPage({
   search,
   onPatch,
 }: {
-  search: DebtSearch;
-  onPatch: (patch: Partial<DebtSearch>) => void;
+  search: CicilanSearch;
+  onPatch: (patch: Partial<CicilanSearch>) => void;
 }) {
-  const params: DebtListParams = {
+  const params: InstallmentListParams = {
     status: search.status,
-    cabang: search.cabang,
-    koordinator: search.koordinator,
     search: search.q,
     sortBy: search.sortBy,
     sortOrder: search.sortOrder,
@@ -55,12 +40,11 @@ export function DebtSummaryPage({
     pageSize: search.pageSize,
   };
 
-  const list = useDebtSummaryQuery(params);
-  const filters = useDebtFiltersQuery();
-  const [exporting, setExporting] = useState(false);
-  const [exportError, setExportError] = useState<string | null>(null);
-  // Fitur belum dirilis penuh — beri tahu user setiap kali halaman dibuka.
-  const [devNoticeOpen, setDevNoticeOpen] = useState(true);
+  const list = useInstallmentListQuery(params);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [editing, setEditing] = useState<InstallmentRule | null>(null);
+  const [deleting, setDeleting] = useState<InstallmentRule | null>(null);
+  const [rekap, setRekap] = useState<InstallmentRule | null>(null);
 
   // free-text search: local state, debounced into the URL (and the query key)
   const [searchText, setSearchText] = useState(search.q ?? '');
@@ -73,64 +57,55 @@ export function DebtSummaryPage({
     return () => clearTimeout(t);
   }, [searchText, search.q, onPatch]);
 
-  const toggleSort = (field: DebtSortField) =>
+  const toggleSort = (field: InstallmentSortField) =>
     onPatch(
       search.sortBy === field
         ? { sortOrder: search.sortOrder === 'asc' ? 'desc' : 'asc', page: 1 }
         : { sortBy: field, sortOrder: 'asc', page: 1 },
     );
 
-  const doExport = async () => {
-    setExporting(true);
-    setExportError(null);
-    try {
-      await downloadDebtExport(params);
-    } catch (e) {
-      setExportError(e instanceof Error ? e.message : 'Export gagal');
-    } finally {
-      setExporting(false);
-    }
-  };
-
   const meta = list.data?.meta;
   const total = meta?.total ?? 0;
   const lastPage = Math.max(1, Math.ceil(total / search.pageSize));
   const from = total === 0 ? 0 : (search.page - 1) * search.pageSize + 1;
   const to = Math.min(search.page * search.pageSize, total);
+  const isFiltered = Boolean(search.q || search.status);
 
   return (
     <div className="space-y-4">
-      <Dialog open={devNoticeOpen} onOpenChange={setDevNoticeOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-500/15">
-              <Construction className="size-6 text-amber-600 dark:text-amber-400" aria-hidden />
-            </div>
-            <DialogTitle className="text-center">Fitur Dalam Pengembangan</DialogTitle>
-            <DialogDescription className="text-center">
-              Halaman Debt Summary masih dalam tahap pengembangan dan akan segera dirilis. Data yang
-              ditampilkan saat ini belum final.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="sm:justify-center">
-            <Button onClick={() => setDevNoticeOpen(false)}>Mengerti</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <div>
-        <h2 className="text-lg font-semibold">Debt Summary</h2>
-        <p className="text-sm text-muted-foreground">
-          Posisi tagihan per driver, tersinkron langsung dari data Fleet Monitoring Gojek &amp;
-          Grab.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold">Cicilan Deposit</h2>
+          <p className="text-sm text-muted-foreground">
+            Kelola cicilan deposit driver — potongan dihitung otomatis dari hari aktif pada data
+            Fleet Monitoring.
+          </p>
+        </div>
+        <Button onClick={() => setCreateOpen(true)}>
+          <Plus aria-hidden />
+          Tambah Data
+        </Button>
       </div>
 
-      <DebtFilterBar search={search} options={filters.data} onPatch={onPatch} />
-
       <div className="flex flex-wrap items-center gap-2">
+        <Select
+          value={search.status ?? ALL}
+          onValueChange={(v) =>
+            onPatch({ status: v === ALL ? undefined : (v as 'berjalan' | 'lunas'), page: 1 })
+          }
+        >
+          <SelectTrigger size="sm" className="w-36" aria-label="Filter status cicilan">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL}>Semua Status</SelectItem>
+            <SelectItem value="berjalan">Berjalan</SelectItem>
+            <SelectItem value="lunas">Lunas</SelectItem>
+          </SelectContent>
+        </Select>
+
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span className="whitespace-nowrap">Entri per halaman:</span>
+          <span className="whitespace-nowrap">Entri:</span>
           <Select
             value={String(search.pageSize)}
             onValueChange={(v) => onPatch({ pageSize: Number(v), page: 1 })}
@@ -149,14 +124,6 @@ export function DebtSummaryPage({
         </div>
 
         <div className="ml-auto flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="sm" onClick={doExport} disabled={exporting}>
-            {exporting ? (
-              <Loader2 className="animate-spin" aria-hidden />
-            ) : (
-              <FileSpreadsheet className="text-emerald-600" aria-hidden />
-            )}
-            Export
-          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -174,8 +141,8 @@ export function DebtSummaryPage({
             <Input
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
-              placeholder="Cari driver / plat…"
-              aria-label="Cari driver atau plat"
+              placeholder="Cari judul / driver / plat…"
+              aria-label="Cari judul, driver, atau plat"
               className="h-8 w-full pr-8 pl-8 sm:w-56"
             />
             {searchText && (
@@ -192,41 +159,50 @@ export function DebtSummaryPage({
         </div>
       </div>
 
-      {exportError && (
-        <p className="text-sm text-destructive" role="alert">
-          {exportError}
-        </p>
-      )}
-
       <Card className="py-0">
         <CardContent className="px-0">
           {list.isPending && (
-            <p className="px-4 py-8 text-center text-sm text-muted-foreground">Memuat data…</p>
+            <div className="space-y-2 p-4">
+              <Skeleton className="h-9 w-full" />
+              <Skeleton className="h-9 w-full" />
+              <Skeleton className="h-9 w-full" />
+              <Skeleton className="h-9 w-full" />
+            </div>
           )}
           {list.isError && (
-            <p className="px-4 py-8 text-center text-sm text-destructive">
+            <p className="px-4 py-8 text-center text-sm text-destructive" role="alert">
               Gagal memuat: {list.error.message}
             </p>
           )}
           {list.isSuccess && list.data.data.length === 0 && (
-            <div className="flex items-start gap-2 px-4 py-8 text-sm text-muted-foreground">
-              <Info className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
-              <span>
-                Belum ada data tagihan. Pastikan plat kendaraan Anda sudah terdaftar di{' '}
-                <Link to="/partner/daftarkan-plat" className="font-medium text-primary underline">
-                  Daftarkan Plat
-                </Link>{' '}
-                dan data Fleet Monitoring sudah terimport.
-              </span>
-            </div>
+            <EmptyState
+              icon={PiggyBank}
+              title={isFiltered ? 'Tidak ada cicilan yang cocok' : 'Belum ada cicilan deposit'}
+              description={
+                isFiltered
+                  ? 'Coba ubah kata kunci pencarian atau filter status.'
+                  : 'Buat aturan cicilan untuk mulai memotong deposit driver secara otomatis dari hari aktifnya.'
+              }
+              action={
+                isFiltered ? undefined : (
+                  <Button size="sm" onClick={() => setCreateOpen(true)}>
+                    <Plus aria-hidden />
+                    Tambah Data
+                  </Button>
+                )
+              }
+            />
           )}
           {list.isSuccess && list.data.data.length > 0 && (
             <div className={list.isFetching ? 'opacity-70 transition-opacity' : undefined}>
-              <DebtTable
+              <InstallmentTable
                 rows={list.data.data}
                 sortBy={search.sortBy}
                 sortOrder={search.sortOrder}
                 onSort={toggleSort}
+                onRekap={setRekap}
+                onEdit={setEditing}
+                onDelete={setDeleting}
               />
             </div>
           )}
@@ -236,7 +212,7 @@ export function DebtSummaryPage({
       {list.isSuccess && total > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground">
           <span>
-            Menampilkan {from}–{to} dari {total} driver
+            Menampilkan {from}–{to} dari {total} cicilan
           </span>
           <div className="flex items-center gap-1">
             <Button
@@ -263,6 +239,20 @@ export function DebtSummaryPage({
           </div>
         </div>
       )}
+
+      {(createOpen || editing != null) && (
+        <InstallmentFormDialog
+          key={editing?.id ?? 'create'}
+          open
+          initial={editing}
+          onClose={() => {
+            setCreateOpen(false);
+            setEditing(null);
+          }}
+        />
+      )}
+      <DeleteInstallmentDialog rule={deleting} onClose={() => setDeleting(null)} />
+      <RekapSheet rule={rekap} onClose={() => setRekap(null)} />
     </div>
   );
 }

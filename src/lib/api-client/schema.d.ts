@@ -883,57 +883,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/partner/portal/debt-summary": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Own debt summary per driver (scoped to registered plates) */
-        get: operations["PortalDebtController_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/partner/portal/debt-summary/filters": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Dropdown options (cabang, koordinator) for the debt summary */
-        get: operations["PortalDebtController_filters"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/partner/portal/debt-summary/export": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Export the filtered debt summary (?format=xlsx) */
-        get: operations["PortalDebtController_export"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/partner/portal/rentals/cogs-defaults": {
         parameters: {
             query?: never;
@@ -1020,6 +969,76 @@ export interface paths {
         head?: never;
         /** Toggle Belum/Sudah Dibayar on one own rental */
         patch: operations["PartnerRentalsController_updatePaymentStatus"];
+        trace?: never;
+    };
+    "/partner/portal/deposit-installments/driver-options": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Distinct driver names on own plates (feeds the driver picker) */
+        get: operations["DepositInstallmentsController_driverOptions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/deposit-installments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Own cicilan-deposit rules with derived payment progress */
+        get: operations["DepositInstallmentsController_list"];
+        put?: never;
+        /** Create a cicilan-deposit rule */
+        post: operations["DepositInstallmentsController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/deposit-installments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Edit one own cicilan-deposit rule */
+        put: operations["DepositInstallmentsController_update"];
+        post?: never;
+        /** Delete one own cicilan-deposit rule */
+        delete: operations["DepositInstallmentsController_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/deposit-installments/{id}/recap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Rekap: derived installment history of one own rule */
+        get: operations["DepositInstallmentsController_recap"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/partner/portal/drivers/documents/{driverId}/presign": {
@@ -1497,6 +1516,37 @@ export interface components {
              * @enum {string}
              */
             paymentStatus: "Belum Dibayar" | "Sudah Dibayar";
+        };
+        CreateDepositInstallmentDto: {
+            /** @example Cicilan Deposit Driver Halim */
+            title: string;
+            /**
+             * @description From /driver-options
+             * @example YULIUS BAMBANG TRIUTOMO
+             */
+            driverName: string;
+            /**
+             * @description Integer rupiah per cicilan
+             * @example 25000
+             */
+            installmentAmount: number;
+            /**
+             * @description Durasi: jumlah cicilan (Nx)
+             * @example 20
+             */
+            installmentCount: number;
+            /**
+             * @description Cicilan hanya berlaku pada hari aktif dengan setoran >= nilai ini (inklusif). Kosong = semua hari aktif.
+             * @example 100000
+             */
+            minDailySetoran?: number;
+            /**
+             * @description YYYY-MM-DD, tanggal mulai berlaku
+             * @example 2026-07-01
+             */
+            effectiveDate: string;
+            /** @example Deposit 500.000 */
+            note?: string;
         };
         PresignDriverDocumentDto: {
             /**
@@ -2918,80 +2968,6 @@ export interface operations {
             };
         };
     };
-    PortalDebtController_list: {
-        parameters: {
-            query?: {
-                page?: string;
-                pageSize?: string;
-                status?: "aktif" | "nonaktif";
-                /** @description Exact cabang from /debt-summary/filters */
-                cabang?: unknown;
-                /** @description Exact koordinator from /debt-summary/filters */
-                koordinator?: unknown;
-                /** @description Substring on driver name or plate */
-                search?: unknown;
-                sortBy?: "driverName" | "cabang" | "koordinator" | "depositTerbayar" | "tagihanSetoran" | "totalTagihan" | "selisihDeposit";
-                sortOrder?: "asc" | "desc";
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PortalDebtController_filters: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    PortalDebtController_export: {
-        parameters: {
-            query: {
-                format: "xlsx";
-                status?: "aktif" | "nonaktif";
-                /** @description Exact cabang from /debt-summary/filters */
-                cabang?: unknown;
-                /** @description Exact koordinator from /debt-summary/filters */
-                koordinator?: unknown;
-                /** @description Substring on driver name or plate */
-                search?: unknown;
-                sortBy?: "driverName" | "cabang" | "koordinator" | "depositTerbayar" | "tagihanSetoran" | "totalTagihan" | "selisihDeposit";
-                sortOrder?: "asc" | "desc";
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
     PartnerRentalsController_listCogsDefaults: {
         parameters: {
             query?: never;
@@ -3164,6 +3140,130 @@ export interface operations {
                 "application/json": components["schemas"]["UpdatePaymentStatusDto"];
             };
         };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DepositInstallmentsController_driverOptions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DepositInstallmentsController_list: {
+        parameters: {
+            query?: {
+                page?: string;
+                pageSize?: string;
+                status?: "berjalan" | "lunas";
+                /** @description Substring on title/driver/plate */
+                search?: unknown;
+                sortBy?: "title" | "createdAt" | "effectiveDate" | "driverName" | "installmentAmount" | "installmentCount" | "totalTarget" | "totalPaid" | "remaining";
+                sortOrder?: "asc" | "desc";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DepositInstallmentsController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateDepositInstallmentDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DepositInstallmentsController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateDepositInstallmentDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DepositInstallmentsController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DepositInstallmentsController_recap: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             200: {
                 headers: {
