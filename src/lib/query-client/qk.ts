@@ -13,6 +13,16 @@ export const qk = {
   admin: {
     users: (type: 'admin' | 'partner') => ['admin', 'users', type] as const,
     partners: ['admin', 'partners'] as const,
+    // Activity log (super_admin only) — audit trail across both audiences.
+    activityLogs: (p: {
+      page: number;
+      audience?: string;
+      actor?: string;
+      action?: string;
+      dateFrom?: string;
+      dateTo?: string;
+      search?: string;
+    }) => ['admin', 'activity-logs', p] as const,
   },
 
   fleet: {

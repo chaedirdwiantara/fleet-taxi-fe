@@ -1,7 +1,7 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { api, unwrap, ApiErrorException, type ApiError } from '@/lib/api-client/client';
 import { qk } from '@/lib/query-client';
-import type { GrabDriverDetail, GrabGrid } from './types';
+import type { GrabDriverDetail, GrabGrid, GrabSummary } from './types';
 
 const throwEnvelope = (error: unknown): never => {
   throw new ApiErrorException((error as { error: ApiError }).error);
@@ -102,5 +102,25 @@ export function usePartnerGrabDriverDetailQuery(p: {
       return unwrap(data) as GrabDriverDetail;
     },
     enabled: p.enabled,
+  });
+}
+
+export function useGrabSummaryQuery(p: { month: number; year: number; rentalPartner?: string }) {
+  return useQuery({
+    queryKey: qk.fleet.summary({ platform: 'grab', ...p }),
+    queryFn: async (): Promise<GrabSummary> => {
+      const { data, error } = await api.GET('/admin/fleet/grab/summary', {
+        params: {
+          query: {
+            month: p.month,
+            year: p.year,
+            ...(p.rentalPartner ? { rentalPartner: [p.rentalPartner] } : {}),
+          },
+        },
+      });
+      if (error) throwEnvelope(error);
+      return unwrap(data) as GrabSummary;
+    },
+    placeholderData: keepPreviousData,
   });
 }

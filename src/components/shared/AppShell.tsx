@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  ScrollText,
   Table2,
   Users,
   Wallet,
@@ -33,8 +34,23 @@ const isGroup = (entry: NavEntry): entry is NavGroup => 'children' in entry;
 const NAV: Record<Audience, NavEntry[]> = {
   admin: [
     { to: '/admin', label: 'Dashboard', icon: LayoutDashboard },
-    { to: '/admin/fleet-monitoring', label: 'Fleet Monitoring — Gojek', icon: Table2 },
-    { to: '/admin/fleet-monitoring-grab', label: 'Fleet Monitoring — Grab', icon: Car },
+    {
+      label: 'Gojek',
+      icon: Table2,
+      children: [
+        { to: '/admin/gojek/dashboard', label: 'Gojek Dashboard', icon: LayoutDashboard },
+        { to: '/admin/fleet-monitoring', label: 'Gojek Monitoring', icon: Table2 },
+      ],
+    },
+    {
+      label: 'Grab',
+      icon: Car,
+      children: [
+        { to: '/admin/grab/dashboard', label: 'Grab Dashboard', icon: LayoutDashboard },
+        { to: '/admin/fleet-monitoring-grab', label: 'Grab Monitoring', icon: Table2 },
+      ],
+    },
+    { to: '/admin/logs', label: 'Log', icon: ScrollText, requireRole: 'super_admin' },
     {
       to: '/admin/user-management',
       label: 'Manajemen Akun',
