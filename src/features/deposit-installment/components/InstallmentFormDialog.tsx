@@ -124,8 +124,8 @@ export function InstallmentFormDialog({
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Edit Cicilan Deposit' : 'Tambah Cicilan Deposit'}</DialogTitle>
           <DialogDescription>
-            Cicilan dipotong otomatis pada setiap hari aktif driver (berdasarkan data import Fleet
-            Monitoring) hingga durasi terpenuhi.
+            Cicilan dipotong otomatis dari surplus setoran harian driver (berdasarkan data import
+            Fleet Monitoring) sampai total cicilan (nominal × durasi) terlunasi.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -224,8 +224,9 @@ export function InstallmentFormDialog({
                       />
                     </FormControl>
                     <FormDescription>
-                      Cicilan hanya dipotong pada hari aktif dengan setoran ≥ nilai ini. Kosongkan
-                      untuk semua hari aktif.
+                      Setoran wajib harian — tidak diambil untuk cicilan. Hanya surplus di atas
+                      nilai ini yang memotong cicilan (boleh sebagian; kekurangan/kelebihan dibawa
+                      ke hari berikutnya). Kosongkan untuk potong nominal penuh per hari aktif.
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

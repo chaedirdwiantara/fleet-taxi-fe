@@ -16,19 +16,24 @@ export interface InstallmentRule {
   effectiveDate: string; // 'YYYY-MM-DD'
   note: string | null;
   createdAt: string; // ISO timestamp
-  paidCount: number;
+  paidCount: number; // full installments covered: floor(totalPaid / installmentAmount)
   totalPaid: number;
   totalTarget: number;
   remaining: number;
+  setoranArrears: number; // kekurangan setoran wajib yang terbawa (0 = tidak ada)
   status: InstallmentStatus;
   lastInstallmentDate: string | null;
 }
 
+/** One ledger day — days with amount 0 still appear (they explain arrears). */
 export interface InstallmentEntry {
-  seq: number;
+  seq: number; // hari ke-N di ledger (1-based)
   date: string; // 'YYYY-MM-DD'
-  amount: number;
-  dailySetoran: number;
+  dailySetoran: number; // setoran hari itu
+  obligation: number; // kewajiban wajib hari itu: min + tunggakan terbawa (0 di mode tetap)
+  amount: number; // potongan cicilan hari itu (bisa sebagian, bisa 0)
+  paidCumulative: number; // akumulasi cicilan SETELAH hari ini
+  arrearsAfter: number; // kekurangan setoran wajib terbawa ke hari berikutnya
 }
 
 export interface InstallmentRecap {

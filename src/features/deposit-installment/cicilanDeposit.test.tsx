@@ -111,6 +111,11 @@ describe('CicilanDepositPage', () => {
     await waitFor(() => expect(within(sheet).getByText('ke-1')).toBeInTheDocument());
     expect(within(sheet).getByText('ke-3')).toBeInTheDocument();
     expect(within(sheet).getByText('Setoran Hari Itu')).toBeInTheDocument();
+    expect(within(sheet).getByText('Kumulatif')).toBeInTheDocument();
+    // hari kurang setoran wajib: potongan 0, tunggakan 10.000 ditandai merah
+    expect(within(sheet).getByText(/kurang Rp\s?10\.000/)).toBeInTheDocument();
+    // kewajiban hari penyelesaian = min + tunggakan terbawa (100k + 10k)
+    expect(within(sheet).getByText(/wajib Rp\s?110\.000/)).toBeInTheDocument();
     expect(within(sheet).getByText(/dapat berubah jika data periode diimpor ulang/)).toBeVisible();
   });
 

@@ -36,9 +36,14 @@ export function StatusBadge({ status }: { status: InstallmentRule['status'] }) {
   );
 }
 
-/** Progres cicilan: N/M + bar. Shared by the desktop table and mobile cards. */
+/**
+ * Progres cicilan berbasis uang (totalPaid/totalTarget) — pembayaran bisa
+ * sebagian, jadi hitungan hari saja tidak mewakili kemajuan. Label N/M tetap
+ * ditampilkan sebagai ekuivalen cicilan penuh; tunggakan setoran wajib
+ * ditandai merah. Dipakai tabel desktop dan kartu mobile.
+ */
 export function InstallmentProgress({ rule }: { rule: InstallmentRule }) {
-  const pct = rule.installmentCount === 0 ? 0 : (rule.paidCount / rule.installmentCount) * 100;
+  const pct = rule.totalTarget === 0 ? 0 : (rule.totalPaid / rule.totalTarget) * 100;
   return (
     <div className="min-w-24 space-y-1">
       <div className="text-xs whitespace-nowrap text-muted-foreground">
@@ -46,8 +51,13 @@ export function InstallmentProgress({ rule }: { rule: InstallmentRule }) {
       </div>
       <Progress
         value={pct}
-        aria-label={`Progres cicilan ${rule.paidCount} dari ${rule.installmentCount}`}
+        aria-label={`Progres cicilan ${formatRupiah(rule.totalPaid)} dari ${formatRupiah(rule.totalTarget)}`}
       />
+      {rule.setoranArrears > 0 && (
+        <div className="text-xs whitespace-nowrap text-destructive">
+          Kurang setoran {formatRupiah(rule.setoranArrears)}
+        </div>
+      )}
     </div>
   );
 }

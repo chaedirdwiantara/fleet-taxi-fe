@@ -36,7 +36,7 @@ export function RekapSheet({
 
   return (
     <Sheet open={rule != null} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent side="right" className="w-full gap-0 overflow-y-auto sm:max-w-md">
+      <SheetContent side="right" className="w-full gap-0 overflow-y-auto sm:max-w-xl">
         <SheetHeader>
           <SheetTitle>Rekap Cicilan</SheetTitle>
           <SheetDescription>{rule?.title}</SheetDescription>
@@ -67,6 +67,14 @@ export function RekapSheet({
                 <dd className="text-right tabular-nums">{formatRupiah(rule.totalTarget)}</dd>
                 <dt className="text-muted-foreground">Sisa</dt>
                 <dd className="text-right tabular-nums">{formatRupiah(rule.remaining)}</dd>
+                {rule.setoranArrears > 0 && (
+                  <>
+                    <dt className="text-destructive">Kurang Setoran Wajib</dt>
+                    <dd className="text-right text-destructive tabular-nums">
+                      {formatRupiah(rule.setoranArrears)}
+                    </dd>
+                  </>
+                )}
               </dl>
             </div>
 
@@ -93,24 +101,41 @@ export function RekapSheet({
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
-                    <TableHead>Cicilan</TableHead>
-                    <TableHead>Tanggal</TableHead>
-                    <TableHead className="text-right">Nominal</TableHead>
+                    <TableHead>Hari</TableHead>
                     <TableHead className="text-right">Setoran Hari Itu</TableHead>
+                    <TableHead className="text-right">Potongan</TableHead>
+                    <TableHead className="text-right">Kumulatif</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {recap.data.installments.map((entry) => (
                     <TableRow key={entry.seq}>
-                      <TableCell className="text-muted-foreground">ke-{entry.seq}</TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        {formatDateID(entry.date)}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {formatRupiah(entry.amount)}
+                      <TableCell>
+                        <span className="text-muted-foreground">ke-{entry.seq}</span>
+                        <div className="text-xs whitespace-nowrap">{formatDateID(entry.date)}</div>
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
                         {formatRupiah(entry.dailySetoran)}
+                        {entry.obligation > 0 && (
+                          <div className="text-xs whitespace-nowrap text-muted-foreground">
+                            wajib {formatRupiah(entry.obligation)}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {entry.amount > 0 ? (
+                          formatRupiah(entry.amount)
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                        {entry.arrearsAfter > 0 && (
+                          <div className="text-xs whitespace-nowrap text-destructive">
+                            kurang {formatRupiah(entry.arrearsAfter)}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {formatRupiah(entry.paidCumulative)}
                       </TableCell>
                     </TableRow>
                   ))}
