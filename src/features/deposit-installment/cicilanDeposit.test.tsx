@@ -82,8 +82,12 @@ describe('CicilanDepositPage', () => {
     expect(within(dialog).getByText('Driver wajib dipilih')).toBeInTheDocument();
 
     await userEvent.type(within(dialog).getByLabelText('Judul'), 'Cicilan Deposit Yulius');
+    // combobox driver: buka, saring lewat input pencarian, pilih hasilnya
     await userEvent.click(within(dialog).getByLabelText('Pilih driver'));
-    await userEvent.click(await screen.findByText('YULIUS BAMBANG TRIUTOMO'));
+    const driverSearch = await screen.findByPlaceholderText('Cari nama driver / plat…');
+    await userEvent.type(driverSearch, 'yulius');
+    await waitFor(() => expect(screen.getAllByRole('option')).toHaveLength(1));
+    await userEvent.click(screen.getByRole('option', { name: /YULIUS BAMBANG TRIUTOMO/ }));
     await userEvent.type(within(dialog).getByLabelText('Nominal Cicilan (Rp)'), '25000');
     await userEvent.type(within(dialog).getByLabelText('Durasi (jumlah cicilan)'), '20');
     const tanggal = within(dialog).getByLabelText('Tanggal Aktif');

@@ -1,7 +1,17 @@
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Check, ChevronsUpDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
 import {
   Dialog,
   DialogContent,
@@ -20,15 +30,10 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
 import { ApiErrorException } from '@/lib/api-client/client';
+import { cn } from '@/lib/utils';
 import { useCreateInstallment, useDriverOptionsQuery, useUpdateInstallment } from '../hooks';
 import type { InstallmentRule, InstallmentUpsertInput } from '../types';
 
@@ -78,6 +83,7 @@ export function InstallmentFormDialog({
   onClose: () => void;
 }) {
   const isEdit = initial != null;
+  const [driverOpen, setDriverOpen] = useState(false);
   const drivers = useDriverOptionsQuery(open);
   const create = useCreateInstallment();
   const update = useUpdateInstallment();
@@ -115,8 +121,10 @@ export function InstallmentFormDialog({
   // Edited rules may reference a driver no longer in the options (old import
   // data) — keep it selectable so editing doesn't silently clear the field.
   const options = drivers.data ?? [];
-  const hasInitialDriver =
-    initial != null && !options.some((o) => o.driverName === initial.driverName);
+  const driverOptions =
+    initial != null && !options.some((o) => o.driverName === initial.driverName)
+      ? [{ driverName: initial.driverName, lastPlate: initial.lastPlate ?? '' }, ...options]
+      : options;
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -150,26 +158,66 @@ export function InstallmentFormDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Driver</FormLabel>
-                  <Select value={field.value || undefined} onValueChange={field.onChange}>
-                    <FormControl>
-                      <SelectTrigger className="w-full" aria-label="Pilih driver">
-                        <SelectValue
-                          placeholder={drivers.isPending ? 'Memuat driver…' : 'Pilih driver'}
-                        />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {hasInitialDriver && (
-                        <SelectItem value={initial.driverName}>{initial.driverName}</SelectItem>
-                      )}
-                      {options.map((o) => (
-                        <SelectItem key={o.driverName} value={o.driverName}>
-                          {o.driverName}
-                          <span className="text-muted-foreground"> · {o.lastPlate}</span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={driverOpen} onOpenChange={setDriverOpen}>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={driverOpen}
+                          aria-label="Pilih driver"
+                          className={cn(
+                            'w-full justify-between font-normal',
+                            !field.value && 'text-muted-foreground',
+                          )}
+                        >
+                          <span className="truncate">
+                            {field.value || (drivers.isPending ? 'Memuat driver…' : 'Pilih driver')}
+                          </span>
+                          <ChevronsUpDown className="opacity-50" aria-hidden />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      align="start"
+                      className="w-[var(--radix-popover-trigger-width)] p-0"
+                    >
+                      {/* cmdk filters by the item value = "NAMA PLAT", so the
+                          search matches driver name AND plate number. */}
+                      <Command>
+                        <CommandInput placeholder="Cari nama driver / plat…" />
+                        <CommandList>
+                          <CommandEmpty>Driver tidak ditemukan.</CommandEmpty>
+                          <CommandGroup>
+                            {driverOptions.map((o) => (
+                              <CommandItem
+                                key={o.driverName}
+                                value={`${o.driverName} ${o.lastPlate}`}
+                                onSelect={() => {
+                                  field.onChange(o.driverName);
+                                  setDriverOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    field.value === o.driverName ? 'opacity-100' : 'opacity-0',
+                                  )}
+                                  aria-hidden
+                                />
+                                <span className="truncate">{o.driverName}</span>
+                                {o.lastPlate && (
+                                  <span className="ml-auto text-xs text-muted-foreground">
+                                    {o.lastPlate}
+                                  </span>
+                                )}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   <FormDescription>
                     Daftar driver diambil dari data import atas plat terdaftar Anda.
                   </FormDescription>
