@@ -315,23 +315,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/admin/fleet/gojek/performers": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Top/bottom 10 drivers by outstanding */
-        get: operations["GojekController_performers"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/admin/fleet/gojek/exceptions": {
         parameters: {
             query?: never;
@@ -428,23 +411,6 @@ export interface paths {
         };
         /** Whole-month performance detail for one driver (eye modal) */
         get: operations["GrabController_cell"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/admin/fleet/grab/performers": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Top/bottom 10 by total earning collected */
-        get: operations["GrabController_performers"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2172,26 +2138,6 @@ export interface operations {
             };
         };
     };
-    GojekController_performers: {
-        parameters: {
-            query: {
-                month: string;
-                year: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
     GojekController_exceptions: {
         parameters: {
             query: {
@@ -2347,26 +2293,6 @@ export interface operations {
                 /** @description plate|city|driver */
                 compositeKey: string;
                 day?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    GrabController_performers: {
-        parameters: {
-            query: {
-                month: number;
-                year: number;
             };
             header?: never;
             path?: never;

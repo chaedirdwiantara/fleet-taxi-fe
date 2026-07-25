@@ -23,6 +23,11 @@ export function currentYearWIB(now: Date = new Date()): number {
   return wibParts(now).year;
 }
 
+/** Number of days in a calendar month (month is 1-based). Pure — no timezone. */
+export function daysInMonth(month: number, year: number): number {
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
 /** Display a UTC ISO timestamp as a WIB date-time string. */
 export function formatDateTimeWIB(iso: string): string {
   return new Intl.DateTimeFormat('id-ID', {

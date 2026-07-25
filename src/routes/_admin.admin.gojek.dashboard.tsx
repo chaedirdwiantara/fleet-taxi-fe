@@ -11,7 +11,7 @@ import {
 import { QuickLink } from '@/components/shared/QuickLink';
 import { SummaryCards } from '@/features/fleet/components/SummaryCards';
 import { FleetChartsPanel } from '@/features/fleet/components/FleetChartsPanel';
-import { PerformerPanel } from '@/features/fleet/components/PerformerPanel';
+import { DaySelect } from '@/features/fleet/components/DaySelect';
 import { useGojekSummaryQuery } from '@/features/fleet/hooks/useFleetQueries';
 import { currentMonthWIB, currentYearWIB, MONTH_NAMES_ID } from '@/lib/datetime';
 
@@ -26,10 +26,22 @@ function GojekDashboard() {
   const [year, setYear] = useState(currentYearWIB());
   // Default = omset seluruh partner; the select narrows every aggregate to one.
   const [partner, setPartner] = useState(ALL_PARTNERS);
+  // Tanggal filter (undefined = whole month) — resets when the period changes.
+  const [day, setDay] = useState<number | undefined>(undefined);
+
+  const changeMonth = (m: number) => {
+    setMonth(m);
+    setDay(undefined);
+  };
+  const changeYear = (y: number) => {
+    setYear(y);
+    setDay(undefined);
+  };
 
   const summary = useGojekSummaryQuery({
     month,
     year,
+    day,
     rentalPartner: partner === ALL_PARTNERS ? undefined : partner,
   });
   const years = Array.from({ length: 6 }, (_, i) => currentYearWIB() - 4 + i);
@@ -56,7 +68,8 @@ function GojekDashboard() {
               ))}
             </SelectContent>
           </Select>
-          <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
+          <DaySelect day={day} month={month} year={year} onChange={setDay} />
+          <Select value={String(month)} onValueChange={(v) => changeMonth(Number(v))}>
             <SelectTrigger className="w-36" aria-label="Bulan">
               <SelectValue />
             </SelectTrigger>
@@ -68,7 +81,7 @@ function GojekDashboard() {
               ))}
             </SelectContent>
           </Select>
-          <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
+          <Select value={String(year)} onValueChange={(v) => changeYear(Number(v))}>
             <SelectTrigger className="w-24" aria-label="Tahun">
               <SelectValue />
             </SelectTrigger>
@@ -93,14 +106,13 @@ function GojekDashboard() {
         >
           <SummaryCards
             summary={summary.data.globalSummary}
+            dayFilter={summary.data.dayFilter}
             exitedDrivers={summary.data.exitedDrivers}
             lastImportDate={summary.data.lastImportDate}
           />
-          <FleetChartsPanel charts={summary.data.charts} />
+          <FleetChartsPanel charts={summary.data.charts} selectedDay={day} />
         </div>
       )}
-
-      <PerformerPanel platform="gojek" month={month} year={year} />
 
       <div className="grid gap-3 sm:grid-cols-2">
         <QuickLink

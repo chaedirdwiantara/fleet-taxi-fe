@@ -18,6 +18,9 @@ export const fleetSearchSchema = z.object({
     .max(2100)
     .catch(() => currentYearWIB()),
   rentalPartner: z.array(z.string()).catch([]),
+  // Tanggal filter (dashboard summary only); undefined = whole month. Values
+  // beyond the selected month's length are guarded at the call site.
+  day: z.number().int().min(1).max(31).optional().catch(undefined),
   plate: z.string().optional().catch(undefined),
   // "<plateNorm|compositeKey>:<day>" → deep-linkable day-breakdown modal
   cell: z.string().optional().catch(undefined),

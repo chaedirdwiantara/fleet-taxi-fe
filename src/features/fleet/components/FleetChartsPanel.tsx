@@ -26,12 +26,16 @@ const PARTNER_COLORS = [
 // setoran trend + setoran split per rental partner. Mirrors the Recharts
 // style of the partner dashboard. The partner portal hides the per-partner
 // split (a partner only ever sees itself) via showPartnerSplit={false}.
+// `selectedDay` (Tanggal filter) keeps the whole month visible but dims every
+// bar except the selected day's.
 export function FleetChartsPanel({
   charts,
   showPartnerSplit = true,
+  selectedDay,
 }: {
   charts: FleetCharts;
   showPartnerSplit?: boolean;
+  selectedDay?: number;
 }) {
   return (
     <div className={showPartnerSplit ? 'grid gap-3 lg:grid-cols-3' : 'grid gap-3'}>
@@ -53,12 +57,15 @@ export function FleetChartsPanel({
                 formatter={(v) => [formatRupiah(Number(v)), 'Setoran']}
                 labelFormatter={(d) => `Tanggal ${d}`}
               />
-              <Bar
-                dataKey="total"
-                name="Setoran"
-                fill="var(--color-chart-1)"
-                radius={[3, 3, 0, 0]}
-              />
+              <Bar dataKey="total" name="Setoran" radius={[3, 3, 0, 0]}>
+                {charts.daily.map((d) => (
+                  <Cell
+                    key={d.day}
+                    fill="var(--color-chart-1)"
+                    fillOpacity={selectedDay == null || d.day === selectedDay ? 1 : 0.3}
+                  />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </CardContent>

@@ -6,8 +6,7 @@ import {
   makeExitedDrivers,
   makeGojekCharts,
   makeDriverActivity,
-  makeGojekPerformers,
-  makeGrabPerformers,
+  makeDayFilter,
   scopeGojekGrid,
   scopeGrabGrid,
   importBatches,
@@ -543,9 +542,12 @@ export const handlers = [
           ),
         )
       : grid;
+    const day = dayParam ? Number(dayParam) : undefined;
+    const validDay = day && Number.isInteger(day) && day >= 1 && day <= filtered.daysInMonth;
     return ok({
       globalSummary: makeGojekGlobalSummary(filtered),
-      driverActivity: makeDriverActivity(filtered, dayParam ? Number(dayParam) : undefined),
+      ...(validDay ? { dayFilter: makeDayFilter(filtered, day) } : {}),
+      driverActivity: makeDriverActivity(filtered, day),
       charts: makeGojekCharts(filtered),
       availableRentalPartners: grid.availableRentalPartners,
       exitedDrivers: makeExitedDrivers(filtered),
@@ -764,7 +766,7 @@ export const handlers = [
     return ok({ updated: body?.detailId != null ? 1 : 0 });
   }),
 
-  // ---- Admin fleet — targets / exceptions / performers ----------------------
+  // ---- Admin fleet — targets / exceptions -----------------------------------
   http.get('*/admin/fleet/:platform/targets/:plate', ({ params }) =>
     ok({
       vehiclePlate: `B ${String(params.plate).replace(/\D/g, '')} XYZ`,
@@ -819,15 +821,6 @@ export const handlers = [
     if (idx === -1) return err(404, 'NOT_FOUND', 'Exception not found');
     exceptionState.splice(idx, 1);
     return ok({ deleted: true });
-  }),
-
-  http.get('*/admin/fleet/:platform/performers', ({ request, params }) => {
-    const url = new URL(request.url);
-    const month = int(url.searchParams.get('month'), 6);
-    const year = int(url.searchParams.get('year'), 2026);
-    if (params.platform === 'grab') return ok(makeGrabPerformers(month, year));
-    // Gojek performers rank the same partner-registered rows the table shows.
-    return ok(makeGojekPerformers(scopeGojekGrid(makeGojekGrid(month, year), registeredNorms())));
   }),
 
   // ---- Partner portal --------------------------------------------------------
@@ -1379,9 +1372,12 @@ export const handlers = [
     const year = int(url.searchParams.get('year'), 2026);
     const dayParam = url.searchParams.get('day');
     const grid = scopeGojekGrid(makeGojekGrid(month, year), registeredNorms());
+    const day = dayParam ? Number(dayParam) : undefined;
+    const validDay = day && Number.isInteger(day) && day >= 1 && day <= grid.daysInMonth;
     return ok({
       globalSummary: makeGojekGlobalSummary(grid),
-      driverActivity: makeDriverActivity(grid, dayParam ? Number(dayParam) : undefined),
+      ...(validDay ? { dayFilter: makeDayFilter(grid, day) } : {}),
+      driverActivity: makeDriverActivity(grid, day),
       charts: makeGojekCharts(grid),
       exitedDrivers: makeExitedDrivers(grid),
       lastImportDate: `${year}-${String(month).padStart(2, '0')}-16`,

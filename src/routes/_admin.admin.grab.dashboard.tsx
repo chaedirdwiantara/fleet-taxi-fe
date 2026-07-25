@@ -12,7 +12,6 @@ import {
 import { QuickLink } from '@/components/shared/QuickLink';
 import { GradientStatRow } from '@/features/fleet/components/GradientStat';
 import { FleetChartsPanel } from '@/features/fleet/components/FleetChartsPanel';
-import { PerformerPanel } from '@/features/fleet/components/PerformerPanel';
 import { useGrabSummaryQuery } from '@/features/grab/hooks';
 import { currentMonthWIB, currentYearWIB, formatDateTimeWIB, MONTH_NAMES_ID } from '@/lib/datetime';
 
@@ -133,8 +132,6 @@ function GrabDashboard() {
           <FleetChartsPanel charts={summary.data.charts} />
         </div>
       )}
-
-      <PerformerPanel platform="grab" month={month} year={year} />
 
       <div className="grid gap-3 sm:grid-cols-2">
         <QuickLink

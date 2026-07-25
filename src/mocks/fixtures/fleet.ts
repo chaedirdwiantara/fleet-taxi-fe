@@ -438,32 +438,27 @@ export function makeDriverActivity(grid: GojekGridFixture, day?: number) {
   };
 }
 
-export function makeGrabPerformers(month: number, year: number) {
-  const grid = grabGrid(month, year);
-  const sorted = [...grid.rows].sort((a, b) => b.summary.earning - a.summary.earning);
-  const toP = (r: (typeof sorted)[number]) => ({
-    key: r.compositeKey,
-    driverName: r.driverName,
-    vehicle: r.plateNumber,
-    totalDeduction: r.summary.earning,
-    outstanding: 0,
-  });
-  return { top: sorted.slice(0, 10).map(toP), bottom: sorted.slice(-10).reverse().map(toP) };
-}
-
-// Takes a (possibly scoped) grid so admin performers rank exactly the rows the
-// admin table shows — never a plate outside the partner registrations.
-export function makeGojekPerformers(grid: GojekGridFixture) {
-  const sorted = [...grid.rows].sort((a, b) => a.summary.outstanding - b.summary.outstanding);
-  const toP = (r: (typeof sorted)[number]) => ({
-    key: r.plateNorm,
-    driverName: r.driverName,
-    vehicle: r.plateRaw,
-    totalDeduction: r.summary.totalDeduction,
-    outstanding: r.summary.outstanding,
-  });
-  // over-performers = most negative outstanding (paid ahead); under = most positive
-  return { top: sorted.slice(0, 10).map(toP), bottom: sorted.slice(-10).reverse().map(toP) };
+// Tanggal-filter aggregates: cumulative figures truncated at `day` + that
+// day's own setoran. Mocks only need shape + monotonicity, not SQL parity —
+// totalDue is prorated per day, outstanding scales the month delta linearly.
+export function makeDayFilter(grid: GojekGridFixture, day: number) {
+  let cumDeduction = 0;
+  for (let d = 1; d <= day; d++) cumDeduction += grid.dailyTotals[d] ?? 0;
+  const ratio = day / grid.daysInMonth;
+  const monthDeltaToDay = Math.round(grid.tableTotals.outstandingMonth * ratio);
+  return {
+    day,
+    cumulative: {
+      totalDeduction: cumDeduction,
+      totalDue: Math.round(grid.tableTotals.totalDue * ratio),
+      totalOutstanding:
+        grid.tableTotals.outstanding - grid.tableTotals.outstandingMonth + monthDeltaToDay,
+      totalOutstandingMonth: monthDeltaToDay,
+    },
+    selectedDay: {
+      totalDeduction: grid.dailyTotals[day] ?? 0,
+    },
+  };
 }
 
 // ---- Grab ---------------------------------------------------------------------

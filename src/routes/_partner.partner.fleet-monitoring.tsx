@@ -8,6 +8,8 @@ import { ExceptionPanel } from '@/features/fleet/components/ExceptionPanel';
 import { SummaryCards } from '@/features/fleet/components/SummaryCards';
 import { FleetChartsPanel } from '@/features/fleet/components/FleetChartsPanel';
 import { MonthYearPicker } from '@/features/fleet/components/MonthYearPicker';
+import { DaySelect } from '@/features/fleet/components/DaySelect';
+import { daysInMonth } from '@/lib/datetime';
 import {
   usePartnerGojekGridQuery,
   usePartnerGojekSummaryQuery,
@@ -45,8 +47,16 @@ function PartnerGojekPage() {
     [navigate],
   );
 
+  // Guard hand-edited URLs like ?month=2&day=31 — treat as "Semua".
+  const effectiveDay =
+    search.day && search.day <= daysInMonth(search.month, search.year) ? search.day : undefined;
+
   const grid = usePartnerGojekGridQuery({ month: search.month, year: search.year });
-  const summary = usePartnerGojekSummaryQuery({ month: search.month, year: search.year });
+  const summary = usePartnerGojekSummaryQuery({
+    month: search.month,
+    year: search.year,
+    day: effectiveDay,
+  });
 
   const openCell = useCallback(
     (plateNorm: string, d: number) =>
@@ -68,12 +78,20 @@ function PartnerGojekPage() {
             Setoran untuk plat yang Anda daftarkan · {grid.data?.rows.length ?? '…'} kendaraan
           </p>
         </div>
-        <MonthYearPicker
-          month={search.month}
-          year={search.year}
-          onMonth={(m) => setPeriod({ month: m })}
-          onYear={(y) => setPeriod({ year: y })}
-        />
+        <div className="flex flex-wrap gap-2">
+          <DaySelect
+            day={effectiveDay}
+            month={search.month}
+            year={search.year}
+            onChange={(d) => setPeriod({ day: d })}
+          />
+          <MonthYearPicker
+            month={search.month}
+            year={search.year}
+            onMonth={(m) => setPeriod({ month: m, day: undefined })}
+            onYear={(y) => setPeriod({ year: y, day: undefined })}
+          />
+        </div>
       </div>
 
       {summary.isError && (
@@ -85,11 +103,16 @@ function PartnerGojekPage() {
         >
           <SummaryCards
             summary={summary.data.globalSummary}
+            dayFilter={summary.data.dayFilter}
             exitedDrivers={summary.data.exitedDrivers}
             lastImportDate={summary.data.lastImportDate}
           />
           {/* No per-partner split here — a partner only ever sees itself. */}
-          <FleetChartsPanel charts={summary.data.charts} showPartnerSplit={false} />
+          <FleetChartsPanel
+            charts={summary.data.charts}
+            showPartnerSplit={false}
+            selectedDay={effectiveDay}
+          />
         </div>
       )}
 

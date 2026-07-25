@@ -3,12 +3,12 @@ import { api, unwrap, ApiErrorException, type ApiError } from '@/lib/api-client/
 import { qk } from '@/lib/query-client';
 import type {
   CellBreakdown,
+  DayFilterSummary,
   DriverActivity,
   ExitedDriver,
   FleetCharts,
   FleetGrid,
   GlobalSummary,
-  Performers,
 } from '../types';
 
 const throwEnvelope = (error: unknown): never => {
@@ -67,24 +67,23 @@ export function useGojekCellQuery(p: {
   });
 }
 
-export function usePerformersQuery(p: { platform: 'gojek' | 'grab'; month: number; year: number }) {
-  return useQuery({
-    queryKey: qk.fleet.performers(p),
-    queryFn: async (): Promise<Performers> => {
-      const { data, error } = await api.GET(
-        p.platform === 'gojek' ? '/admin/fleet/gojek/performers' : '/admin/fleet/grab/performers',
-        { params: { query: { month: p.month, year: p.year } } },
-      );
-      if (error) throwEnvelope(error);
-      return unwrap(data) as Performers;
-    },
-  });
-}
+// Shared summary payload (admin adds availableRentalPartners on top).
+// `dayFilter` appears only when the request carried a valid `day` (Tanggal
+// filter); everything else keeps whole-month semantics.
+type GojekSummaryResponse = {
+  globalSummary: GlobalSummary;
+  dayFilter?: DayFilterSummary;
+  driverActivity: DriverActivity;
+  charts: FleetCharts;
+  exitedDrivers: ExitedDriver[];
+  lastImportDate: string | null;
+};
 
 /**
  * Monthly aggregates for the /admin dashboard (summary cards + driver
  * activity). `rentalPartner` narrows every aggregate to one partner;
  * `availableRentalPartners` (always computed unfiltered) feeds the select.
+ * `day` adds the Tanggal-filter aggregates (`dayFilter`).
  */
 export function useGojekSummaryQuery(p: {
   month: number;
@@ -94,14 +93,7 @@ export function useGojekSummaryQuery(p: {
 }) {
   return useQuery({
     queryKey: qk.fleet.summary({ platform: 'gojek', ...p }),
-    queryFn: async (): Promise<{
-      globalSummary: GlobalSummary;
-      driverActivity: DriverActivity;
-      charts: FleetCharts;
-      availableRentalPartners: string[];
-      exitedDrivers: ExitedDriver[];
-      lastImportDate: string | null;
-    }> => {
+    queryFn: async (): Promise<GojekSummaryResponse & { availableRentalPartners: string[] }> => {
       const { data, error } = await api.GET('/admin/fleet/gojek/summary', {
         params: {
           query: {
@@ -113,14 +105,7 @@ export function useGojekSummaryQuery(p: {
         },
       });
       if (error) throwEnvelope(error);
-      return unwrap(data) as {
-        globalSummary: GlobalSummary;
-        driverActivity: DriverActivity;
-        charts: FleetCharts;
-        availableRentalPartners: string[];
-        exitedDrivers: ExitedDriver[];
-        lastImportDate: string | null;
-      };
+      return unwrap(data) as GojekSummaryResponse & { availableRentalPartners: string[] };
     },
     placeholderData: keepPreviousData,
   });
@@ -173,24 +158,12 @@ export function usePartnerGojekCellQuery(p: {
 export function usePartnerGojekSummaryQuery(p: { month: number; year: number; day?: number }) {
   return useQuery({
     queryKey: qk.partner.fleet.summary(p),
-    queryFn: async (): Promise<{
-      globalSummary: GlobalSummary;
-      driverActivity: DriverActivity;
-      charts: FleetCharts;
-      exitedDrivers: ExitedDriver[];
-      lastImportDate: string | null;
-    }> => {
+    queryFn: async (): Promise<GojekSummaryResponse> => {
       const { data, error } = await api.GET('/partner/portal/fleet/gojek/summary', {
         params: { query: { month: p.month, year: p.year, ...(p.day ? { day: p.day } : {}) } },
       });
       if (error) throwEnvelope(error);
-      return unwrap(data) as {
-        globalSummary: GlobalSummary;
-        driverActivity: DriverActivity;
-        charts: FleetCharts;
-        exitedDrivers: ExitedDriver[];
-        lastImportDate: string | null;
-      };
+      return unwrap(data) as GojekSummaryResponse;
     },
     placeholderData: keepPreviousData,
   });
