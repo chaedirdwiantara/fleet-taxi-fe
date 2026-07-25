@@ -141,12 +141,19 @@ export type DriverActivity = {
   inactiveList: InactiveDriver[];
 };
 
-export type Performer = {
-  key: string;
-  driverName: string;
-  vehicle: string;
-  totalDeduction: number;
-  outstanding: number;
+// Tanggal-filter aggregates (present only when the summary was requested with
+// a valid `day`): cumulative figures truncated at that day — same semantics as
+// GlobalSummary, so at day === daysInMonth they match it exactly — plus the
+// selected day's own setoran.
+export type DayFilterSummary = {
+  day: number;
+  cumulative: {
+    totalDeduction: number;
+    totalDue: number;
+    totalOutstanding: number;
+    totalOutstandingMonth: number;
+  };
+  selectedDay: {
+    totalDeduction: number;
+  };
 };
-
-export type Performers = { top: Performer[]; bottom: Performer[] };

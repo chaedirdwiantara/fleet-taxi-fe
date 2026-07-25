@@ -3,26 +3,33 @@ import { Scale, Target, UserX, Wallet } from 'lucide-react';
 import { formatRupiah } from '@/lib/money';
 import { GradientStatRow } from './GradientStat';
 import { ExitedDriversDialog } from './ExitedDriversDialog';
-import type { ExitedDriver, GlobalSummary } from '../types';
+import type { DayFilterSummary, ExitedDriver, GlobalSummary } from '../types';
 
 // "Bulan ini: +Rp X (nambah) / −Rp X (berkurang) / Rp 0 (tetap)" — the selected
 // month's delta of the cumulative outstanding (legacy dashboard card caption).
-function monthDeltaLabel(delta: number): string {
-  if (delta > 0) return `Bulan ini: +${formatRupiah(delta)} (nambah)`;
-  if (delta < 0) return `Bulan ini: −${formatRupiah(Math.abs(delta))} (berkurang)`;
-  return `Bulan ini: ${formatRupiah(0)} (tetap)`;
+// With a Tanggal filter the delta covers only days 1..D of the month.
+function monthDeltaLabel(delta: number, day?: number): string {
+  const scope = day ? `Bulan ini (s/d tgl ${day})` : 'Bulan ini';
+  if (delta > 0) return `${scope}: +${formatRupiah(delta)} (nambah)`;
+  if (delta < 0) return `${scope}: −${formatRupiah(Math.abs(delta))} (berkurang)`;
+  return `${scope}: ${formatRupiah(0)} (tetap)`;
 }
 
 // Gojek monthly summary — Total Setoran / Due / Outstanding / Driver Keluar
 // (legacy cards). Outstanding partitions: exited plates report on their own
 // card, not in Total Outstanding. When `exitedDrivers` is provided the red
-// card is clickable and opens the per-driver debt list.
+// card is clickable and opens the per-driver debt list. When `dayFilter` is
+// present (Tanggal filter active) the first three cards show the cumulative
+// position at that day, plus the day's own setoran; the Driver Keluar card is
+// all-time by definition and never changes.
 export function SummaryCards({
   summary,
+  dayFilter,
   exitedDrivers,
   lastImportDate,
 }: {
   summary: GlobalSummary;
+  dayFilter?: DayFilterSummary;
   exitedDrivers?: ExitedDriver[];
   lastImportDate?: string | null;
 }) {
@@ -34,26 +41,36 @@ export function SummaryCards({
         cards={[
           {
             label: 'Total Setoran',
-            value: summary.totalDeduction,
+            value: dayFilter ? dayFilter.cumulative.totalDeduction : summary.totalDeduction,
             icon: Wallet,
             gradient: 'from-blue-500 to-sky-400',
+            ...(dayFilter
+              ? {
+                  sub: `Tanggal ${dayFilter.day}: ${formatRupiah(dayFilter.selectedDay.totalDeduction)}`,
+                  note: `Kumulatif s/d tanggal ${dayFilter.day}`,
+                }
+              : {}),
           },
           {
             label: 'Total Target (Due)',
-            value: summary.totalDue,
+            value: dayFilter ? dayFilter.cumulative.totalDue : summary.totalDue,
             icon: Target,
             gradient: 'from-emerald-500 to-green-400',
+            ...(dayFilter ? { note: `Target s/d tanggal ${dayFilter.day}` } : {}),
           },
           {
             // Headline = accumulated outstanding from the first month of data up
-            // to the selected month; the caption shows this month's own delta.
+            // to the selected month (or day D); the caption shows the month's
+            // own delta over the same window.
             label: 'Total Outstanding / Gap',
-            value: summary.totalOutstanding,
+            value: dayFilter ? dayFilter.cumulative.totalOutstanding : summary.totalOutstanding,
             icon: Scale,
             gradient: 'from-orange-500 to-amber-400',
             // `?? 0` keeps the caption sane against a backend that predates the
             // field (FE-ahead-of-BE deploy window).
-            sub: monthDeltaLabel(summary.totalOutstandingMonth ?? 0),
+            sub: dayFilter
+              ? monthDeltaLabel(dayFilter.cumulative.totalOutstandingMonth, dayFilter.day)
+              : monthDeltaLabel(summary.totalOutstandingMonth ?? 0),
             note: 'Hanya driver aktif — driver keluar dihitung terpisah',
           },
           {

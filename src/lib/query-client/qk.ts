@@ -38,8 +38,6 @@ export const qk = {
       ['fleet', p.platform, 'cell', p] as const,
     imports: (platform: Platform) => ['fleet', platform, 'imports'] as const,
     importStatus: (platform: Platform, id: string) => ['fleet', platform, 'imports', id] as const,
-    performers: (p: { platform: Platform; month: number; year: number }) =>
-      ['fleet', p.platform, 'performers', p] as const,
     summary: (p: {
       platform: Platform;
       month: number;

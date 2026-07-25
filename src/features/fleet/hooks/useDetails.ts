@@ -70,7 +70,7 @@ export function useEditDriver(platform: Platform) {
       // detail edits change the pivot AND every aggregate (re-plating merges a
       // manual row into a plate; setoran toggle moves money in/out of the
       // counted totals) — refresh the whole platform family: grid, cell,
-      // summary, performers, detail.
+      // summary, detail.
       qc.invalidateQueries({ queryKey: ['fleet', platform] });
     },
   });
