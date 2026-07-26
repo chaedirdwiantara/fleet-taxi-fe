@@ -30,8 +30,16 @@ export type FleetRow = {
   days: Record<number, DayCellValue | undefined>; // sparse map keyed by day
   summary: {
     totalDeduction: number;
-    calculatedTarget: number; // "Total Due (Target)"
+    // "Total Due (Target)": Σ of the due rows actually imported this month.
+    // Days that have not elapsed, were never imported, or predate the plate's
+    // first billing are not charged.
+    calculatedTarget: number;
     gap: number; // totalDeduction - calculatedTarget
+    // The span calculatedTarget covers, so the cell can explain the figure.
+    // Optional: a backend that predates the field simply renders no caption.
+    billedDays?: number;
+    billFromDay?: number | null;
+    billToDay?: number | null;
     // "Outstanding Total": cumulative Σdue − Σpaid from the plate's first
     // imported row up to the END of the selected month (negative = credit).
     outstanding: number;
@@ -44,6 +52,11 @@ export type FleetRow = {
   // reappears). exitedLastSeen = last import date it was seen (YYYY-MM-DD).
   isExited: boolean;
   exitedLastSeen: string | null;
+  // Plate first appeared inside the selected month, so a smaller Total Due
+  // reflects a shorter month rather than underpayment. Optional for the same
+  // deploy-window reason as above.
+  isNewJoiner?: boolean;
+  joinDate?: string | null; // YYYY-MM-DD of its first imported transaction
 };
 
 // One Setoran target value and the day range it was active (backend RLE).

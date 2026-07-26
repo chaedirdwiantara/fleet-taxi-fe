@@ -107,6 +107,51 @@ describe('GojekMonitoringTable (faithful legacy pivot)', () => {
     expect(screen.getByText('Tanpa Plat')).toBeInTheDocument();
   });
 
+  it('captions Total Due with the days it was actually billed', () => {
+    const base = makeGojekGrid(6, 2026, 3) as unknown as FleetGrid;
+    const row: FleetGrid['rows'][number] = {
+      ...base.rows[0],
+      summary: { ...base.rows[0].summary, billedDays: 4, billFromDay: 21, billToDay: 24 },
+    };
+    render(<GojekMonitoringTable grid={{ ...base, rows: [row] }} onCellClick={vi.fn()} />);
+    expect(screen.getByText('21–24 · 4 hari')).toBeInTheDocument();
+  });
+
+  it('says so plainly when a plate carries no bill at all', () => {
+    const base = makeGojekGrid(6, 2026, 3) as unknown as FleetGrid;
+    const row: FleetGrid['rows'][number] = {
+      ...base.rows[0],
+      summary: { ...base.rows[0].summary, billedDays: 0, billFromDay: null, billToDay: null },
+    };
+    render(<GojekMonitoringTable grid={{ ...base, rows: [row] }} onCellClick={vi.fn()} />);
+    expect(screen.getByText('Belum ada tagihan')).toBeInTheDocument();
+  });
+
+  it('omits the caption entirely against a backend that predates the fields', () => {
+    const base = makeGojekGrid(6, 2026, 3) as unknown as FleetGrid;
+    const {
+      billedDays: _b,
+      billFromDay: _f,
+      billToDay: _t,
+      ...legacySummary
+    } = base.rows[0].summary;
+    const row: FleetGrid['rows'][number] = { ...base.rows[0], summary: legacySummary };
+    render(<GojekMonitoringTable grid={{ ...base, rows: [row] }} onCellClick={vi.fn()} />);
+    expect(screen.queryByText(/hari$/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Belum ada tagihan')).not.toBeInTheDocument();
+  });
+
+  it('badges a plate that first appeared this month as Baru', () => {
+    const base = makeGojekGrid(6, 2026, 3) as unknown as FleetGrid;
+    const row: FleetGrid['rows'][number] = {
+      ...base.rows[0],
+      isNewJoiner: true,
+      joinDate: '2026-06-21',
+    };
+    render(<GojekMonitoringTable grid={{ ...base, rows: [row] }} onCellClick={vi.fn()} />);
+    expect(screen.getByText('Baru')).toBeInTheDocument();
+  });
+
   it('partner (readOnly) variant drops Rental Partner, shows Driver, and fires Kelola Jadwal', async () => {
     const user = userEvent.setup();
     const onManageException = vi.fn();

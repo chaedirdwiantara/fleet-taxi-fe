@@ -56,7 +56,9 @@ export function SummaryCards({
             value: dayFilter ? dayFilter.cumulative.totalDue : summary.totalDue,
             icon: Target,
             gradient: 'from-emerald-500 to-green-400',
-            ...(dayFilter ? { note: `Target s/d tanggal ${dayFilter.day}` } : {}),
+            note: dayFilter
+              ? `Target s/d tanggal ${dayFilter.day}`
+              : 'Dari baris due yang terimpor — hari tanpa data tidak ditagih',
           },
           {
             // Headline = accumulated outstanding from the first month of data up

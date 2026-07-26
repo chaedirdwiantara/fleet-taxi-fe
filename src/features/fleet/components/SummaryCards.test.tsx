@@ -72,5 +72,9 @@ describe('SummaryCards — Tanggal filter (dayFilter)', () => {
     expect(screen.getByText('Rp 1.000.000')).toBeInTheDocument();
     expect(screen.getByText(/Bulan ini: \+Rp 40\.000/)).toBeInTheDocument();
     expect(screen.queryByText(/s\/d tanggal/)).toBeNull();
+    // the Target card explains where its number comes from
+    expect(
+      screen.getByText('Dari baris due yang terimpor — hari tanpa data tidak ditagih'),
+    ).toBeInTheDocument();
   });
 });

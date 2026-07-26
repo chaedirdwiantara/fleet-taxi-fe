@@ -84,7 +84,6 @@ function buildGojekRow(i: number, month: number, year: number, dim: number) {
 
   const days: Record<number, GojekDay> = {};
   let totalDeduction = 0;
-  let deductionDays = 0;
 
   for (let d = 1; d <= dim; d++) {
     const r = rand();
@@ -133,7 +132,6 @@ function buildGojekRow(i: number, month: number, year: number, dim: number) {
       };
       if (!displayOnly) {
         totalDeduction += amount;
-        deductionDays += 1;
       }
       continue;
     }
@@ -174,7 +172,6 @@ function buildGojekRow(i: number, month: number, year: number, dim: number) {
         },
       };
       totalDeduction += counted;
-      deductionDays += 1;
       continue;
     }
 
@@ -205,31 +202,44 @@ function buildGojekRow(i: number, month: number, year: number, dim: number) {
           : null,
     };
     totalDeduction += amount;
-    if (amount > 0) deductionDays += 1;
   }
 
-  const calculatedTarget = dailyTarget * deductionDays;
+  // Every 13th vehicle first appears mid-month (a new joiner): the days before
+  // it joined carry no due row at all, exactly like the backend produces.
+  const isNewJoiner = i % 13 === 4;
+  const billFromDay = isNewJoiner ? Math.min(dim, 12 + (i % 9)) : 1;
+  const joinDate = isNewJoiner
+    ? `${year}-${String(month).padStart(2, '0')}-${String(billFromDay).padStart(2, '0')}`
+    : null;
+
+  // Every 9th vehicle's target changed mid-month → multiple Setoran segments;
+  // everyone else keeps a single constant-value segment (like the backend RLE).
+  const splitDay = 8;
+  const dailyDue: Record<number, number> = {};
+  for (let d = billFromDay; d <= dim; d++) {
+    dailyDue[d] = i % 9 === 0 && d < splitDay ? dailyTarget + 20000 : dailyTarget;
+  }
+  const dueDays = Object.keys(dailyDue).map(Number);
+  // RLE over the billed days, mirroring the backend's encodeDueSegments.
+  const dueSegments = dueDays.reduce<{ amount: number; fromDay: number; toDay: number }[]>(
+    (segs, d) => {
+      const last = segs[segs.length - 1];
+      if (last && last.amount === dailyDue[d]) last.toDay = d;
+      else segs.push({ amount: dailyDue[d], fromDay: d, toDay: d });
+      return segs;
+    },
+    [],
+  );
+
+  // Total Due IS the sum of the billed dues — the same identity the backend
+  // enforces, so outstandingMonth below can be derived from it.
+  const calculatedTarget = dueDays.reduce((sum, d) => sum + dailyDue[d], 0);
   const gap = totalDeduction - calculatedTarget;
   // Bln Ini = this month's delta; Total additionally carries a deterministic
   // balance from earlier months for some vehicles (mirrors the cumulative BE).
   const outstandingMonth = calculatedTarget - totalDeduction;
   const carryOver = i % 4 === 0 ? 350_000 : i % 7 === 0 ? -120_000 : 0;
   const outstanding = outstandingMonth + carryOver;
-
-  // Every 9th vehicle's target changed mid-month → multiple Setoran segments;
-  // everyone else keeps a single constant-value segment (like the backend RLE).
-  const splitDay = 8;
-  const dailyDue: Record<number, number> = {};
-  for (let d = 1; d <= dim; d++) {
-    dailyDue[d] = i % 9 === 0 && d < splitDay ? dailyTarget + 20000 : dailyTarget;
-  }
-  const dueSegments =
-    i % 9 === 0
-      ? [
-          { amount: dailyTarget + 20000, fromDay: 1, toDay: splitDay - 1 },
-          { amount: dailyTarget, fromDay: splitDay, toDay: dim },
-        ]
-      : [{ amount: dailyTarget, fromDay: 1, toDay: dim }];
 
   // Every 11th vehicle stopped appearing in imports → driver keluar.
   const isExited = i % 11 === 5;
@@ -251,10 +261,21 @@ function buildGojekRow(i: number, month: number, year: number, dim: number) {
     dailyDue,
     dueSegments,
     days,
-    summary: { totalDeduction, calculatedTarget, gap, outstanding, outstandingMonth },
+    summary: {
+      totalDeduction,
+      calculatedTarget,
+      gap,
+      billedDays: dueDays.length,
+      billFromDay: dueDays.length > 0 ? dueDays[0] : null,
+      billToDay: dueDays.length > 0 ? dueDays[dueDays.length - 1] : null,
+      outstanding,
+      outstandingMonth,
+    },
     driverHistory: [DRIVERS[i % DRIVERS.length], DRIVERS[(i + 3) % DRIVERS.length]],
     isExited,
     exitedLastSeen,
+    isNewJoiner,
+    joinDate,
   };
 }
 
@@ -439,18 +460,35 @@ export function makeDriverActivity(grid: GojekGridFixture, day?: number) {
 }
 
 // Tanggal-filter aggregates: cumulative figures truncated at `day` + that
-// day's own setoran. Mocks only need shape + monotonicity, not SQL parity —
-// totalDue is prorated per day, outstanding scales the month delta linearly.
+// day's own setoran. totalDue and the outstanding delta are real prefix sums
+// over the same per-day series the grid exposes, so the backend invariant
+// (at day === daysInMonth the cumulative block equals the whole month) holds
+// in the mocks too — a prorated approximation would quietly break it.
 export function makeDayFilter(grid: GojekGridFixture, day: number) {
   let cumDeduction = 0;
-  for (let d = 1; d <= day; d++) cumDeduction += grid.dailyTotals[d] ?? 0;
-  const ratio = day / grid.daysInMonth;
-  const monthDeltaToDay = Math.round(grid.tableTotals.outstandingMonth * ratio);
+  let cumDue = 0;
+  for (let d = 1; d <= day; d++) {
+    cumDeduction += grid.dailyTotals[d] ?? 0;
+    cumDue += grid.rows.reduce((sum, r) => sum + (r.dailyDue[d] ?? 0), 0);
+  }
+  // Same partitioning as the whole-month totals: exited plates report under
+  // the Driver Keluar card instead.
+  let paidToDay = 0;
+  for (const r of grid.rows) {
+    if (r.isExited) continue;
+    for (let d = 1; d <= day; d++) paidToDay += r.days[d]?.countedAmount ?? 0;
+  }
+  let dueToDayActive = 0;
+  for (const r of grid.rows) {
+    if (r.isExited) continue;
+    for (let d = 1; d <= day; d++) dueToDayActive += r.dailyDue[d] ?? 0;
+  }
+  const monthDeltaToDay = dueToDayActive - paidToDay;
   return {
     day,
     cumulative: {
       totalDeduction: cumDeduction,
-      totalDue: Math.round(grid.tableTotals.totalDue * ratio),
+      totalDue: cumDue,
       totalOutstanding:
         grid.tableTotals.outstanding - grid.tableTotals.outstandingMonth + monthDeltaToDay,
       totalOutstandingMonth: monthDeltaToDay,
