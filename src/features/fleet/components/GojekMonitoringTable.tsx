@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
 import { CalendarClock } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { cellTone, toneClass, toneClickable } from '../lib/thresholds';
 import { formatDateID, monthYearLabelID } from '@/lib/datetime';
 import { formatNumberID, formatRupiah } from '@/lib/money';
-import type { FleetGrid } from '../types';
+import type { FleetGrid, FleetRow } from '../types';
 import { groupRowSpans, identityWidth, stickyLefts, type IdentityCol } from './stickyGrid';
 
 // Faithful port of the legacy Gojek pivot (_table.blade.php): two-row sticky
@@ -52,6 +53,33 @@ const HEAD_BG = 'bg-primary text-primary-foreground';
 const SUMMARY_BG = 'bg-green-600 text-white';
 const nf = formatNumberID;
 const rp = formatRupiah;
+
+// Same sky tint the driver/rental badges use for "in progress" states
+// (features/partner/driver/components/StatusBadge.tsx).
+const NEW_JOINER_TINT =
+  'border-transparent bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-400';
+
+// Total Due is the sum of the days that were actually billed, so the cell says
+// which days those were. A backend that predates the fields renders no caption
+// rather than a wrong one.
+function billedSpan(row: FleetRow): { caption: string | null; title: string | undefined } {
+  const { billedDays, billFromDay, billToDay } = row.summary;
+  if (billedDays === undefined) return { caption: null, title: undefined };
+  if (billedDays === 0) {
+    return {
+      caption: 'Belum ada tagihan',
+      title: 'Belum ada baris due yang terimpor untuk periode ini.',
+    };
+  }
+  const span =
+    billFromDay != null && billToDay != null && billFromDay !== billToDay
+      ? `${billFromDay}–${billToDay}`
+      : `${billFromDay}`;
+  return {
+    caption: `${span} · ${billedDays} hari`,
+    title: `Total dari ${billedDays} hari yang ditagih (tgl ${span}). Hari tanpa baris due — belum berjalan, belum diimpor, atau bebas setoran — tidak ditagih.`,
+  };
+}
 
 type Props = {
   grid: FleetGrid;
@@ -170,6 +198,7 @@ export function GojekMonitoringTable({
         <tbody>
           {grid.rows.map((row, idx) => {
             const gap = row.summary.gap;
+            const billed = billedSpan(row);
             const outstanding = row.summary.outstanding;
             const outstandingMonth = row.summary.outstandingMonth ?? 0;
             const noCol = colAt('no')!;
@@ -215,6 +244,18 @@ export function GojekMonitoringTable({
                     </span>
                   ) : (
                     row.plateRaw
+                  )}
+                  {row.isNewJoiner && (
+                    <Badge
+                      className={cn(NEW_JOINER_TINT, 'mt-0.5 flex')}
+                      title={
+                        row.joinDate
+                          ? `Plat baru — data pertama masuk ${formatDateID(row.joinDate)}. Target hanya dihitung sejak tanggal itu.`
+                          : 'Plat baru bulan ini — target hanya dihitung sejak data pertama.'
+                      }
+                    >
+                      Baru
+                    </Badge>
                   )}
                 </td>
                 <td
@@ -355,8 +396,16 @@ export function GojekMonitoringTable({
                 <td className="border-r border-b border-l-2 border-l-slate-300 bg-white px-2 py-1 text-right tabular-nums dark:bg-slate-950">
                   {rp(row.summary.totalDeduction)}
                 </td>
-                <td className="border-r border-b bg-white px-2 py-1 text-right tabular-nums dark:bg-slate-950">
+                <td
+                  className="border-r border-b bg-white px-2 py-1 text-right tabular-nums dark:bg-slate-950"
+                  title={billed.title}
+                >
                   {rp(row.summary.calculatedTarget)}
+                  {billed.caption && (
+                    <span className="block text-xs font-normal text-slate-500 dark:text-slate-400">
+                      {billed.caption}
+                    </span>
+                  )}
                 </td>
                 <td
                   className={cn(
