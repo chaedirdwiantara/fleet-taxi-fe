@@ -11,6 +11,7 @@ import { ImportHistoryDialog } from '@/features/fleet/components/ImportHistoryDi
 import { ExceptionPanel } from '@/features/fleet/components/ExceptionPanel';
 import { ManualPaymentEditor } from '@/features/fleet/components/ManualPaymentEditor';
 import { RawDataPanel } from '@/features/fleet/components/RawDataPanel';
+import { ViewModeToggle } from '@/features/fleet/components/ViewModeToggle';
 import { useGojekGridQuery } from '@/features/fleet/hooks/useFleetQueries';
 import {
   fleetSearchSchema,
@@ -51,6 +52,7 @@ function GojekGridPage() {
     year: search.year,
     rentalPartner: search.rentalPartner,
     plate: search.plate,
+    mode: search.mode,
   });
 
   const openCell = useCallback(
@@ -82,8 +84,9 @@ function GojekGridPage() {
         <div>
           <h2 className="text-lg font-semibold">Fleet Monitoring — Gojek</h2>
           <p className="text-sm text-muted-foreground">
-            Rekonsiliasi setoran per kendaraan · hanya plat yang didaftarkan partner ·{' '}
-            {grid.data?.rows.length ?? '…'} kendaraan
+            Rekonsiliasi setoran per {search.mode === 'driver' ? 'driver' : 'kendaraan'} · hanya
+            plat yang didaftarkan partner · {grid.data?.rows.length ?? '…'}{' '}
+            {search.mode === 'driver' ? 'driver' : 'kendaraan'}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -95,8 +98,11 @@ function GojekGridPage() {
         </div>
       </div>
 
-      <FilterBar search={search} rentalPartnerOptions={partnerOptions} onChange={patchSearch} />
-      <CellLegend />
+      <div className="flex flex-wrap items-center gap-2">
+        <ViewModeToggle mode={search.mode} onChange={(mode) => patchSearch({ mode })} />
+        <FilterBar search={search} rentalPartnerOptions={partnerOptions} onChange={patchSearch} />
+      </div>
+      <CellLegend mode={search.mode} />
 
       {grid.isPending && <p className="text-sm text-muted-foreground">Memuat grid…</p>}
       {grid.isError && (
@@ -114,6 +120,7 @@ function GojekGridPage() {
           <GojekMonitoringTable
             grid={grid.data}
             onCellClick={openCell}
+            mode={search.mode}
             emptyMessage="Tidak ada data untuk periode / filter ini — tabel hanya menampilkan plat yang didaftarkan partner melalui menu Daftarkan Plat."
           />
         </div>
@@ -125,6 +132,7 @@ function GojekGridPage() {
           day={cell.day}
           month={search.month}
           year={search.year}
+          mode={search.mode}
           onClose={closeCell}
           onEditDetail={setEditingDetailId}
         />

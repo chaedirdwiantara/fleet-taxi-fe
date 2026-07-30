@@ -9,6 +9,10 @@ export type GrabRow = {
   tiering: string;
   vehicleType: string;
   driverPhone: string;
+  // Mirror of the plate view's single driver: the plates behind this row (its
+  // own in plate mode, all of them in driver mode). Optional so the grid
+  // tolerates a backend that predates the field.
+  plateHistory?: { plate: string; city: string }[];
   days: Record<number, { earning: number } | undefined>;
   summary: {
     earning: number;

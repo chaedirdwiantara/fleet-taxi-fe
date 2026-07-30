@@ -6,6 +6,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { formatRupiah } from '@/lib/money';
+import type { MonitoringMode } from '@/features/fleet/searchSchema';
 import { useGrabDriverDetailQuery, usePartnerGrabDriverDetailQuery } from './hooks';
 
 // Legacy Grab "eye" modal — whole-month performance detail for one driver.
@@ -26,36 +27,45 @@ export function GrabCellModal({
   year,
   onClose,
   scope = 'admin',
+  mode = 'plate',
 }: {
+  // `plate|city|driver`, or `drv:<NAME>` when the grid is read per driver.
   compositeKey: string;
   month: number;
   year: number;
   onClose: () => void;
   scope?: 'admin' | 'partner';
+  // Must match the grid the row came from — the backend resolves the key against
+  // a grid built in that mode.
+  mode?: MonitoringMode;
 }) {
   const adminQuery = useGrabDriverDetailQuery({
     compositeKey,
     month,
     year,
+    mode,
     enabled: scope === 'admin',
   });
   const partnerQuery = usePartnerGrabDriverDetailQuery({
     compositeKey,
     month,
     year,
+    mode,
     enabled: scope === 'partner',
   });
   const detail = scope === 'partner' ? partnerQuery : adminQuery;
-  const [plate, city, driver] = compositeKey.split('|');
+  // A driver row spans plates and cities, so its subtitle names the person and
+  // lets the resolved detail supply the vehicle.
+  const [plate, city, driver] = compositeKey.startsWith('drv:')
+    ? [detail.data?.plateNumber ?? '', '', compositeKey.slice(4) || 'Tanpa nama driver']
+    : compositeKey.split('|');
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-md p-0">
         <DialogHeader className="px-4 pt-4">
           <DialogTitle>Performance Detail</DialogTitle>
-          <DialogDescription>
-            {driver} · {plate} · {city}
-          </DialogDescription>
+          <DialogDescription>{[driver, plate, city].filter(Boolean).join(' · ')}</DialogDescription>
         </DialogHeader>
 
         {detail.isPending && (

@@ -6,6 +6,7 @@ const fleetSearchDefaults = {
   month: currentMonthWIB(),
   year: currentYearWIB(),
   rentalPartner: [] as string[],
+  mode: 'plate' as const, // rows per plate — the default reading mode
 };
 
 // Root: route by whichever session resolves. Admin console takes precedence;

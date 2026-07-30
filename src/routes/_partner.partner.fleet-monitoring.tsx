@@ -9,6 +9,7 @@ import { SummaryCards } from '@/features/fleet/components/SummaryCards';
 import { FleetChartsPanel } from '@/features/fleet/components/FleetChartsPanel';
 import { MonthYearPicker } from '@/features/fleet/components/MonthYearPicker';
 import { DaySelect } from '@/features/fleet/components/DaySelect';
+import { ViewModeToggle } from '@/features/fleet/components/ViewModeToggle';
 import { daysInMonth } from '@/lib/datetime';
 import {
   usePartnerGojekGridQuery,
@@ -51,7 +52,12 @@ function PartnerGojekPage() {
   const effectiveDay =
     search.day && search.day <= daysInMonth(search.month, search.year) ? search.day : undefined;
 
-  const grid = usePartnerGojekGridQuery({ month: search.month, year: search.year });
+  const grid = usePartnerGojekGridQuery({
+    month: search.month,
+    year: search.year,
+    mode: search.mode,
+  });
+  // Cards & charts stay plate-based: they describe the fleet, not individuals.
   const summary = usePartnerGojekSummaryQuery({
     month: search.month,
     year: search.year,
@@ -75,10 +81,12 @@ function PartnerGojekPage() {
         <div>
           <h2 className="text-lg font-semibold">Fleet Monitoring — Gojek</h2>
           <p className="text-sm text-muted-foreground">
-            Setoran untuk plat yang Anda daftarkan · {grid.data?.rows.length ?? '…'} kendaraan
+            Setoran untuk plat yang Anda daftarkan · {grid.data?.rows.length ?? '…'}{' '}
+            {search.mode === 'driver' ? 'driver' : 'kendaraan'}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+          <ViewModeToggle mode={search.mode} onChange={(mode) => setPeriod({ mode })} />
           <DaySelect
             day={effectiveDay}
             month={search.month}
@@ -116,7 +124,7 @@ function PartnerGojekPage() {
         </div>
       )}
 
-      <CellLegend />
+      <CellLegend mode={search.mode} />
 
       {grid.isPending && <p className="text-sm text-muted-foreground">Memuat grid…</p>}
       {grid.isError && (
@@ -142,6 +150,7 @@ function PartnerGojekPage() {
             onCellClick={openCell}
             onManageException={openException}
             readOnly
+            mode={search.mode}
           />
         </div>
       )}
@@ -153,6 +162,7 @@ function PartnerGojekPage() {
           day={cell.day}
           month={search.month}
           year={search.year}
+          mode={search.mode}
           onClose={closeCell}
         />
       )}

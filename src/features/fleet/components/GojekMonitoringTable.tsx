@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { cellTone, toneClass, toneClickable } from '../lib/thresholds';
 import { formatDateID, monthYearLabelID } from '@/lib/datetime';
 import { formatNumberID, formatRupiah } from '@/lib/money';
+import type { MonitoringMode } from '../searchSchema';
 import type { FleetGrid, FleetRow } from '../types';
 import { groupRowSpans, identityWidth, stickyLefts, type IdentityCol } from './stickyGrid';
 
@@ -21,6 +22,11 @@ import { groupRowSpans, identityWidth, stickyLefts, type IdentityCol } from './s
 //    (own plates only; Aksi = Kelola Jadwal on the partner's own plates)
 // Driver history is rendered inline as its own frozen column (one name per
 // line), replacing the legacy "Histori Driver" modal.
+//
+// `mode: 'driver'` mirrors those layouts around the subject: the row becomes a
+// person, so Driver moves into the identity slot and the Plate column lists the
+// plates they drove. Plate-level affordances (Aksi = Kelola Jadwal, the "Baru"
+// badge) are dropped — they act on a vehicle, not on a person.
 
 const IDENTITY_ADMIN: IdentityCol[] = [
   { id: 'no', label: 'No', width: 44 },
@@ -37,6 +43,19 @@ const IDENTITY_PARTNER: IdentityCol[] = [
   { id: 'driver', label: 'Driver', width: 152 },
   { id: 'setoran', label: 'Setoran', width: 82 },
   { id: 'aksi', label: 'Aksi', width: 56 },
+];
+const IDENTITY_ADMIN_DRIVER: IdentityCol[] = [
+  { id: 'no', label: 'No', width: 44 },
+  { id: 'rentalPartner', label: 'Rental Partner', width: 130 },
+  { id: 'driver', label: 'Driver', width: 160 },
+  { id: 'plate', label: 'Plat', width: 104 },
+  { id: 'setoran', label: 'Setoran', width: 78 },
+];
+const IDENTITY_PARTNER_DRIVER: IdentityCol[] = [
+  { id: 'no', label: 'No', width: 44 },
+  { id: 'driver', label: 'Driver', width: 168 },
+  { id: 'plate', label: 'Plat', width: 112 },
+  { id: 'setoran', label: 'Setoran', width: 82 },
 ];
 const DAY_W = 62;
 const SUMMARY: IdentityCol[] = [
@@ -90,6 +109,9 @@ type Props = {
   // readOnly = partner portal layout: drops the cross-partner Rental Partner
   // column and gains the own-plate Aksi column.
   readOnly?: boolean;
+  // Row subject. Defaults to the plate view; 'driver' swaps the identity columns
+  // (and comes from the backend already grouped that way).
+  mode?: MonitoringMode;
   // Surface-specific empty-state copy (e.g. the admin grid explains that only
   // partner-registered plates appear).
   emptyMessage?: string;
@@ -100,22 +122,29 @@ export function GojekMonitoringTable({
   onCellClick,
   onManageException,
   readOnly = false,
+  mode = 'plate',
   emptyMessage = 'Tidak ada data untuk periode / filter ini.',
 }: Props) {
-  const identity = useMemo(() => (readOnly ? IDENTITY_PARTNER : IDENTITY_ADMIN), [readOnly]);
+  const byDriver = mode === 'driver';
+  const identity = useMemo(
+    () =>
+      byDriver
+        ? readOnly
+          ? IDENTITY_PARTNER_DRIVER
+          : IDENTITY_ADMIN_DRIVER
+        : readOnly
+          ? IDENTITY_PARTNER
+          : IDENTITY_ADMIN,
+    [byDriver, readOnly],
+  );
   const lefts = useMemo(() => stickyLefts(identity), [identity]);
   const idW = useMemo(() => identityWidth(identity), [identity]);
   const rpSpans = useMemo(() => groupRowSpans(grid.rows, (r) => r.rentalPartner), [grid.rows]);
   const days = Array.from({ length: grid.daysInMonth }, (_, i) => i + 1);
   const monthLabel = monthYearLabelID(grid.month, grid.year);
 
-  // Per-column sticky offset/width, driven by which identity columns are shown
-  // (so partner vs admin layouts reindex correctly).
-  const colAt = (id: IdentityCol['id']) => {
-    const i = identity.findIndex((c) => c.id === id);
-    if (i === -1) return null;
-    return { left: lefts[i], width: identity[i].width, isLast: i === identity.length - 1 };
-  };
+  // Sticky offsets come from the identity array itself, so the partner/admin ×
+  // plate/driver layouts all reindex without any per-column bookkeeping.
   const stickyBase = 'sticky z-10 border-b bg-white group-hover:bg-slate-50 dark:bg-slate-950';
   const lastBorder = (isLast: boolean) => (isLast ? 'border-r-2 border-r-slate-300' : 'border-r');
 
@@ -201,155 +230,217 @@ export function GojekMonitoringTable({
             const billed = billedSpan(row);
             const outstanding = row.summary.outstanding;
             const outstandingMonth = row.summary.outstandingMonth ?? 0;
-            const noCol = colAt('no')!;
-            const rpCol = colAt('rentalPartner');
-            const plateCol = colAt('plate')!;
-            const typeCol = colAt('type')!;
-            const driverCol = colAt('driver')!;
-            const setoranCol = colAt('setoran')!;
-            const aksiCol = colAt('aksi');
             return (
               <tr key={row.plateNorm} className="group">
-                <td
-                  className={cn(
-                    stickyBase,
-                    'px-2 py-1 text-center text-slate-500',
-                    lastBorder(noCol.isLast),
-                  )}
-                  style={{ left: noCol.left, width: noCol.width }}
-                >
-                  {idx + 1}
-                </td>
-                {rpCol && rpSpans[idx] !== undefined && (
-                  <td
-                    rowSpan={rpSpans[idx]}
-                    className="sticky z-10 border-r border-b bg-slate-50 px-2 py-1 text-center align-middle font-semibold dark:bg-slate-900"
-                    style={{ left: rpCol.left, width: rpCol.width }}
-                  >
-                    {row.rentalPartner || '-'}
-                  </td>
-                )}
-                <td
-                  className={cn(
-                    stickyBase,
-                    'truncate px-2 py-1 text-center font-semibold',
-                    lastBorder(plateCol.isLast),
-                  )}
-                  style={{ left: plateCol.left, width: plateCol.width, maxWidth: plateCol.width }}
-                  title={row.detailId !== null ? 'Manual Payment tanpa plat' : row.plateRaw}
-                >
-                  {row.detailId !== null ? (
-                    <span className="rounded bg-purple-600/15 px-1.5 py-0.5 text-xs font-medium text-purple-700 dark:bg-purple-600/25 dark:text-purple-300">
-                      Tanpa Plat
-                    </span>
-                  ) : (
-                    row.plateRaw
-                  )}
-                  {row.isNewJoiner && (
-                    <Badge
-                      className={cn(NEW_JOINER_TINT, 'mt-0.5 flex')}
-                      title={
-                        row.joinDate
-                          ? `Plat baru — data pertama masuk ${formatDateID(row.joinDate)}. Target hanya dihitung sejak tanggal itu.`
-                          : 'Plat baru bulan ini — target hanya dihitung sejak data pertama.'
-                      }
-                    >
-                      Baru
-                    </Badge>
-                  )}
-                </td>
-                <td
-                  className={cn(
-                    stickyBase,
-                    'truncate px-2 py-1 text-center text-slate-600 dark:text-slate-300',
-                    lastBorder(typeCol.isLast),
-                  )}
-                  style={{ left: typeCol.left, width: typeCol.width, maxWidth: typeCol.width }}
-                  title={row.vehicleType}
-                >
-                  {row.vehicleType || '-'}
-                </td>
-                <td
-                  className={cn(stickyBase, 'px-2 py-1 text-left', lastBorder(driverCol.isLast))}
-                  style={{
-                    left: driverCol.left,
-                    width: driverCol.width,
-                    maxWidth: driverCol.width,
-                  }}
-                >
-                  {row.driverHistory.length > 0 ? (
-                    <div className="space-y-0.5">
-                      {row.driverHistory.map((name, i) => (
-                        <div key={`${name}-${i}`} className="truncate" title={name}>
-                          {name}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <span className="text-slate-400">-</span>
-                  )}
-                  {row.isExited && (
-                    <span
-                      className="mt-0.5 inline-flex items-center gap-1 rounded bg-red-600 px-1.5 py-0.5 text-xs font-semibold text-white"
-                      title={
-                        row.exitedLastSeen
-                          ? `Driver keluar — terakhir muncul di import: ${formatDateID(row.exitedLastSeen)}`
-                          : 'Driver keluar'
-                      }
-                    >
-                      Keluar
-                      {row.exitedLastSeen && (
-                        <span className="font-normal opacity-90">
-                          · {formatDateID(row.exitedLastSeen)}
-                        </span>
-                      )}
-                    </span>
-                  )}
-                </td>
-                <td
-                  className={cn(
-                    stickyBase,
-                    'px-2 py-1 text-right tabular-nums',
-                    lastBorder(setoranCol.isLast),
-                  )}
-                  style={{ left: setoranCol.left, width: setoranCol.width }}
-                >
-                  {/* target changed mid-month → list every value with its active
-                      day range (legacy due_segments); otherwise the single target */}
-                  {(row.dueSegments?.length ?? 0) > 1 ? (
-                    <div className="space-y-0.5">
-                      {(row.dueSegments ?? []).map((seg) => (
-                        <div key={`${seg.amount}-${seg.fromDay}`} className="whitespace-nowrap">
-                          {nf(seg.amount)}{' '}
-                          <span className="text-xs text-slate-400">
-                            ({seg.fromDay}
-                            {seg.toDay !== seg.fromDay ? `–${seg.toDay}` : ''})
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    nf(row.dailyTarget)
-                  )}
-                </td>
-                {aksiCol && (
-                  <td
-                    className={cn(stickyBase, 'px-1 py-1 text-center', lastBorder(aksiCol.isLast))}
-                    style={{ left: aksiCol.left, width: aksiCol.width }}
-                  >
-                    {onManageException && row.plateRaw !== '' && (
-                      <button
-                        type="button"
-                        aria-label={`Kelola jadwal ${row.plateRaw}`}
-                        title="Kelola Jadwal"
-                        onClick={() => onManageException(row.plateNorm)}
-                        className="inline-flex size-6 items-center justify-center rounded text-indigo-500 hover:bg-slate-200 hover:text-indigo-700 dark:hover:bg-slate-800"
-                      >
-                        <CalendarClock className="size-4" />
-                      </button>
-                    )}
-                  </td>
-                )}
+                {/* Identity cells are emitted in `identity` order, so the header
+                    and the body can never disagree about which column is which
+                    (the two layouts × two modes reorder them). */}
+                {identity.map((col, colIdx) => {
+                  const pos = {
+                    left: lefts[colIdx],
+                    width: col.width,
+                    isLast: colIdx === identity.length - 1,
+                  };
+                  const base = cn(stickyBase, lastBorder(pos.isLast));
+
+                  switch (col.id) {
+                    case 'no':
+                      return (
+                        <td
+                          key={col.id}
+                          className={cn(base, 'px-2 py-1 text-center text-slate-500')}
+                          style={{ left: pos.left, width: pos.width }}
+                        >
+                          {idx + 1}
+                        </td>
+                      );
+
+                    case 'rentalPartner':
+                      // merged run of rows sharing one partner (legacy rowspan)
+                      return rpSpans[idx] === undefined ? null : (
+                        <td
+                          key={col.id}
+                          rowSpan={rpSpans[idx]}
+                          className="sticky z-10 border-r border-b bg-slate-50 px-2 py-1 text-center align-middle font-semibold dark:bg-slate-900"
+                          style={{ left: pos.left, width: pos.width }}
+                        >
+                          {row.rentalPartner || '-'}
+                        </td>
+                      );
+
+                    case 'plate':
+                      return (
+                        <td
+                          key={col.id}
+                          className={cn(
+                            base,
+                            'px-2 py-1 text-center font-semibold',
+                            !byDriver && 'truncate',
+                          )}
+                          style={{ left: pos.left, width: pos.width, maxWidth: pos.width }}
+                          title={
+                            byDriver
+                              ? (row.plateHistory ?? []).join(', ')
+                              : row.detailId !== null
+                                ? 'Manual Payment tanpa plat'
+                                : row.plateRaw
+                          }
+                        >
+                          {byDriver ? (
+                            // Mirror of the Driver column: every plate this person
+                            // drove this month, one per line.
+                            (row.plateHistory ?? []).length > 0 ? (
+                              <div className="space-y-0.5">
+                                {(row.plateHistory ?? []).map((plate) => (
+                                  <div key={plate} className="truncate">
+                                    {plate}
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="font-normal text-slate-400">-</span>
+                            )
+                          ) : row.detailId !== null ? (
+                            <span className="rounded bg-purple-600/15 px-1.5 py-0.5 text-xs font-medium text-purple-700 dark:bg-purple-600/25 dark:text-purple-300">
+                              Tanpa Plat
+                            </span>
+                          ) : (
+                            row.plateRaw
+                          )}
+                          {/* "Baru" is a plate lifecycle fact → plate view only */}
+                          {!byDriver && row.isNewJoiner && (
+                            <Badge
+                              className={cn(NEW_JOINER_TINT, 'mt-0.5 flex')}
+                              title={
+                                row.joinDate
+                                  ? `Plat baru — data pertama masuk ${formatDateID(row.joinDate)}. Target hanya dihitung sejak tanggal itu.`
+                                  : 'Plat baru bulan ini — target hanya dihitung sejak data pertama.'
+                              }
+                            >
+                              Baru
+                            </Badge>
+                          )}
+                        </td>
+                      );
+
+                    case 'type':
+                      return (
+                        <td
+                          key={col.id}
+                          className={cn(
+                            base,
+                            'truncate px-2 py-1 text-center text-slate-600 dark:text-slate-300',
+                          )}
+                          style={{ left: pos.left, width: pos.width, maxWidth: pos.width }}
+                          title={row.vehicleType}
+                        >
+                          {row.vehicleType || '-'}
+                        </td>
+                      );
+
+                    case 'driver':
+                      return (
+                        <td
+                          key={col.id}
+                          className={cn(base, 'px-2 py-1 text-left')}
+                          style={{ left: pos.left, width: pos.width, maxWidth: pos.width }}
+                        >
+                          {/* In driver mode the row IS one person, so the column
+                              shows that name; in plate mode it lists everyone who
+                              drove the plate. */}
+                          {(byDriver ? [row.driverName].filter(Boolean) : row.driverHistory)
+                            .length > 0 ? (
+                            <div className="space-y-0.5">
+                              {(byDriver ? [row.driverName] : row.driverHistory).map((name, i) => (
+                                <div
+                                  key={`${name}-${i}`}
+                                  className={cn('truncate', byDriver && 'font-semibold')}
+                                  title={name}
+                                >
+                                  {name}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-slate-400">
+                              {byDriver ? 'Tanpa nama driver' : '-'}
+                            </span>
+                          )}
+                          {row.isExited && (
+                            <span
+                              className="mt-0.5 inline-flex items-center gap-1 rounded bg-red-600 px-1.5 py-0.5 text-xs font-semibold text-white"
+                              title={
+                                row.exitedLastSeen
+                                  ? `Driver keluar — terakhir muncul di import: ${formatDateID(row.exitedLastSeen)}`
+                                  : 'Driver keluar'
+                              }
+                            >
+                              Keluar
+                              {row.exitedLastSeen && (
+                                <span className="font-normal opacity-90">
+                                  · {formatDateID(row.exitedLastSeen)}
+                                </span>
+                              )}
+                            </span>
+                          )}
+                        </td>
+                      );
+
+                    case 'setoran':
+                      return (
+                        <td
+                          key={col.id}
+                          className={cn(base, 'px-2 py-1 text-right tabular-nums')}
+                          style={{ left: pos.left, width: pos.width }}
+                        >
+                          {/* target changed mid-month → list every value with its
+                              active day range (legacy due_segments) */}
+                          {(row.dueSegments?.length ?? 0) > 1 ? (
+                            <div className="space-y-0.5">
+                              {(row.dueSegments ?? []).map((seg) => (
+                                <div
+                                  key={`${seg.amount}-${seg.fromDay}`}
+                                  className="whitespace-nowrap"
+                                >
+                                  {nf(seg.amount)}{' '}
+                                  <span className="text-xs text-slate-400">
+                                    ({seg.fromDay}
+                                    {seg.toDay !== seg.fromDay ? `–${seg.toDay}` : ''})
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            nf(row.dailyTarget)
+                          )}
+                        </td>
+                      );
+
+                    case 'aksi':
+                      return (
+                        <td
+                          key={col.id}
+                          className={cn(base, 'px-1 py-1 text-center')}
+                          style={{ left: pos.left, width: pos.width }}
+                        >
+                          {onManageException && row.plateRaw !== '' && (
+                            <button
+                              type="button"
+                              aria-label={`Kelola jadwal ${row.plateRaw}`}
+                              title="Kelola Jadwal"
+                              onClick={() => onManageException(row.plateNorm)}
+                              className="inline-flex size-6 items-center justify-center rounded text-indigo-500 hover:bg-slate-200 hover:text-indigo-700 dark:hover:bg-slate-800"
+                            >
+                              <CalendarClock className="size-4" />
+                            </button>
+                          )}
+                        </td>
+                      );
+
+                    default:
+                      return null;
+                  }
+                })}
 
                 {days.map((d) => {
                   const cell = row.days[d];

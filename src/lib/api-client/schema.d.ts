@@ -237,7 +237,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 31-day deposit pivot grid (rows = vehicles) */
+        /** 31-day deposit pivot grid (rows = vehicles, or drivers) */
         get: operations["GojekController_grid"];
         put?: never;
         post?: never;
@@ -375,7 +375,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** 31-day earnings pivot grid (composite key plate|city|driver) */
+        /** 31-day earnings pivot grid (composite key plate|city|driver, or one row per driver) */
         get: operations["GrabController_grid"];
         put?: never;
         post?: never;
@@ -568,6 +568,40 @@ export interface paths {
         post?: never;
         /** Remove one own registered plate */
         delete: operations["PortalPlatesController_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/fleet/all/grid": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Own combined fleet income matrix — Gojek + Grab + Rental per subject per day */
+        get: operations["PortalFleetController_allFleetGrid"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/fleet/all/cell": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Transactions behind one All Fleet cell (subject + day, per source) */
+        get: operations["PortalFleetController_allFleetCell"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -2034,6 +2068,7 @@ export interface operations {
                 month: number;
                 year: number;
                 plate?: string;
+                mode?: "plate" | "driver";
                 rentalPartner?: string[];
             };
             header?: never;
@@ -2055,9 +2090,10 @@ export interface operations {
             query: {
                 month: number;
                 year: number;
-                /** @description Row key: normalized plate or manual_<detailId> */
+                /** @description Row key: normalized plate, or drv:<NAME> when mode=driver */
                 plate: string;
                 day: number;
+                mode?: "plate" | "driver";
             };
             header?: never;
             path?: never;
@@ -2248,6 +2284,7 @@ export interface operations {
                 month: number;
                 year: number;
                 plate?: string;
+                mode?: "plate" | "driver";
                 rentalPartner?: string[];
             };
             header?: never;
@@ -2290,8 +2327,9 @@ export interface operations {
             query: {
                 month: number;
                 year: number;
-                /** @description plate|city|driver */
+                /** @description plate|city|driver, or drv:<NAME> when mode=driver */
                 compositeKey: string;
+                mode?: "plate" | "driver";
                 day?: number;
             };
             header?: never;
@@ -2519,11 +2557,57 @@ export interface operations {
             };
         };
     };
+    PortalFleetController_allFleetGrid: {
+        parameters: {
+            query: {
+                month: number;
+                year: number;
+                mode?: "plate" | "driver";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalFleetController_allFleetCell: {
+        parameters: {
+            query: {
+                month: number;
+                year: number;
+                /** @description Row key: normalized plate, drv:<NAME>, or "residual" for the unattributed row */
+                key: string;
+                day: number;
+                mode?: "plate" | "driver";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     PortalFleetController_gojekGrid: {
         parameters: {
             query: {
                 month: number;
                 year: number;
+                mode?: "plate" | "driver";
             };
             header?: never;
             path?: never;
@@ -2544,9 +2628,10 @@ export interface operations {
             query: {
                 month: number;
                 year: number;
-                /** @description Row key: normalized plate or manual_<detailId> */
+                /** @description Row key: normalized plate, or drv:<NAME> when mode=driver */
                 plate: string;
                 day: number;
+                mode?: "plate" | "driver";
             };
             header?: never;
             path?: never;
@@ -2648,6 +2733,7 @@ export interface operations {
             query: {
                 month: number;
                 year: number;
+                mode?: "plate" | "driver";
             };
             header?: never;
             path?: never;
@@ -2668,8 +2754,9 @@ export interface operations {
             query: {
                 month: number;
                 year: number;
-                /** @description plate|city|driver */
+                /** @description plate|city|driver, or drv:<NAME> when mode=driver */
                 compositeKey: string;
+                mode?: "plate" | "driver";
                 day?: number;
             };
             header?: never;

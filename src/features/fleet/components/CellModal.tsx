@@ -8,6 +8,7 @@ import {
 import { Pencil } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useGojekCellQuery, usePartnerGojekCellQuery } from '../hooks/useFleetQueries';
+import type { MonitoringMode } from '../searchSchema';
 import { monthYearLabelID } from '@/lib/datetime';
 import { formatNumberID as nf } from '@/lib/money';
 
@@ -21,27 +22,42 @@ export function CellModal({
   year,
   onClose,
   scope = 'admin',
+  mode = 'plate',
   onEditDetail,
 }: {
+  // Row key: a normalized plate, or `drv:<NAME>` when the grid is read per driver.
   plate: string;
   day: number;
   month: number;
   year: number;
   onClose: () => void;
   scope?: 'admin' | 'partner';
+  // Must match the grid the cell was clicked in — the backend resolves the row
+  // key against a grid built in that mode.
+  mode?: MonitoringMode;
   // Admin-only: re-open a Manual Payment record in the Proses/Edit form (fix a
   // wrong Masuk/Tidak Masuk Setoran choice). Rendered per backing detail id.
   onEditDetail?: (detailId: number) => void;
 }) {
-  const adminQuery = useGojekCellQuery({ plate, day, month, year, enabled: scope === 'admin' });
+  const adminQuery = useGojekCellQuery({
+    plate,
+    day,
+    month,
+    year,
+    mode,
+    enabled: scope === 'admin',
+  });
   const partnerQuery = usePartnerGojekCellQuery({
     plate,
     day,
     month,
     year,
+    mode,
     enabled: scope === 'partner',
   });
   const breakdown = scope === 'partner' ? partnerQuery : adminQuery;
+  // Driver rows carry the `drv:` prefix internally; the dialog shows the name.
+  const subject = plate.startsWith('drv:') ? plate.slice(4) || 'Tanpa nama driver' : plate;
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
@@ -49,7 +65,7 @@ export function CellModal({
         <DialogHeader>
           <DialogTitle>Detail Transaksi</DialogTitle>
           <DialogDescription>
-            {plate} · {day} {monthYearLabelID(month, year)}
+            {subject} · {day} {monthYearLabelID(month, year)}
           </DialogDescription>
         </DialogHeader>
 

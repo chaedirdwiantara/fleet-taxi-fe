@@ -11,6 +11,7 @@ describe('fleetSearchSchema (URL ⇄ query key, kickoff §4)', () => {
         rentalPartner: ['BHISA'],
         plate: 'B1234',
         cell: 'B1234XYZ:14',
+        mode: 'driver',
       }),
     ).toEqual({
       month: 7,
@@ -18,7 +19,14 @@ describe('fleetSearchSchema (URL ⇄ query key, kickoff §4)', () => {
       rentalPartner: ['BHISA'],
       plate: 'B1234',
       cell: 'B1234XYZ:14',
+      mode: 'driver',
     });
+  });
+
+  it('reads the pivot mode from the URL and falls back to plate', () => {
+    expect(fleetSearchSchema.parse({ mode: 'driver' }).mode).toBe('driver');
+    expect(fleetSearchSchema.parse({ mode: 'nonsense' }).mode).toBe('plate');
+    expect(fleetSearchSchema.parse({}).mode).toBe('plate');
   });
 
   it('falls back to the current WIB period on garbage', () => {

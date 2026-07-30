@@ -48,6 +48,10 @@ export type FleetRow = {
     outstandingMonth?: number;
   };
   driverHistory: string[];
+  // Mirror of driverHistory: the plates behind this row. Plate mode → its own
+  // plate; driver mode → every plate the person drove that month. Optional so
+  // the grid tolerates a backend that predates the field.
+  plateHistory?: string[];
   // Driver keluar: plate stopped appearing in imports (auto-clears when it
   // reappears). exitedLastSeen = last import date it was seen (YYYY-MM-DD).
   isExited: boolean;
