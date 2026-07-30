@@ -36,6 +36,7 @@ import { ApiErrorException } from '@/lib/api-client/client';
 import { cn } from '@/lib/utils';
 import { useCreateInstallment, useDriverOptionsQuery, useUpdateInstallment } from '../hooks';
 import type { InstallmentRule, InstallmentUpsertInput } from '../types';
+import { TitleCombobox } from './TitleCombobox';
 
 // Numeric inputs stay strings in the form (RHF-friendly); toInput() converts.
 const intString = (requiredMsg: string, invalidMsg: string) =>
@@ -130,14 +131,14 @@ export function InstallmentFormDialog({
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{isEdit ? 'Edit Cicilan Deposit' : 'Tambah Cicilan Deposit'}</DialogTitle>
+          <DialogTitle>{isEdit ? 'Edit Cicilan' : 'Tambah Cicilan'}</DialogTitle>
           <DialogDescription>
             Cicilan dipotong otomatis dari surplus setoran harian driver (berdasarkan data import
             Fleet Monitoring) sampai total cicilan (nominal × durasi) terlunasi.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={onSubmit} className="grid gap-4" noValidate>
+          <form onSubmit={onSubmit} className="grid gap-5" noValidate>
             <FormField
               control={form.control}
               name="title"
@@ -145,8 +146,17 @@ export function InstallmentFormDialog({
                 <FormItem>
                   <FormLabel>Judul</FormLabel>
                   <FormControl>
-                    <Input placeholder="cth. Cicilan Deposit Driver Halim" {...field} />
+                    <TitleCombobox
+                      placeholder="cth. Cicilan Deposit Driver Halim"
+                      name={field.name}
+                      value={field.value}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                    />
                   </FormControl>
+                  <FormDescription>
+                    Pilih dari saran atau ketik judul sendiri (mis. E-Tilang, COP, Kontrakan).
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -226,12 +236,15 @@ export function InstallmentFormDialog({
               )}
             />
 
+            {/* `content-start` wajib pada baris 2 kolom: FormItem adalah grid,
+                dan tanpa ini isinya ter-stretch mengikuti sel tertinggi
+                sehingga label/input antar kolom tidak sejajar. */}
             <div className="grid gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="installmentAmount"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="content-start">
                     <FormLabel>Nominal Cicilan (Rp)</FormLabel>
                     <FormControl>
                       <Input type="number" inputMode="numeric" placeholder="25000" {...field} />
@@ -244,7 +257,7 @@ export function InstallmentFormDialog({
                 control={form.control}
                 name="installmentCount"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="content-start">
                     <FormLabel>Durasi (jumlah cicilan)</FormLabel>
                     <FormControl>
                       <Input type="number" inputMode="numeric" placeholder="20" {...field} />
@@ -258,37 +271,37 @@ export function InstallmentFormDialog({
             <div className="grid gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
-                name="minDailySetoran"
+                name="effectiveDate"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Min Setoran Harian (Rp)</FormLabel>
+                  <FormItem className="content-start">
+                    <FormLabel>Tanggal Aktif</FormLabel>
                     <FormControl>
-                      <Input
-                        type="number"
-                        inputMode="numeric"
-                        placeholder="Opsional"
-                        {...field}
-                        value={field.value ?? ''}
-                      />
+                      <Input type="date" {...field} />
                     </FormControl>
-                    <FormDescription>
-                      Setoran wajib harian — tidak diambil untuk cicilan. Hanya surplus di atas
-                      nilai ini yang memotong cicilan (boleh sebagian; kekurangan/kelebihan dibawa
-                      ke hari berikutnya). Kosongkan untuk potong nominal penuh per hari aktif.
-                    </FormDescription>
+                    <FormDescription>Cicilan mulai dipotong dari tanggal ini.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               <FormField
                 control={form.control}
-                name="effectiveDate"
+                name="minDailySetoran"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tanggal Aktif</FormLabel>
+                  <FormItem className="content-start">
+                    <FormLabel>Min Setoran Harian (Rp)</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} />
+                      <Input
+                        type="number"
+                        inputMode="numeric"
+                        placeholder="cth. 100000"
+                        {...field}
+                        value={field.value ?? ''}
+                      />
                     </FormControl>
+                    <FormDescription>
+                      Opsional. Hanya surplus di atas setoran wajib ini yang memotong cicilan;
+                      kosongkan untuk potong nominal penuh per hari aktif.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -300,7 +313,9 @@ export function InstallmentFormDialog({
               name="note"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Note</FormLabel>
+                  <FormLabel>
+                    Note <span className="font-normal text-muted-foreground">(opsional)</span>
+                  </FormLabel>
                   <FormControl>
                     <Textarea rows={2} placeholder="cth. Deposit 500.000" {...field} />
                   </FormControl>
@@ -318,11 +333,16 @@ export function InstallmentFormDialog({
               </div>
             )}
 
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={onClose}>
+            <DialogFooter className="gap-2 border-t pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+                className="w-full sm:w-auto"
+              >
                 Batal
               </Button>
-              <Button type="submit" disabled={mutation.isPending}>
+              <Button type="submit" disabled={mutation.isPending} className="w-full sm:w-auto">
                 {mutation.isPending ? 'Menyimpan…' : isEdit ? 'Simpan Perubahan' : 'Simpan'}
               </Button>
             </DialogFooter>

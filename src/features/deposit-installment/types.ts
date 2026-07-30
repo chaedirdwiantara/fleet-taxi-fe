@@ -1,4 +1,4 @@
-// Cicilan Deposit — API row/entry shapes returned by the BE (kept in lockstep
+// Cicilan — API row/entry shapes returned by the BE (kept in lockstep
 // manually with BE src/deposit-installments/installment-presenter.ts; the
 // envelope is untyped in the generated schema, so the casts in hooks.ts are
 // intentional). All money is integer rupiah computed server-side.

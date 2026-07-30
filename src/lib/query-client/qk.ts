@@ -68,7 +68,7 @@ export const qk = {
       detail: (id: number) => ['partner', 'checkpoint', 'detail', id] as const,
       comparison: (id: number) => ['partner', 'checkpoint', 'comparison', id] as const,
     },
-    // Cicilan Deposit — installment rules per driver, history derived by BE.
+    // Cicilan — installment rules per driver, history derived by BE.
     cicilan: {
       all: ['partner', 'cicilan'] as const, // invalidation prefix for every cicilan query
       list: (p: {

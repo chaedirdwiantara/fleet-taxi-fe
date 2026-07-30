@@ -24,7 +24,7 @@ const PAGE_SIZES = [10, 25, 50, 100];
 // Radix Select forbids empty-string values — sentinel for "Semua Status".
 const ALL = '__all';
 
-export function CicilanDepositPage({
+export function CicilanPage({
   search,
   onPatch,
 }: {
@@ -73,28 +73,52 @@ export function CicilanDepositPage({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold">Cicilan Deposit</h2>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <h2 className="text-lg font-semibold">Cicilan</h2>
           <p className="text-sm text-muted-foreground">
-            Kelola cicilan deposit driver — potongan dihitung otomatis dari hari aktif pada data
-            Fleet Monitoring.
+            Kelola cicilan driver (deposit, e-tilang, COP, kontrakan) — potongan dihitung otomatis
+            dari hari aktif pada data Fleet Monitoring.
           </p>
         </div>
-        <Button onClick={() => setCreateOpen(true)}>
+        <Button className="w-full sm:w-auto" onClick={() => setCreateOpen(true)}>
           <Plus aria-hidden />
           Tambah Data
         </Button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        <div className="relative w-full sm:w-72">
+          <Search
+            className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+            aria-hidden
+          />
+          <Input
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            placeholder="Cari judul / driver / plat…"
+            aria-label="Cari judul, driver, atau plat"
+            className="pr-8 pl-8"
+          />
+          {searchText && (
+            <button
+              type="button"
+              onClick={() => setSearchText('')}
+              aria-label="Hapus pencarian"
+              className="absolute top-1/2 right-2 -translate-y-1/2 rounded-sm p-0.5 text-muted-foreground hover:text-foreground"
+            >
+              <X className="size-4" />
+            </button>
+          )}
+        </div>
+
         <Select
           value={search.status ?? ALL}
           onValueChange={(v) =>
             onPatch({ status: v === ALL ? undefined : (v as 'berjalan' | 'lunas'), page: 1 })
           }
         >
-          <SelectTrigger size="sm" className="w-36" aria-label="Filter status cicilan">
+          <SelectTrigger className="w-full sm:w-40" aria-label="Filter status cicilan">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -104,13 +128,13 @@ export function CicilanDepositPage({
           </SelectContent>
         </Select>
 
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span className="whitespace-nowrap">Entri:</span>
+        <div className="flex items-center gap-2 sm:ml-auto">
+          <span className="text-sm whitespace-nowrap text-muted-foreground">Entri:</span>
           <Select
             value={String(search.pageSize)}
             onValueChange={(v) => onPatch({ pageSize: Number(v), page: 1 })}
           >
-            <SelectTrigger size="sm" className="w-20" aria-label="Entri per halaman">
+            <SelectTrigger className="w-20" aria-label="Entri per halaman">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -121,41 +145,15 @@ export function CicilanDepositPage({
               ))}
             </SelectContent>
           </Select>
-        </div>
-
-        <div className="ml-auto flex flex-wrap items-center gap-2">
           <Button
             variant="outline"
-            size="sm"
             onClick={() => void list.refetch()}
             disabled={list.isFetching}
+            className="ml-auto sm:ml-0"
           >
             <RefreshCw className={list.isFetching ? 'animate-spin' : undefined} aria-hidden />
             Refresh
           </Button>
-          <div className="relative">
-            <Search
-              className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
-              aria-hidden
-            />
-            <Input
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              placeholder="Cari judul / driver / plat…"
-              aria-label="Cari judul, driver, atau plat"
-              className="h-8 w-full pr-8 pl-8 sm:w-56"
-            />
-            {searchText && (
-              <button
-                type="button"
-                onClick={() => setSearchText('')}
-                aria-label="Hapus pencarian"
-                className="absolute top-1/2 right-2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                <X className="size-4" />
-              </button>
-            )}
-          </div>
         </div>
       </div>
 
@@ -177,11 +175,11 @@ export function CicilanDepositPage({
           {list.isSuccess && list.data.data.length === 0 && (
             <EmptyState
               icon={PiggyBank}
-              title={isFiltered ? 'Tidak ada cicilan yang cocok' : 'Belum ada cicilan deposit'}
+              title={isFiltered ? 'Tidak ada cicilan yang cocok' : 'Belum ada cicilan'}
               description={
                 isFiltered
                   ? 'Coba ubah kata kunci pencarian atau filter status.'
-                  : 'Buat aturan cicilan untuk mulai memotong deposit driver secara otomatis dari hari aktifnya.'
+                  : 'Buat aturan cicilan untuk mulai memotong setoran driver secara otomatis dari hari aktifnya.'
               }
               action={
                 isFiltered ? undefined : (

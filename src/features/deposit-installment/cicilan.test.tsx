@@ -3,7 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState, type ReactNode } from 'react';
-import { CicilanDepositPage } from './CicilanDepositPage';
+import { CicilanPage } from './CicilanPage';
 import { cicilanSearchSchema, type CicilanSearch } from './searchSchema';
 import { resetInstallments } from '@/mocks/fixtures/depositInstallment';
 
@@ -24,7 +24,7 @@ const wrapperFor =
 function Harness() {
   const [search, setSearch] = useState<CicilanSearch>(() => cicilanSearchSchema.parse({}));
   return (
-    <CicilanDepositPage
+    <CicilanPage
       search={search}
       onPatch={(patch) => setSearch((prev) => ({ ...prev, ...patch }))}
     />
@@ -37,7 +37,7 @@ beforeEach(() => {
   resetInstallments();
 });
 
-describe('CicilanDepositPage', () => {
+describe('CicilanPage', () => {
   it('renders the rules with derived progress and formatted rupiah', async () => {
     renderPage();
 
@@ -101,6 +101,42 @@ describe('CicilanDepositPage', () => {
     expect(screen.getByText(/dari 4 cicilan/)).toBeInTheDocument();
   });
 
+  it('fills Judul from a preset suggestion, then still allows editing it', async () => {
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getAllByText('Cicilan Deposit Driver Halim').length).toBeGreaterThan(0),
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Tambah Data' }));
+    const dialog = await screen.findByRole('dialog');
+    const judul = within(dialog).getByLabelText('Judul');
+
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Tampilkan pilihan judul' }));
+    await userEvent.click(await screen.findByRole('option', { name: 'E-Tilang' }));
+    expect(judul).toHaveValue('E-Tilang');
+
+    // preset hanya titik awal — judul tetap bisa dilanjutkan
+    await userEvent.type(judul, ' Driver Halim');
+    expect(judul).toHaveValue('E-Tilang Driver Halim');
+  });
+
+  it('picks a Judul suggestion with the keyboard without submitting the form', async () => {
+    renderPage();
+    await waitFor(() =>
+      expect(screen.getAllByText('Cicilan Deposit Driver Halim').length).toBeGreaterThan(0),
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Tambah Data' }));
+    const dialog = await screen.findByRole('dialog');
+    const judul = within(dialog).getByLabelText('Judul');
+
+    await userEvent.type(judul, 'kontra');
+    await userEvent.keyboard('{ArrowDown}{Enter}');
+    expect(judul).toHaveValue('Kontrakan');
+    // Enter memilih saran, bukan men-submit: dialog masih terbuka
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
   it('opens the Rekap sheet with the derived installment history', async () => {
     renderPage();
     await waitFor(() =>
@@ -133,7 +169,7 @@ describe('CicilanDepositPage', () => {
       screen.getAllByRole('button', { name: 'Hapus Cicilan Deposit Suwanto' })[0]!,
     );
     const confirm = await screen.findByRole('alertdialog');
-    expect(within(confirm).getByText('Hapus cicilan deposit ini?')).toBeInTheDocument();
+    expect(within(confirm).getByText('Hapus cicilan ini?')).toBeInTheDocument();
     await userEvent.click(within(confirm).getByRole('button', { name: 'Hapus' }));
 
     await waitFor(() => expect(screen.queryAllByText('Cicilan Deposit Suwanto')).toHaveLength(0));
