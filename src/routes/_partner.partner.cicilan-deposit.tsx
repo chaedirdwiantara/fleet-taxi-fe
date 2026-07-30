@@ -1,27 +1,12 @@
-import { useCallback } from 'react';
-import { createFileRoute } from '@tanstack/react-router';
-import { CicilanDepositPage } from '@/features/deposit-installment/CicilanDepositPage';
-import {
-  cicilanSearchSchema,
-  type CicilanSearch,
-} from '@/features/deposit-installment/searchSchema';
+import { createFileRoute, redirect } from '@tanstack/react-router';
+import { cicilanSearchSchema } from '@/features/deposit-installment/searchSchema';
 
-// Partner portal Cicilan Deposit — installment rules per driver, scoped
-// server-side to the partner; payment history derived live from fleet imports.
+// Legacy path — the page is now `/partner/cicilan` (its scope grew beyond
+// deposit). Kept as a redirect so older bookmarks keep working, filter and
+// sort params included.
 export const Route = createFileRoute('/_partner/partner/cicilan-deposit')({
   validateSearch: cicilanSearchSchema,
-  component: PartnerCicilanDepositPage,
+  beforeLoad: ({ search }) => {
+    throw redirect({ to: '/partner/cicilan', search, replace: true });
+  },
 });
-
-function PartnerCicilanDepositPage() {
-  const search = Route.useSearch();
-  const navigate = Route.useNavigate();
-
-  const onPatch = useCallback(
-    (patch: Partial<CicilanSearch>) =>
-      navigate({ search: (prev) => ({ ...prev, ...patch }), replace: true }),
-    [navigate],
-  );
-
-  return <CicilanDepositPage search={search} onPatch={onPatch} />;
-}

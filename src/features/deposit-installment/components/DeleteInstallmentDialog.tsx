@@ -24,7 +24,7 @@ export function DeleteInstallmentDialog({
     <AlertDialog open={rule != null} onOpenChange={(v) => !v && onClose()}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Hapus cicilan deposit ini?</AlertDialogTitle>
+          <AlertDialogTitle>Hapus cicilan ini?</AlertDialogTitle>
           <AlertDialogDescription>
             "{rule?.title}" untuk driver {rule?.driverName} akan dihapus permanen beserta rekap
             cicilannya. Tindakan ini tidak dapat dibatalkan.

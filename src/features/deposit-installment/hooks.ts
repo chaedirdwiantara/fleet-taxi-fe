@@ -16,7 +16,7 @@ import type {
   InstallmentUpsertInput,
 } from './types';
 
-// Cicilan Deposit — CRUD over the partner's own installment rules plus the
+// Cicilan — CRUD over the partner's own installment rules plus the
 // derived payment history (Rekap). Scoping is server-side (session partner);
 // all derived amounts come from the BE. Any mutation invalidates the whole
 // ['partner','cicilan'] namespace (list + recap + driver options).

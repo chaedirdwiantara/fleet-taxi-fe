@@ -66,7 +66,7 @@ const NAV: Record<Audience, NavEntry[]> = {
       icon: Users,
       children: [
         { to: '/partner/drivers', label: 'Daftar Driver', icon: Users },
-        { to: '/partner/cicilan-deposit', label: 'Cicilan Deposit', icon: Wallet },
+        { to: '/partner/cicilan', label: 'Cicilan', icon: Wallet },
       ],
     },
     { to: '/partner/rental-monitoring', label: 'Rental Monitoring', icon: CalendarDays },

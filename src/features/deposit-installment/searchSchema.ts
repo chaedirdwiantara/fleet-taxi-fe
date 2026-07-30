@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { INSTALLMENT_SORT_FIELDS } from './types';
 
-// Typed, zod-validated search params for the Cicilan Deposit page. The whole
+// Typed, zod-validated search params for the Cicilan page. The whole
 // table state (filter, sort, pagination) lives in the URL: shareable,
 // back-button friendly, and it keys the Query cache directly.
 export const cicilanSearchSchema = z.object({
