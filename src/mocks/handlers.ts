@@ -6,7 +6,7 @@ import {
   makeExitedDrivers,
   makeGojekCharts,
   makeDriverActivity,
-  makeDayFilter,
+  makeRangeSummary,
   scopeGojekGrid,
   scopeGrabGrid,
   pivotGojekByDriver,
@@ -62,6 +62,133 @@ const int = (v: string | null, fallback: number) => {
  * exactly like the backend's parseMonitoringMode. */
 const readMode = (url: URL): 'plate' | 'driver' =>
   url.searchParams.get('mode') === 'driver' ? 'driver' : 'plate';
+
+/** The ?dateFrom&dateTo pair, or undefined for whole-period semantics —
+ * incoherent pairs are dropped exactly like the backend's parseDateRange. */
+const readRange = (url: URL): { dateFrom: string; dateTo: string } | undefined => {
+  const dateFrom = url.searchParams.get('dateFrom');
+  const dateTo = url.searchParams.get('dateTo');
+  const iso = /^\d{4}-\d{2}-\d{2}$/;
+  if (!dateFrom || !dateTo || !iso.test(dateFrom) || !iso.test(dateTo)) return undefined;
+  return dateFrom <= dateTo ? { dateFrom, dateTo } : undefined;
+};
+
+// ---- Grab summary aggregates (shared by the admin + partner handlers) --------
+
+type GrabGridFixture = ReturnType<typeof makeGrabGrid>;
+
+/** Whole-month cards + charts for a Grab pivot (mirrors toGrabSummary). */
+function grabSummaryOf(grid: GrabGridFixture) {
+  const dailyTotals: Record<number, number> = {};
+  const byPartnerMap = new Map<string, number>();
+  let totalEarning = 0;
+  let totalRides = 0;
+  for (const row of grid.rows) {
+    for (const [d, cell] of Object.entries(row.days)) {
+      dailyTotals[Number(d)] = (dailyTotals[Number(d)] ?? 0) + cell.earning;
+    }
+    byPartnerMap.set(
+      row.rentalPartner,
+      (byPartnerMap.get(row.rentalPartner) ?? 0) + row.summary.earning,
+    );
+    totalEarning += row.summary.earning;
+    totalRides += row.summary.rides;
+  }
+  return {
+    globalSummary: {
+      totalEarning,
+      totalDriverFare: grid.rows.reduce((s, r) => s + r.summary.driverFare, 0),
+      totalIncentive: grid.rows.reduce((s, r) => s + r.summary.incentive, 0),
+      totalRides,
+      activeVehicles: grid.rows.length,
+    },
+    charts: {
+      daily: Array.from({ length: grid.daysInMonth }, (_, i) => ({
+        day: i + 1,
+        total: dailyTotals[i + 1] ?? 0,
+      })),
+      byPartner: [...byPartnerMap.entries()]
+        .map(([partner, total]) => ({ partner, total }))
+        .sort((a, b) => b.total - a.total),
+    },
+  };
+}
+
+/**
+ * Grab range aggregates, walked day by day so a cross-month range reads each
+ * day from its own monthly pivot. Only earning is stored per day in the
+ * fixtures, so fare/incentive/rides are apportioned by each row's share of its
+ * own month's earning — which still collapses onto the exact month totals when
+ * the range covers a whole month, keeping the backend invariant intact.
+ */
+function makeGrabRangeSummary(
+  gridFor: (month: number, year: number) => GrabGridFixture,
+  dateFrom: string,
+  dateTo: string,
+) {
+  const partOf = (iso: string) => ({
+    year: Number(iso.slice(0, 4)),
+    month: Number(iso.slice(5, 7)),
+    day: Number(iso.slice(8, 10)),
+  });
+  const nextDay = (iso: string) => {
+    const { year, month, day } = partOf(iso);
+    const d = new Date(Date.UTC(year, month - 1, day + 1));
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+  };
+
+  const daily: { date: string; total: number }[] = [];
+  const byPartnerMap = new Map<string, number>();
+  // key → earning inside the window, so per-row shares can be derived after.
+  const earnedByKey = new Map<string, { row: GrabGridFixture['rows'][number]; earning: number }>();
+  let days = 0;
+
+  for (let date = dateFrom; date <= dateTo; date = nextDay(date)) {
+    const { year, month, day } = partOf(date);
+    const grid = gridFor(month, year);
+    days++;
+    let total = 0;
+    for (const row of grid.rows) {
+      const earning = row.days[day]?.earning ?? 0;
+      total += earning;
+      if (earning === 0) continue;
+      const seen = earnedByKey.get(row.compositeKey);
+      if (seen) seen.earning += earning;
+      else earnedByKey.set(row.compositeKey, { row, earning });
+      byPartnerMap.set(row.rentalPartner, (byPartnerMap.get(row.rentalPartner) ?? 0) + earning);
+    }
+    daily.push({ date, total });
+  }
+
+  let totalEarning = 0;
+  let totalDriverFare = 0;
+  let totalIncentive = 0;
+  let totalRides = 0;
+  for (const { row, earning } of earnedByKey.values()) {
+    const share = earning === row.summary.earning ? 1 : earning / (row.summary.earning || 1);
+    totalEarning += earning;
+    totalDriverFare += Math.round(share * row.summary.driverFare);
+    totalIncentive += Math.round(share * row.summary.incentive);
+    totalRides += Math.round(share * row.summary.rides);
+  }
+
+  return {
+    fromDate: dateFrom,
+    toDate: dateTo,
+    days,
+    totalEarning,
+    totalDriverFare,
+    totalIncentive,
+    totalRides,
+    activeVehicles: earnedByKey.size,
+    charts: {
+      daily,
+      byPartner: [...byPartnerMap.entries()]
+        .map(([partner, total]) => ({ partner, total }))
+        .sort((a, b) => b.total - a.total),
+    },
+  };
+}
 
 // ---- Mock cookie-session state ----------------------------------------------
 // Emulates the backend's session: `me` is 401 until login. Persisted in
@@ -541,24 +668,25 @@ export const handlers = [
     const url = new URL(request.url);
     const month = int(url.searchParams.get('month'), 6);
     const year = int(url.searchParams.get('year'), 2026);
-    const dayParam = url.searchParams.get('day');
     const grid = scopeGojekGrid(makeGojekGrid(month, year), registeredNorms());
     const partners = url.searchParams.getAll('rentalPartner');
     // Re-scope (not just filter rows) so dailyTotals/tableTotals recompute.
-    const filtered = partners.length
-      ? scopeGojekGrid(
-          grid,
-          new Set(
-            grid.rows.filter((r) => partners.includes(r.rentalPartner)).map((r) => r.plateNorm),
-          ),
-        )
-      : grid;
-    const day = dayParam ? Number(dayParam) : undefined;
-    const validDay = day && Number.isInteger(day) && day >= 1 && day <= filtered.daysInMonth;
+    const scopeFor = (m: number, y: number) => {
+      const base = scopeGojekGrid(makeGojekGrid(m, y), registeredNorms());
+      if (!partners.length) return base;
+      return scopeGojekGrid(
+        base,
+        new Set(
+          base.rows.filter((r) => partners.includes(r.rentalPartner)).map((r) => r.plateNorm),
+        ),
+      );
+    };
+    const filtered = scopeFor(month, year);
+    const range = readRange(url);
     return ok({
       globalSummary: makeGojekGlobalSummary(filtered),
-      ...(validDay ? { dayFilter: makeDayFilter(filtered, day) } : {}),
-      driverActivity: makeDriverActivity(filtered, day),
+      ...(range ? { range: makeRangeSummary(scopeFor, range.dateFrom, range.dateTo) } : {}),
+      driverActivity: makeDriverActivity(filtered),
       charts: makeGojekCharts(filtered),
       availableRentalPartners: grid.availableRentalPartners,
       exitedDrivers: makeExitedDrivers(filtered),
@@ -592,45 +720,19 @@ export const handlers = [
     const url = new URL(request.url);
     const month = int(url.searchParams.get('month'), 6);
     const year = int(url.searchParams.get('year'), 2026);
-    const grid = makeGrabGrid(month, year);
     const partners = url.searchParams.getAll('rentalPartner');
-    const rows = partners.length
-      ? grid.rows.filter((r) => partners.includes(r.rentalPartner))
-      : grid.rows;
-
-    const dailyTotals: Record<number, number> = {};
-    const byPartnerMap = new Map<string, number>();
-    let totalEarning = 0;
-    let totalRides = 0;
-    for (const row of rows) {
-      for (const [d, cell] of Object.entries(row.days)) {
-        dailyTotals[Number(d)] = (dailyTotals[Number(d)] ?? 0) + cell.earning;
-      }
-      byPartnerMap.set(
-        row.rentalPartner,
-        (byPartnerMap.get(row.rentalPartner) ?? 0) + row.summary.earning,
-      );
-      totalEarning += row.summary.earning;
-      totalRides += row.summary.rides;
-    }
+    const rowsFor = (m: number, y: number) => {
+      const g = makeGrabGrid(m, y);
+      return partners.length
+        ? { ...g, rows: g.rows.filter((r) => partners.includes(r.rentalPartner)) }
+        : g;
+    };
+    const grid = rowsFor(month, year);
+    const range = readRange(url);
     return ok({
-      globalSummary: {
-        totalEarning,
-        totalDriverFare: rows.reduce((s, r) => s + r.summary.driverFare, 0),
-        totalIncentive: rows.reduce((s, r) => s + r.summary.incentive, 0),
-        totalRides,
-        activeVehicles: rows.length,
-      },
-      charts: {
-        daily: Array.from({ length: grid.daysInMonth }, (_, i) => ({
-          day: i + 1,
-          total: dailyTotals[i + 1] ?? 0,
-        })),
-        byPartner: [...byPartnerMap.entries()]
-          .map(([partner, total]) => ({ partner, total }))
-          .sort((a, b) => b.total - a.total),
-      },
-      availableRentalPartners: grid.availableRentalPartners,
+      ...grabSummaryOf(grid),
+      ...(range ? { range: makeGrabRangeSummary(rowsFor, range.dateFrom, range.dateTo) } : {}),
+      availableRentalPartners: makeGrabGrid(month, year).availableRentalPartners,
       lastImportDate: `${year}-${String(month).padStart(2, '0')}-16`,
     });
   }),
@@ -1425,14 +1527,14 @@ export const handlers = [
     const url = new URL(request.url);
     const month = int(url.searchParams.get('month'), 6);
     const year = int(url.searchParams.get('year'), 2026);
-    const dayParam = url.searchParams.get('day');
-    const grid = scopeGojekGrid(makeGojekGrid(month, year), registeredNorms());
-    const day = dayParam ? Number(dayParam) : undefined;
-    const validDay = day && Number.isInteger(day) && day >= 1 && day <= grid.daysInMonth;
+    const scopeFor = (m: number, y: number) =>
+      scopeGojekGrid(makeGojekGrid(m, y), registeredNorms());
+    const grid = scopeFor(month, year);
+    const range = readRange(url);
     return ok({
       globalSummary: makeGojekGlobalSummary(grid),
-      ...(validDay ? { dayFilter: makeDayFilter(grid, day) } : {}),
-      driverActivity: makeDriverActivity(grid, day),
+      ...(range ? { range: makeRangeSummary(scopeFor, range.dateFrom, range.dateTo) } : {}),
+      driverActivity: makeDriverActivity(grid),
       charts: makeGojekCharts(grid),
       exitedDrivers: makeExitedDrivers(grid),
       lastImportDate: `${year}-${String(month).padStart(2, '0')}-16`,
@@ -1520,6 +1622,22 @@ export const handlers = [
     );
     const scoped = scopeGrabGrid(grid, registeredNorms());
     return ok(readMode(url) === 'driver' ? pivotGrabByDriver(scoped) : scoped);
+  }),
+
+  // Own Grab dashboard aggregates — the partner twin of the admin summary, so
+  // the portal's cards come from the same shape instead of the grid's totals.
+  http.get('*/partner/portal/fleet/grab/summary', ({ request }) => {
+    const url = new URL(request.url);
+    const month = int(url.searchParams.get('month'), 6);
+    const year = int(url.searchParams.get('year'), 2026);
+    const scopeFor = (m: number, y: number) => scopeGrabGrid(makeGrabGrid(m, y), registeredNorms());
+    const range = readRange(url);
+    return ok({
+      ...grabSummaryOf(scopeFor(month, year)),
+      ...(range ? { range: makeGrabRangeSummary(scopeFor, range.dateFrom, range.dateTo) } : {}),
+      availableRentalPartners: makeGrabGrid(month, year).availableRentalPartners,
+      lastImportDate: `${year}-${String(month).padStart(2, '0')}-16`,
+    });
   }),
 
   http.get('*/partner/portal/fleet/grab/cell', ({ request }) => {

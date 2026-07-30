@@ -1,5 +1,15 @@
 import { z } from 'zod';
-import { currentMonthWIB, currentYearWIB } from '@/lib/datetime';
+import {
+  currentMonthWIB,
+  currentYearWIB,
+  daysInRangeISO,
+  type DateRangeValue,
+} from '@/lib/datetime';
+
+/** Mirrors the backend's MAX_RANGE_DAYS — beyond it the API answers 400. */
+export const MAX_RANGE_DAYS = 92;
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 // Typed, zod-validated search params for both fleet grids (kickoff §4).
 // The whole grid state lives in the URL: shareable, back-button friendly,
@@ -18,9 +28,11 @@ export const fleetSearchSchema = z.object({
     .max(2100)
     .catch(() => currentYearWIB()),
   rentalPartner: z.array(z.string()).catch([]),
-  // Tanggal filter (dashboard summary only); undefined = whole month. Values
-  // beyond the selected month's length are guarded at the call site.
-  day: z.number().int().min(1).max(31).optional().catch(undefined),
+  // Tanggal filter (summary + charts only); absent = whole selected month. The
+  // range may cross months, so it is dates rather than days-of-month. Coherence
+  // between the two is checked by normalizeRange at the call site.
+  dateFrom: z.string().regex(ISO_DATE).optional().catch(undefined),
+  dateTo: z.string().regex(ISO_DATE).optional().catch(undefined),
   plate: z.string().optional().catch(undefined),
   // "<plateNorm|compositeKey>:<day>" → deep-linkable day-breakdown modal
   cell: z.string().optional().catch(undefined),
@@ -31,6 +43,21 @@ export const fleetSearchSchema = z.object({
 });
 
 export type FleetSearch = z.infer<typeof fleetSearchSchema>;
+
+/**
+ * The date range a hand-editable URL actually asks for, or `undefined` for
+ * "whole month". Drops anything the API would reject (half a pair, inverted
+ * bounds, an over-long span) instead of sending it and rendering an error.
+ */
+export function normalizeRange(
+  dateFrom: string | undefined,
+  dateTo: string | undefined,
+): DateRangeValue | undefined {
+  if (!dateFrom || !dateTo) return undefined;
+  if (dateFrom > dateTo) return undefined;
+  if (daysInRangeISO(dateFrom, dateTo) > MAX_RANGE_DAYS) return undefined;
+  return { dateFrom, dateTo };
+}
 
 /** Row subject of a monitoring pivot — mirrors the backend's `mode` param. */
 export type MonitoringMode = FleetSearch['mode'];

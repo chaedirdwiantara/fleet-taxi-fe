@@ -12,8 +12,16 @@ import {
 import { QuickLink } from '@/components/shared/QuickLink';
 import { GradientStatRow } from '@/features/fleet/components/GradientStat';
 import { FleetChartsPanel } from '@/features/fleet/components/FleetChartsPanel';
+import { DateRangePicker } from '@/components/shared/DateRangePicker';
 import { useGrabSummaryQuery } from '@/features/grab/hooks';
-import { currentMonthWIB, currentYearWIB, formatDateTimeWIB, MONTH_NAMES_ID } from '@/lib/datetime';
+import {
+  currentMonthWIB,
+  currentYearWIB,
+  formatDateTimeWIB,
+  formatRangeNoteID,
+  MONTH_NAMES_ID,
+  type DateRangeValue,
+} from '@/lib/datetime';
 
 export const Route = createFileRoute('/_admin/admin/grab/dashboard')({
   component: GrabDashboard,
@@ -25,14 +33,28 @@ function GrabDashboard() {
   const [month, setMonth] = useState(currentMonthWIB());
   const [year, setYear] = useState(currentYearWIB());
   const [partner, setPartner] = useState(ALL_PARTNERS);
+  // Tanggal filter (undefined = whole month) — resets when the period changes.
+  const [range, setRange] = useState<DateRangeValue | undefined>(undefined);
+
+  const changeMonth = (m: number) => {
+    setMonth(m);
+    setRange(undefined);
+  };
+  const changeYear = (y: number) => {
+    setYear(y);
+    setRange(undefined);
+  };
 
   const summary = useGrabSummaryQuery({
     month,
     year,
+    ...range,
     rentalPartner: partner === ALL_PARTNERS ? undefined : partner,
   });
   const years = Array.from({ length: 6 }, (_, i) => currentYearWIB() - 4 + i);
   const partnerOptions = summary.data?.availableRentalPartners ?? [];
+  // With a range active the cards report the range; otherwise the whole month.
+  const stats = summary.data?.range ?? summary.data?.globalSummary;
 
   return (
     <div className="space-y-5">
@@ -60,7 +82,14 @@ function GrabDashboard() {
               ))}
             </SelectContent>
           </Select>
-          <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
+          <DateRangePicker
+            value={range}
+            onChange={setRange}
+            month={month}
+            year={year}
+            className="w-full sm:w-auto"
+          />
+          <Select value={String(month)} onValueChange={(v) => changeMonth(Number(v))}>
             <SelectTrigger className="w-36" aria-label="Bulan">
               <SelectValue />
             </SelectTrigger>
@@ -72,7 +101,7 @@ function GrabDashboard() {
               ))}
             </SelectContent>
           </Select>
-          <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
+          <Select value={String(year)} onValueChange={(v) => changeYear(Number(v))}>
             <SelectTrigger className="w-24" aria-label="Tahun">
               <SelectValue />
             </SelectTrigger>
@@ -91,7 +120,7 @@ function GrabDashboard() {
       {summary.isError && (
         <p className="text-sm text-destructive">Gagal memuat: {summary.error.message}</p>
       )}
-      {summary.isSuccess && (
+      {summary.isSuccess && stats && (
         <div
           className={summary.isFetching ? 'space-y-5 opacity-70 transition-opacity' : 'space-y-5'}
         >
@@ -99,19 +128,28 @@ function GrabDashboard() {
             cards={[
               {
                 label: 'Total Pendapatan Terkumpul',
-                value: summary.data.globalSummary.totalEarning,
+                value: stats.totalEarning,
                 icon: Wallet,
                 gradient: 'from-blue-500 to-sky-400',
+                ...(summary.data.range
+                  ? {
+                      note: formatRangeNoteID(
+                        summary.data.range.fromDate,
+                        summary.data.range.toDate,
+                        summary.data.range.days,
+                      ),
+                    }
+                  : {}),
               },
               {
                 label: 'Total Tarif Driver',
-                value: summary.data.globalSummary.totalDriverFare,
+                value: stats.totalDriverFare,
                 icon: Car,
                 gradient: 'from-emerald-500 to-green-400',
               },
               {
                 label: 'Total Insentif',
-                value: summary.data.globalSummary.totalIncentive,
+                value: stats.totalIncentive,
                 icon: Gift,
                 gradient: 'from-orange-500 to-amber-400',
               },
@@ -121,15 +159,15 @@ function GrabDashboard() {
             <PlainStat
               icon={<RouteIcon className="size-5" />}
               label="Total Rides"
-              value={summary.data.globalSummary.totalRides.toLocaleString('id-ID')}
+              value={stats.totalRides.toLocaleString('id-ID')}
             />
             <PlainStat
               icon={<CarFront className="size-5" />}
               label="Kendaraan Aktif"
-              value={summary.data.globalSummary.activeVehicles.toLocaleString('id-ID')}
+              value={stats.activeVehicles.toLocaleString('id-ID')}
             />
           </div>
-          <FleetChartsPanel charts={summary.data.charts} />
+          <FleetChartsPanel charts={summary.data.charts} range={summary.data.range} />
         </div>
       )}
 

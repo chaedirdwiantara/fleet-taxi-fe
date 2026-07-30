@@ -463,42 +463,82 @@ export function makeDriverActivity(grid: GojekGridFixture, day?: number) {
   };
 }
 
-// Tanggal-filter aggregates: cumulative figures truncated at `day` + that
-// day's own setoran. totalDue and the outstanding delta are real prefix sums
-// over the same per-day series the grid exposes, so the backend invariant
-// (at day === daysInMonth the cumulative block equals the whole month) holds
-// in the mocks too — a prorated approximation would quietly break it.
-export function makeDayFilter(grid: GojekGridFixture, day: number) {
-  let cumDeduction = 0;
-  let cumDue = 0;
-  for (let d = 1; d <= day; d++) {
-    cumDeduction += grid.dailyTotals[d] ?? 0;
-    cumDue += grid.rows.reduce((sum, r) => sum + (r.dailyDue[d] ?? 0), 0);
+/**
+ * Tanggal-range aggregates, composed exactly like the backend's: walk the range
+ * day by day (it may cross months, so each day is read from ITS OWN monthly
+ * grid) and sum the same per-day series the grid exposes. Real sums rather than
+ * a prorated approximation, so the backend invariants hold in the mocks too —
+ * a full month equals that month's whole-month totals, and adjacent ranges add
+ * up to their union.
+ */
+export function makeRangeSummary(
+  gridFor: (month: number, year: number) => GojekGridFixture,
+  dateFrom: string,
+  dateTo: string,
+) {
+  const partOf = (iso: string) => ({
+    year: Number(iso.slice(0, 4)),
+    month: Number(iso.slice(5, 7)),
+    day: Number(iso.slice(8, 10)),
+  });
+  const nextDay = (iso: string) => {
+    const { year, month, day } = partOf(iso);
+    const d = new Date(Date.UTC(year, month - 1, day + 1));
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+  };
+
+  let totalDeduction = 0;
+  let totalDue = 0;
+  let outstandingDelta = 0;
+  let days = 0;
+  const daily: { date: string; total: number }[] = [];
+  const byPartnerMap: Record<string, number> = {};
+  let lastGrid = gridFor(partOf(dateFrom).month, partOf(dateFrom).year);
+  let lastDay = partOf(dateFrom).day;
+
+  for (let date = dateFrom; date <= dateTo; date = nextDay(date)) {
+    const { year, month, day } = partOf(date);
+    const grid = gridFor(month, year);
+    lastGrid = grid;
+    lastDay = day;
+    days++;
+
+    const total = grid.dailyTotals[day] ?? 0;
+    totalDeduction += total;
+    daily.push({ date, total });
+    totalDue += grid.rows.reduce((sum, r) => sum + (r.dailyDue[day] ?? 0), 0);
+    // Same partitioning as the whole-month totals: exited plates report under
+    // the Driver Keluar card instead.
+    for (const r of grid.rows) {
+      const paid = r.days[day]?.countedAmount ?? 0;
+      byPartnerMap[r.rentalPartner] = (byPartnerMap[r.rentalPartner] ?? 0) + paid;
+      if (!r.isExited) outstandingDelta += (r.dailyDue[day] ?? 0) - paid;
+    }
   }
-  // Same partitioning as the whole-month totals: exited plates report under
-  // the Driver Keluar card instead.
-  let paidToDay = 0;
-  for (const r of grid.rows) {
+
+  // A balance needs the whole month-to-date behind it, not just the range.
+  let monthDeltaToDay = 0;
+  for (const r of lastGrid.rows) {
     if (r.isExited) continue;
-    for (let d = 1; d <= day; d++) paidToDay += r.days[d]?.countedAmount ?? 0;
+    for (let d = 1; d <= lastDay; d++) {
+      monthDeltaToDay += (r.dailyDue[d] ?? 0) - (r.days[d]?.countedAmount ?? 0);
+    }
   }
-  let dueToDayActive = 0;
-  for (const r of grid.rows) {
-    if (r.isExited) continue;
-    for (let d = 1; d <= day; d++) dueToDayActive += r.dailyDue[d] ?? 0;
-  }
-  const monthDeltaToDay = dueToDayActive - paidToDay;
+
   return {
-    day,
-    cumulative: {
-      totalDeduction: cumDeduction,
-      totalDue: cumDue,
-      totalOutstanding:
-        grid.tableTotals.outstanding - grid.tableTotals.outstandingMonth + monthDeltaToDay,
-      totalOutstandingMonth: monthDeltaToDay,
-    },
-    selectedDay: {
-      totalDeduction: grid.dailyTotals[day] ?? 0,
+    fromDate: dateFrom,
+    toDate: dateTo,
+    days,
+    totalDeduction,
+    totalDue,
+    outstandingAsOf:
+      lastGrid.tableTotals.outstanding - lastGrid.tableTotals.outstandingMonth + monthDeltaToDay,
+    outstandingDelta,
+    charts: {
+      daily,
+      byPartner: Object.entries(byPartnerMap)
+        .map(([partner, total]) => ({ partner, total }))
+        .sort((a, b) => b.total - a.total),
     },
   };
 }

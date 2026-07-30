@@ -4,12 +4,12 @@ import { qk } from '@/lib/query-client';
 import type { MonitoringMode } from '../searchSchema';
 import type {
   CellBreakdown,
-  DayFilterSummary,
   DriverActivity,
   ExitedDriver,
   FleetCharts,
   FleetGrid,
   GlobalSummary,
+  RangeSummary,
 } from '../types';
 
 const throwEnvelope = (error: unknown): never => {
@@ -81,11 +81,11 @@ export function useGojekCellQuery(p: {
 }
 
 // Shared summary payload (admin adds availableRentalPartners on top).
-// `dayFilter` appears only when the request carried a valid `day` (Tanggal
+// `range` appears only when the request carried ?dateFrom&dateTo (the Tanggal
 // filter); everything else keeps whole-month semantics.
 type GojekSummaryResponse = {
   globalSummary: GlobalSummary;
-  dayFilter?: DayFilterSummary;
+  range?: RangeSummary;
   driverActivity: DriverActivity;
   charts: FleetCharts;
   exitedDrivers: ExitedDriver[];
@@ -96,12 +96,13 @@ type GojekSummaryResponse = {
  * Monthly aggregates for the /admin dashboard (summary cards + driver
  * activity). `rentalPartner` narrows every aggregate to one partner;
  * `availableRentalPartners` (always computed unfiltered) feeds the select.
- * `day` adds the Tanggal-filter aggregates (`dayFilter`).
+ * `dateFrom`/`dateTo` add the Tanggal-filter aggregates (`range`).
  */
 export function useGojekSummaryQuery(p: {
   month: number;
   year: number;
-  day?: number;
+  dateFrom?: string;
+  dateTo?: string;
   rentalPartner?: string;
 }) {
   return useQuery({
@@ -112,7 +113,7 @@ export function useGojekSummaryQuery(p: {
           query: {
             month: p.month,
             year: p.year,
-            ...(p.day ? { day: p.day } : {}),
+            ...(p.dateFrom && p.dateTo ? { dateFrom: p.dateFrom, dateTo: p.dateTo } : {}),
             ...(p.rentalPartner ? { rentalPartner: [p.rentalPartner] } : {}),
           },
         },
@@ -184,12 +185,23 @@ export function usePartnerGojekCellQuery(p: {
   });
 }
 
-export function usePartnerGojekSummaryQuery(p: { month: number; year: number; day?: number }) {
+export function usePartnerGojekSummaryQuery(p: {
+  month: number;
+  year: number;
+  dateFrom?: string;
+  dateTo?: string;
+}) {
   return useQuery({
-    queryKey: qk.partner.fleet.summary(p),
+    queryKey: qk.partner.fleet.summary({ platform: 'gojek', ...p }),
     queryFn: async (): Promise<GojekSummaryResponse> => {
       const { data, error } = await api.GET('/partner/portal/fleet/gojek/summary', {
-        params: { query: { month: p.month, year: p.year, ...(p.day ? { day: p.day } : {}) } },
+        params: {
+          query: {
+            month: p.month,
+            year: p.year,
+            ...(p.dateFrom && p.dateTo ? { dateFrom: p.dateFrom, dateTo: p.dateTo } : {}),
+          },
+        },
       });
       if (error) throwEnvelope(error);
       return unwrap(data) as GojekSummaryResponse;

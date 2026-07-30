@@ -56,8 +56,8 @@ export type GrabDriverDetail = {
   earning: number;
 };
 
-// Admin Grab dashboard summary (cards + charts); shape mirrors the Gojek
-// summary's charts so FleetChartsPanel is reused as-is.
+// Grab dashboard summary (cards + charts), admin and partner alike; shape
+// mirrors the Gojek summary's charts so FleetChartsPanel is reused as-is.
 export type GrabSummary = {
   globalSummary: {
     totalEarning: number;
@@ -66,10 +66,28 @@ export type GrabSummary = {
     totalRides: number;
     activeVehicles: number;
   };
+  // Present only when the request carried ?dateFrom&dateTo (Tanggal filter):
+  // the same figures narrowed to that range, which may cross months.
+  range?: GrabRangeSummary;
   charts: {
     daily: { day: number; total: number }[];
     byPartner: { partner: string; total: number }[];
   };
   availableRentalPartners: string[];
   lastImportDate: string | null;
+};
+
+export type GrabRangeSummary = {
+  fromDate: string; // YYYY-MM-DD
+  toDate: string;
+  days: number;
+  totalEarning: number;
+  totalDriverFare: number;
+  totalIncentive: number;
+  totalRides: number;
+  activeVehicles: number;
+  charts: {
+    daily: { date: string; total: number }[];
+    byPartner: { partner: string; total: number }[];
+  };
 };

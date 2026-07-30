@@ -52,7 +52,8 @@ export const qk = {
       platform: Platform;
       month: number;
       year: number;
-      day?: number;
+      dateFrom?: string;
+      dateTo?: string;
       rentalPartner?: string;
     }) => ['fleet', p.platform, 'summary', p] as const,
     target: (platform: Platform, plate: string) => ['fleet', platform, 'target', plate] as const,
@@ -114,8 +115,13 @@ export const qk = {
         year: number;
         mode: MonitoringMode;
       }) => ['partner', 'fleet', 'all', 'cell', p] as const,
-      summary: (p: { month: number; year: number; day?: number }) =>
-        ['partner', 'fleet', 'gojek', 'summary', p] as const,
+      summary: (p: {
+        platform: Platform;
+        month: number;
+        year: number;
+        dateFrom?: string;
+        dateTo?: string;
+      }) => ['partner', 'fleet', p.platform, 'summary', p] as const,
       exceptions: (p: { month: number; year: number }) =>
         ['partner', 'fleet', 'gojek', 'exceptions', p] as const,
     },

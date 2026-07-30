@@ -159,18 +159,20 @@ export type DriverActivity = {
 };
 
 // Tanggal-filter aggregates (present only when the summary was requested with
-// a valid `day`): cumulative figures truncated at that day — same semantics as
-// GlobalSummary, so at day === daysInMonth they match it exactly — plus the
-// selected day's own setoran.
-export type DayFilterSummary = {
-  day: number;
-  cumulative: {
-    totalDeduction: number;
-    totalDue: number;
-    totalOutstanding: number;
-    totalOutstandingMonth: number;
-  };
-  selectedDay: {
-    totalDeduction: number;
+// ?dateFrom&dateTo). `totalDeduction`/`totalDue` are PERIOD figures — what the
+// range itself collected and billed. `outstandingAsOf` is a BALANCE, read at the
+// range's closing date, and `outstandingDelta` is the range's own contribution
+// to it. A range covering one full month equals that month's GlobalSummary.
+export type RangeSummary = {
+  fromDate: string; // YYYY-MM-DD
+  toDate: string;
+  days: number;
+  totalDeduction: number;
+  totalDue: number;
+  outstandingAsOf: number;
+  outstandingDelta: number;
+  charts: {
+    daily: { date: string; total: number }[];
+    byPartner: { partner: string; total: number }[];
   };
 };
