@@ -272,6 +272,9 @@ function buildGojekRow(i: number, month: number, year: number, dim: number) {
       outstandingMonth,
     },
     driverHistory: [DRIVERS[i % DRIVERS.length], DRIVERS[(i + 3) % DRIVERS.length]],
+    // Mirror of driverHistory — its own plate in the plate view (the backend
+    // fills every plate the person drove when grouping per driver).
+    plateHistory: [plateNorm],
     isExited,
     exitedLastSeen,
     isNewJoiner,
@@ -320,6 +323,7 @@ export function makeGojekGrid(month: number, year: number, vehicleCount = 200) {
     month,
     year,
     daysInMonth: dim,
+    mode: 'plate' as 'plate' | 'driver',
     rows,
     dailyTotals,
     tableTotals,
@@ -499,6 +503,124 @@ export function makeDayFilter(grid: GojekGridFixture, day: number) {
   };
 }
 
+// ---- reading mode (By Plat / By Driver) ---------------------------------------
+// The real backend regroups the import rows; the mock has only the finished
+// plate rows, so it merges them per driver instead. That is enough for the UI
+// contract the FE cares about — one row per person, plateHistory filled, and
+// totals that do not change with the grouping.
+
+/** Merge plate rows into one row per driver (mirrors `?mode=driver`). */
+export function pivotGojekByDriver(grid: GojekGridFixture): GojekGridFixture {
+  const byDriver = new Map<string, GojekGridFixture['rows'][number]>();
+  // Bebas-setoran / non-operational markers describe a VEHICLE's state, so the
+  // backend omits them when the rows are people. Dropping them here keeps the
+  // mock from promising a cell color the real endpoint never sends.
+  const withoutExceptions = (days: GojekGridFixture['rows'][number]['days']) =>
+    Object.fromEntries(
+      Object.entries(days).map(([day, cell]) => [day, { ...cell, exception: null }]),
+    );
+
+  for (const row of grid.rows) {
+    const name = row.driverName.trim().toUpperCase();
+    const key = `drv:${name}`;
+    const existing = byDriver.get(key);
+    if (!existing) {
+      byDriver.set(key, {
+        ...row,
+        plateNorm: key,
+        plateRaw: '',
+        driverName: name,
+        vehicleType: '',
+        // plate-level facts do not describe a person
+        isNewJoiner: false,
+        joinDate: null,
+        days: withoutExceptions(row.days),
+        dailyDue: { ...row.dailyDue },
+        driverHistory: [name],
+        plateHistory: [...(row.plateHistory ?? [])],
+        summary: { ...row.summary },
+      });
+      continue;
+    }
+    for (const plate of row.plateHistory ?? []) {
+      if (!existing.plateHistory.includes(plate)) existing.plateHistory.push(plate);
+    }
+    for (const [dayKey, cell] of Object.entries(withoutExceptions(row.days))) {
+      const day = Number(dayKey);
+      const prev = existing.days[day];
+      existing.days[day] = prev
+        ? {
+            ...prev,
+            displayAmount: prev.displayAmount + cell.displayAmount,
+            countedAmount: prev.countedAmount + cell.countedAmount,
+          }
+        : { ...cell };
+    }
+    for (const [dayKey, due] of Object.entries(row.dailyDue)) {
+      const day = Number(dayKey);
+      existing.dailyDue[day] = (existing.dailyDue[day] ?? 0) + due;
+    }
+    existing.summary = {
+      ...existing.summary,
+      totalDeduction: existing.summary.totalDeduction + row.summary.totalDeduction,
+      calculatedTarget: existing.summary.calculatedTarget + row.summary.calculatedTarget,
+      gap: existing.summary.gap + row.summary.gap,
+      outstanding: existing.summary.outstanding + row.summary.outstanding,
+      outstandingMonth: existing.summary.outstandingMonth + row.summary.outstandingMonth,
+    };
+    existing.isExited = existing.isExited && row.isExited;
+  }
+
+  const rows = [...byDriver.values()].sort((a, b) => a.driverName.localeCompare(b.driverName));
+  return { ...grid, mode: 'driver', rows };
+}
+
+/** Merge `plate|city|driver` rows into one row per driver. */
+export function pivotGrabByDriver(grid: GrabGridFixture): GrabGridFixture {
+  const byDriver = new Map<string, GrabGridFixture['rows'][number]>();
+
+  for (const row of grid.rows) {
+    const name = row.driverName.trim().toUpperCase();
+    const key = `drv:${name}`;
+    const existing = byDriver.get(key);
+    if (!existing) {
+      byDriver.set(key, {
+        ...row,
+        compositeKey: key,
+        driverName: name,
+        days: { ...row.days },
+        plateHistory: [...(row.plateHistory ?? [])],
+        summary: { ...row.summary },
+      });
+      continue;
+    }
+    for (const use of row.plateHistory ?? []) {
+      if (!existing.plateHistory.some((p) => p.plate === use.plate && p.city === use.city)) {
+        existing.plateHistory.push(use);
+      }
+    }
+    for (const [dayKey, cell] of Object.entries(row.days)) {
+      const day = Number(dayKey);
+      const prev = existing.days[day];
+      existing.days[day] = { earning: (prev?.earning ?? 0) + cell.earning };
+    }
+    existing.summary = {
+      ...existing.summary,
+      earning: existing.summary.earning + row.summary.earning,
+      incentive: existing.summary.incentive + row.summary.incentive,
+      driverFare: existing.summary.driverFare + row.summary.driverFare,
+      tollAndOthers: existing.summary.tollAndOthers + row.summary.tollAndOthers,
+      rides: existing.summary.rides + row.summary.rides,
+      onlineHours: existing.summary.onlineHours + row.summary.onlineHours,
+      bookings: existing.summary.bookings + row.summary.bookings,
+      cancellations: existing.summary.cancellations + row.summary.cancellations,
+    };
+  }
+
+  const rows = [...byDriver.values()].sort((a, b) => a.driverName.localeCompare(b.driverName));
+  return { ...grid, mode: 'driver', rows };
+}
+
 // ---- Grab ---------------------------------------------------------------------
 
 export function makeGrabGrid(month: number, year: number, vehicleCount = 120) {
@@ -533,6 +655,7 @@ export function makeGrabGrid(month: number, year: number, vehicleCount = 120) {
       tiering,
       vehicleType: VEHICLE_TYPES[i % VEHICLE_TYPES.length],
       driverPhone: `08${(1000000000 + i).toString().slice(0, 10)}`,
+      plateHistory: [{ plate: plateNumber, city }],
       days,
       summary: {
         earning,
@@ -560,6 +683,7 @@ export function makeGrabGrid(month: number, year: number, vehicleCount = 120) {
     month,
     year,
     daysInMonth: dim,
+    mode: 'plate' as 'plate' | 'driver',
     rows,
     totals: {
       earning: rows.reduce((s, r) => s + r.summary.earning, 0),

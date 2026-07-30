@@ -1,6 +1,7 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { api, unwrap, ApiErrorException, type ApiError } from '@/lib/api-client/client';
 import { qk } from '@/lib/query-client';
+import type { MonitoringMode } from '@/features/fleet/searchSchema';
 import type { GrabDriverDetail, GrabGrid, GrabSummary } from './types';
 
 const throwEnvelope = (error: unknown): never => {
@@ -12,6 +13,7 @@ export function useGrabGridQuery(p: {
   year: number;
   rentalPartner: string[];
   plate?: string;
+  mode?: MonitoringMode;
 }) {
   return useQuery({
     queryKey: qk.fleet.grid({
@@ -20,6 +22,7 @@ export function useGrabGridQuery(p: {
       year: p.year,
       rentalPartner: p.rentalPartner,
       plate: p.plate,
+      mode: p.mode,
     }),
     queryFn: async (): Promise<GrabGrid> => {
       const { data, error } = await api.GET('/admin/fleet/grab/grid', {
@@ -29,6 +32,7 @@ export function useGrabGridQuery(p: {
             year: p.year,
             ...(p.rentalPartner.length ? { rentalPartner: p.rentalPartner } : {}),
             ...(p.plate ? { plate: p.plate } : {}),
+            ...(p.mode ? { mode: p.mode } : {}),
           },
         },
       });
@@ -44,6 +48,7 @@ export function useGrabDriverDetailQuery(p: {
   month: number;
   year: number;
   enabled: boolean;
+  mode?: MonitoringMode;
 }) {
   return useQuery({
     queryKey: qk.fleet.cell({
@@ -52,10 +57,19 @@ export function useGrabDriverDetailQuery(p: {
       day: 1,
       month: p.month,
       year: p.year,
+      mode: p.mode,
     }),
     queryFn: async (): Promise<GrabDriverDetail> => {
       const { data, error } = await api.GET('/admin/fleet/grab/cell', {
-        params: { query: { compositeKey: p.compositeKey, day: 1, month: p.month, year: p.year } },
+        params: {
+          query: {
+            compositeKey: p.compositeKey,
+            day: 1,
+            month: p.month,
+            year: p.year,
+            ...(p.mode ? { mode: p.mode } : {}),
+          },
+        },
       });
       if (error) throwEnvelope(error);
       return unwrap(data) as GrabDriverDetail;
@@ -66,12 +80,14 @@ export function useGrabDriverDetailQuery(p: {
 
 // ---- Partner portal variants (read-only, scoped server-side to own plates) ----
 
-export function usePartnerGrabGridQuery(p: { month: number; year: number }) {
+export function usePartnerGrabGridQuery(p: { month: number; year: number; mode?: MonitoringMode }) {
   return useQuery({
     queryKey: qk.partner.fleet.grid({ platform: 'grab', ...p }),
     queryFn: async (): Promise<GrabGrid> => {
       const { data, error } = await api.GET('/partner/portal/fleet/grab/grid', {
-        params: { query: { month: p.month, year: p.year } },
+        params: {
+          query: { month: p.month, year: p.year, ...(p.mode ? { mode: p.mode } : {}) },
+        },
       });
       if (error) throwEnvelope(error);
       return unwrap(data) as GrabGrid;
@@ -85,6 +101,7 @@ export function usePartnerGrabDriverDetailQuery(p: {
   month: number;
   year: number;
   enabled: boolean;
+  mode?: MonitoringMode;
 }) {
   return useQuery({
     queryKey: qk.partner.fleet.cell({
@@ -93,10 +110,19 @@ export function usePartnerGrabDriverDetailQuery(p: {
       day: 1,
       month: p.month,
       year: p.year,
+      mode: p.mode,
     }),
     queryFn: async (): Promise<GrabDriverDetail> => {
       const { data, error } = await api.GET('/partner/portal/fleet/grab/cell', {
-        params: { query: { compositeKey: p.compositeKey, day: 1, month: p.month, year: p.year } },
+        params: {
+          query: {
+            compositeKey: p.compositeKey,
+            day: 1,
+            month: p.month,
+            year: p.year,
+            ...(p.mode ? { mode: p.mode } : {}),
+          },
+        },
       });
       if (error) throwEnvelope(error);
       return unwrap(data) as GrabDriverDetail;

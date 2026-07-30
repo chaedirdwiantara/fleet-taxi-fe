@@ -7,6 +7,7 @@ import {
   ClipboardCheck,
   ClipboardList,
   LayoutDashboard,
+  LayoutGrid,
   LogOut,
   Menu,
   ScrollText,
@@ -59,8 +60,11 @@ const NAV: Record<Audience, NavEntry[]> = {
     },
   ],
   partner: [
-    { to: '/partner/fleet-monitoring', label: 'Fleet Monitoring — Gojek', icon: Table2 },
-    { to: '/partner/fleet-monitoring-grab', label: 'Fleet Monitoring — Grab', icon: Car },
+    // The combined view comes first: it is the "how did my fleet do" overview,
+    // and the per-platform screens below are the drill-downs.
+    { to: '/partner/all-fleet-monitoring', label: 'All Fleet Monitoring', icon: LayoutGrid },
+    { to: '/partner/fleet-monitoring', label: 'Gojek', icon: Table2 },
+    { to: '/partner/fleet-monitoring-grab', label: 'Grab', icon: Car },
     {
       label: 'Driver',
       icon: Users,

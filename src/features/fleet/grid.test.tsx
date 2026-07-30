@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { GojekMonitoringTable } from './components/GojekMonitoringTable';
-import { makeGojekGrid } from '@/mocks/fixtures/fleet';
+import { makeGojekGrid, pivotGojekByDriver } from '@/mocks/fixtures/fleet';
 import type { FleetGrid } from './types';
 
 // small grid keeps the component test fast
@@ -176,5 +176,59 @@ describe('GojekMonitoringTable (faithful legacy pivot)', () => {
     const firstPlate = grid.rows[0].plateRaw;
     await user.click(screen.getByLabelText(`Kelola jadwal ${firstPlate}`));
     expect(onManageException).toHaveBeenCalledWith(grid.rows[0].plateNorm);
+  });
+
+  // ---- reading mode (By Plat / By Driver) ------------------------------------
+  // The backend does the regrouping; the table only relabels the identity block
+  // and drops the affordances that act on a vehicle rather than a person.
+  describe('driver mode', () => {
+    const driverGrid = pivotGojekByDriver(makeGojekGrid(6, 2026, 12)) as unknown as FleetGrid;
+
+    it('makes the driver the subject and lists the plates they drove', () => {
+      render(<GojekMonitoringTable grid={driverGrid} onCellClick={vi.fn()} mode="driver" />);
+
+      const headers = screen.getAllByRole('columnheader').map((h) => h.textContent);
+      expect(headers).toContain('Driver');
+      expect(headers).toContain('Plat');
+      // no per-vehicle Type column: a person has no single vehicle type
+      expect(headers).not.toContain('Type');
+
+      const row = driverGrid.rows[0];
+      expect(screen.getAllByText(row.driverName).length).toBeGreaterThan(0);
+      for (const plate of row.plateHistory ?? []) {
+        expect(screen.getAllByText(plate).length).toBeGreaterThan(0);
+      }
+    });
+
+    it('keeps the obligation columns — they are recomputed per driver', () => {
+      render(<GojekMonitoringTable grid={driverGrid} onCellClick={vi.fn()} mode="driver" />);
+      expect(screen.getByText('Total Deduction')).toBeInTheDocument();
+      expect(screen.getByText('Total Due (Target)')).toBeInTheDocument();
+      expect(screen.getByText('Outstanding Total')).toBeInTheDocument();
+    });
+
+    it('drops plate-only affordances (Aksi, "Baru")', () => {
+      render(
+        <GojekMonitoringTable
+          grid={driverGrid}
+          onCellClick={vi.fn()}
+          onManageException={vi.fn()}
+          readOnly
+          mode="driver"
+        />,
+      );
+      expect(screen.queryByText('Aksi')).not.toBeInTheDocument();
+      expect(screen.queryByText('Baru')).not.toBeInTheDocument();
+    });
+
+    it('clicking a cell reports the driver row key', async () => {
+      const user = userEvent.setup();
+      const onCellClick = vi.fn();
+      render(<GojekMonitoringTable grid={driverGrid} onCellClick={onCellClick} mode="driver" />);
+
+      const [firstCell] = screen.getAllByRole('button', { name: /tanggal \d+:/ });
+      await user.click(firstCell);
+      expect(onCellClick).toHaveBeenCalledWith(expect.stringMatching(/^drv:/), expect.any(Number));
+    });
   });
 });

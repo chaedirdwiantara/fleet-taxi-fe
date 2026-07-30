@@ -9,8 +9,11 @@ import {
   makeDayFilter,
   scopeGojekGrid,
   scopeGrabGrid,
+  pivotGojekByDriver,
+  pivotGrabByDriver,
   importBatches,
 } from './fixtures/fleet';
+import { makeAllFleetCell, makeAllFleetGrid } from './fixtures/allFleet';
 import { makeActivityLogs } from './fixtures/activityLog';
 import {
   partnerMe,
@@ -54,6 +57,11 @@ const int = (v: string | null, fallback: number) => {
   const n = Number(v);
   return Number.isFinite(n) && n > 0 ? n : fallback;
 };
+
+/** Reading mode of a monitoring pivot; anything unexpected falls back to plate,
+ * exactly like the backend's parseMonitoringMode. */
+const readMode = (url: URL): 'plate' | 'driver' =>
+  url.searchParams.get('mode') === 'driver' ? 'driver' : 'plate';
 
 // ---- Mock cookie-session state ----------------------------------------------
 // Emulates the backend's session: `me` is 401 until login. Persisted in
@@ -507,10 +515,11 @@ export const handlers = [
     const url = new URL(request.url);
     const month = int(url.searchParams.get('month'), 6);
     const year = int(url.searchParams.get('year'), 2026);
-    const grid = overlayPlateTypes(
+    const scoped = overlayPlateTypes(
       // keepRawRows: the "Data Mentah Tanpa Plat" queue is admin-only
       scopeGojekGrid(makeGojekGrid(month, year), registeredNorms(), { keepRawRows: true }),
     );
+    const grid = readMode(url) === 'driver' ? pivotGojekByDriver(scoped) : scoped;
     // The SERVER returns the filtered pivot (kickoff §5) — emulate that here.
     const partners = url.searchParams.getAll('rentalPartner');
     const plate = url.searchParams
@@ -519,7 +528,9 @@ export const handlers = [
       .replace(/[^A-Z0-9]/g, '');
     let rows = grid.rows;
     if (partners.length) rows = rows.filter((r) => partners.includes(r.rentalPartner));
-    if (plate) rows = rows.filter((r) => r.plateNorm.includes(plate));
+    // A plate query matches any plate of the row — in driver mode that reads as
+    // "people who drove that plate".
+    if (plate) rows = rows.filter((r) => (r.plateHistory ?? []).some((p) => p.includes(plate)));
     return ok({ ...grid, rows });
   }),
 
@@ -557,10 +568,11 @@ export const handlers = [
 
   http.get('*/admin/fleet/grab/grid', ({ request }) => {
     const url = new URL(request.url);
-    const grid = makeGrabGrid(
+    const base = makeGrabGrid(
       int(url.searchParams.get('month'), 6),
       int(url.searchParams.get('year'), 2026),
     );
+    const grid = readMode(url) === 'driver' ? pivotGrabByDriver(base) : base;
     const partners = url.searchParams.getAll('rentalPartner');
     const plate = url.searchParams
       .get('plate')
@@ -568,7 +580,9 @@ export const handlers = [
       .replace(/[^A-Z0-9]/g, '');
     let rows = grid.rows;
     if (partners.length) rows = rows.filter((r) => partners.includes(r.rentalPartner));
-    if (plate) rows = rows.filter((r) => r.plateNumber.includes(plate));
+    if (plate) {
+      rows = rows.filter((r) => (r.plateHistory ?? []).some((p) => p.plate.includes(plate)));
+    }
     return ok({ ...grid, rows });
   }),
 
@@ -647,12 +661,15 @@ export const handlers = [
     const day = int(url.searchParams.get('day'), 1);
     const month = int(url.searchParams.get('month'), 6);
     const year = int(url.searchParams.get('year'), 2026);
+    const byDriver = readMode(url) === 'driver';
     // Same scoping as the grid: a plate no partner registered has no admin cell.
-    if (!registeredNorms().has(plate)) {
+    // Driver rows are keyed `drv:<NAME>`, so the scope applies to the grid.
+    if (!byDriver && !registeredNorms().has(plate)) {
       return err(404, 'NOT_FOUND', 'No transactions for that vehicle/day');
     }
     // Return the SAME breakdown the pivot cell was built from (brief §2.A).
-    const grid = makeGojekGrid(month, year);
+    const base = makeGojekGrid(month, year);
+    const grid = byDriver ? pivotGojekByDriver(scopeGojekGrid(base, registeredNorms())) : base;
     const row = grid.rows.find((r) => r.plateNorm === plate);
     const detail = row?.days[day]?.detail;
     if (detail) return ok(detail);
@@ -672,7 +689,8 @@ export const handlers = [
     const compositeKey = url.searchParams.get('compositeKey') ?? 'B2000GRB|Jakarta|Budi Santoso';
     const month = int(url.searchParams.get('month'), 6);
     const year = int(url.searchParams.get('year'), 2026);
-    const grid = makeGrabGrid(month, year);
+    const base = makeGrabGrid(month, year);
+    const grid = readMode(url) === 'driver' ? pivotGrabByDriver(base) : base;
     const row = grid.rows.find((r) => r.compositeKey === compositeKey) ?? grid.rows[0];
     return ok({
       compositeKey,
@@ -1356,6 +1374,42 @@ export const handlers = [
     });
   }),
 
+  // ---- Partner portal — All Fleet Monitoring (Gojek + Grab + Rental) -------
+  // Built from the same three fixtures the platform screens use, so the mock
+  // reproduces the backend's invariant: totals do not change with the mode.
+  http.get('*/partner/portal/fleet/all/grid', ({ request }) => {
+    const url = new URL(request.url);
+    const month = int(url.searchParams.get('month'), 6);
+    const year = int(url.searchParams.get('year'), 2026);
+    const mode = readMode(url);
+    const norms = registeredNorms();
+    return ok(
+      makeAllFleetGrid(month, year, mode, {
+        gojek: scopeGojekGrid(makeGojekGrid(month, year), norms),
+        grab: scopeGrabGrid(makeGrabGrid(month, year), norms),
+        rentals: rentalsState,
+      }),
+    );
+  }),
+
+  http.get('*/partner/portal/fleet/all/cell', ({ request }) => {
+    const url = new URL(request.url);
+    const month = int(url.searchParams.get('month'), 6);
+    const year = int(url.searchParams.get('year'), 2026);
+    const day = int(url.searchParams.get('day'), 1);
+    const key = url.searchParams.get('key') ?? '';
+    const mode = readMode(url);
+    const norms = registeredNorms();
+    const grid = makeAllFleetGrid(month, year, mode, {
+      gojek: scopeGojekGrid(makeGojekGrid(month, year), norms),
+      grab: scopeGrabGrid(makeGrabGrid(month, year), norms),
+      rentals: rentalsState,
+    });
+    const cell = makeAllFleetCell(grid, key, day);
+    if (!cell) return err(404, 'NOT_FOUND', 'No transactions for that subject/day');
+    return ok(cell);
+  }),
+
   // ---- Partner portal — read-only fleet (scoped to registered plates) ------
   http.get('*/partner/portal/fleet/gojek/grid', ({ request }) => {
     const url = new URL(request.url);
@@ -1363,7 +1417,8 @@ export const handlers = [
       int(url.searchParams.get('month'), 6),
       int(url.searchParams.get('year'), 2026),
     );
-    return ok(overlayPlateTypes(scopeGojekGrid(grid, registeredNorms())));
+    const scoped = overlayPlateTypes(scopeGojekGrid(grid, registeredNorms()));
+    return ok(readMode(url) === 'driver' ? pivotGojekByDriver(scoped) : scoped);
   }),
 
   http.get('*/partner/portal/fleet/gojek/summary', ({ request }) => {
@@ -1390,7 +1445,16 @@ export const handlers = [
     const day = int(url.searchParams.get('day'), 1);
     const month = int(url.searchParams.get('month'), 6);
     const year = int(url.searchParams.get('year'), 2026);
-    if (!registeredNorms().has(plate)) {
+    const norms = registeredNorms();
+    // In driver mode the row key is `drv:<NAME>`, so the plate allowlist is
+    // applied to the grid instead of to the key.
+    if (readMode(url) === 'driver') {
+      const grid = pivotGojekByDriver(scopeGojekGrid(makeGojekGrid(month, year), norms));
+      const detail = grid.rows.find((r) => r.plateNorm === plate)?.days[day]?.detail;
+      if (!detail) return err(404, 'NOT_FOUND', 'No transactions for that vehicle/day');
+      return ok(detail);
+    }
+    if (!norms.has(plate)) {
       return err(404, 'NOT_FOUND', 'No transactions for that vehicle/day');
     }
     const detail = makeGojekGrid(month, year).rows.find((r) => r.plateNorm === plate)?.days[day]
@@ -1454,18 +1518,21 @@ export const handlers = [
       int(url.searchParams.get('month'), 6),
       int(url.searchParams.get('year'), 2026),
     );
-    return ok(scopeGrabGrid(grid, registeredNorms()));
+    const scoped = scopeGrabGrid(grid, registeredNorms());
+    return ok(readMode(url) === 'driver' ? pivotGrabByDriver(scoped) : scoped);
   }),
 
   http.get('*/partner/portal/fleet/grab/cell', ({ request }) => {
     const url = new URL(request.url);
     const compositeKey = url.searchParams.get('compositeKey') ?? '';
-    const grid = makeGrabGrid(
+    const norms = registeredNorms();
+    const base = makeGrabGrid(
       int(url.searchParams.get('month'), 6),
       int(url.searchParams.get('year'), 2026),
     );
+    const grid = readMode(url) === 'driver' ? pivotGrabByDriver(scopeGrabGrid(base, norms)) : base;
     const row = grid.rows.find((r) => r.compositeKey === compositeKey);
-    if (!row || !registeredNorms().has(row.plateNumber)) {
+    if (!row || (readMode(url) === 'plate' && !norms.has(row.plateNumber))) {
       return err(404, 'NOT_FOUND', 'No data for that key');
     }
     return ok({

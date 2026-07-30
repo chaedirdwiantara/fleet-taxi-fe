@@ -6,6 +6,7 @@ import { ImportPanel } from '@/features/fleet/components/ImportPanel';
 import { ImportHistoryDialog } from '@/features/fleet/components/ImportHistoryDialog';
 import { TargetEditor } from '@/features/fleet/components/TargetEditor';
 import { GradientStatRow } from '@/features/fleet/components/GradientStat';
+import { ViewModeToggle } from '@/features/fleet/components/ViewModeToggle';
 import { fleetSearchSchema, type FleetSearch } from '@/features/fleet/searchSchema';
 import { GrabMonitoringTable } from '@/features/grab/GrabMonitoringTable';
 import { GrabCellModal } from '@/features/grab/GrabCellModal';
@@ -33,6 +34,7 @@ function GrabGridPage() {
     year: search.year,
     rentalPartner: search.rentalPartner,
     plate: search.plate,
+    mode: search.mode,
   });
 
   // full unfiltered list from the payload (not post-filter rows), so selecting
@@ -45,7 +47,10 @@ function GrabGridPage() {
         <div>
           <h2 className="text-lg font-semibold">Fleet Monitoring — Grab</h2>
           <p className="text-sm text-muted-foreground">
-            Earning per kendaraan (plat · kota · driver) · {grid.data?.rows.length ?? '…'} baris
+            {search.mode === 'driver'
+              ? 'Earning per driver (gabungan semua plat)'
+              : 'Earning per kendaraan (plat · kota · driver)'}{' '}
+            · {grid.data?.rows.length ?? '…'} baris
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -79,7 +84,10 @@ function GrabGridPage() {
         />
       )}
 
-      <FilterBar search={search} rentalPartnerOptions={partnerOptions} onChange={patchSearch} />
+      <div className="flex flex-wrap items-center gap-2">
+        <ViewModeToggle mode={search.mode} onChange={(mode) => patchSearch({ mode })} />
+        <FilterBar search={search} rentalPartnerOptions={partnerOptions} onChange={patchSearch} />
+      </div>
 
       {grid.isPending && <p className="text-sm text-muted-foreground">Memuat grid…</p>}
       {grid.isError && (
@@ -91,6 +99,7 @@ function GrabGridPage() {
             grid={grid.data}
             onDriverDetail={setDetailKey}
             onEditDriver={(row) => setEditPlate(row.plateNumber)}
+            mode={search.mode}
           />
         </div>
       )}
@@ -100,6 +109,7 @@ function GrabGridPage() {
           compositeKey={detailKey}
           month={search.month}
           year={search.year}
+          mode={search.mode}
           onClose={() => setDetailKey(null)}
         />
       )}

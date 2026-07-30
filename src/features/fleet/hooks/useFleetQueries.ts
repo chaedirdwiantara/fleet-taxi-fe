@@ -1,6 +1,7 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { api, unwrap, ApiErrorException, type ApiError } from '@/lib/api-client/client';
 import { qk } from '@/lib/query-client';
+import type { MonitoringMode } from '../searchSchema';
 import type {
   CellBreakdown,
   DayFilterSummary,
@@ -20,6 +21,7 @@ export function useGojekGridQuery(p: {
   year: number;
   rentalPartner: string[];
   plate?: string;
+  mode?: MonitoringMode;
 }) {
   return useQuery({
     queryKey: qk.fleet.grid({ platform: 'gojek', ...p }),
@@ -31,6 +33,7 @@ export function useGojekGridQuery(p: {
             year: p.year,
             ...(p.rentalPartner.length ? { rentalPartner: p.rentalPartner } : {}),
             ...(p.plate ? { plate: p.plate } : {}),
+            ...(p.mode ? { mode: p.mode } : {}),
           },
         },
       });
@@ -47,6 +50,7 @@ export function useGojekCellQuery(p: {
   month: number;
   year: number;
   enabled: boolean;
+  mode?: MonitoringMode;
 }) {
   return useQuery({
     queryKey: qk.fleet.cell({
@@ -55,10 +59,19 @@ export function useGojekCellQuery(p: {
       day: p.day,
       month: p.month,
       year: p.year,
+      mode: p.mode,
     }),
     queryFn: async (): Promise<CellBreakdown> => {
       const { data, error } = await api.GET('/admin/fleet/gojek/cell', {
-        params: { query: { plate: p.plate, day: p.day, month: p.month, year: p.year } },
+        params: {
+          query: {
+            plate: p.plate,
+            day: p.day,
+            month: p.month,
+            year: p.year,
+            ...(p.mode ? { mode: p.mode } : {}),
+          },
+        },
       });
       if (error) throwEnvelope(error);
       return unwrap(data) as CellBreakdown;
@@ -115,12 +128,18 @@ export function useGojekSummaryQuery(p: {
 // Same FleetGrid/CellBreakdown/summary shapes as admin; only the endpoint and
 // query key differ. The plate allowlist is derived from the session, never sent.
 
-export function usePartnerGojekGridQuery(p: { month: number; year: number }) {
+export function usePartnerGojekGridQuery(p: {
+  month: number;
+  year: number;
+  mode?: MonitoringMode;
+}) {
   return useQuery({
     queryKey: qk.partner.fleet.grid({ platform: 'gojek', ...p }),
     queryFn: async (): Promise<FleetGrid> => {
       const { data, error } = await api.GET('/partner/portal/fleet/gojek/grid', {
-        params: { query: { month: p.month, year: p.year } },
+        params: {
+          query: { month: p.month, year: p.year, ...(p.mode ? { mode: p.mode } : {}) },
+        },
       });
       if (error) throwEnvelope(error);
       return unwrap(data) as FleetGrid;
@@ -135,6 +154,7 @@ export function usePartnerGojekCellQuery(p: {
   month: number;
   year: number;
   enabled: boolean;
+  mode?: MonitoringMode;
 }) {
   return useQuery({
     queryKey: qk.partner.fleet.cell({
@@ -143,10 +163,19 @@ export function usePartnerGojekCellQuery(p: {
       day: p.day,
       month: p.month,
       year: p.year,
+      mode: p.mode,
     }),
     queryFn: async (): Promise<CellBreakdown> => {
       const { data, error } = await api.GET('/partner/portal/fleet/gojek/cell', {
-        params: { query: { plate: p.plate, day: p.day, month: p.month, year: p.year } },
+        params: {
+          query: {
+            plate: p.plate,
+            day: p.day,
+            month: p.month,
+            year: p.year,
+            ...(p.mode ? { mode: p.mode } : {}),
+          },
+        },
       });
       if (error) throwEnvelope(error);
       return unwrap(data) as CellBreakdown;

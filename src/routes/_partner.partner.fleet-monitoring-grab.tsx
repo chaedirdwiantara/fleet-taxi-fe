@@ -3,6 +3,7 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { Car, Gift, Info, Wallet } from 'lucide-react';
 import { GradientStatRow } from '@/features/fleet/components/GradientStat';
 import { MonthYearPicker } from '@/features/fleet/components/MonthYearPicker';
+import { ViewModeToggle } from '@/features/fleet/components/ViewModeToggle';
 import { GrabMonitoringTable } from '@/features/grab/GrabMonitoringTable';
 import { GrabCellModal } from '@/features/grab/GrabCellModal';
 import { usePartnerGrabGridQuery } from '@/features/grab/hooks';
@@ -27,7 +28,11 @@ function PartnerGrabPage() {
     [navigate],
   );
 
-  const grid = usePartnerGrabGridQuery({ month: search.month, year: search.year });
+  const grid = usePartnerGrabGridQuery({
+    month: search.month,
+    year: search.year,
+    mode: search.mode,
+  });
 
   return (
     <div className="space-y-4">
@@ -35,15 +40,19 @@ function PartnerGrabPage() {
         <div>
           <h2 className="text-lg font-semibold">Fleet Monitoring — Grab</h2>
           <p className="text-sm text-muted-foreground">
-            Earning untuk plat yang Anda daftarkan · {grid.data?.rows.length ?? '…'} baris
+            Earning untuk plat yang Anda daftarkan · {grid.data?.rows.length ?? '…'}{' '}
+            {search.mode === 'driver' ? 'driver' : 'baris'}
           </p>
         </div>
-        <MonthYearPicker
-          month={search.month}
-          year={search.year}
-          onMonth={(m) => setPeriod({ month: m })}
-          onYear={(y) => setPeriod({ year: y })}
-        />
+        <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+          <ViewModeToggle mode={search.mode} onChange={(mode) => setPeriod({ mode })} />
+          <MonthYearPicker
+            month={search.month}
+            year={search.year}
+            onMonth={(m) => setPeriod({ month: m })}
+            onYear={(y) => setPeriod({ year: y })}
+          />
+        </div>
       </div>
 
       {grid.data && grid.data.rows.length > 0 && (
@@ -91,7 +100,12 @@ function PartnerGrabPage() {
       )}
       {grid.isSuccess && grid.data.rows.length > 0 && (
         <div className={grid.isFetching ? 'opacity-60 transition-opacity' : undefined}>
-          <GrabMonitoringTable grid={grid.data} onDriverDetail={setDetailKey} readOnly />
+          <GrabMonitoringTable
+            grid={grid.data}
+            onDriverDetail={setDetailKey}
+            readOnly
+            mode={search.mode}
+          />
         </div>
       )}
 
@@ -101,6 +115,7 @@ function PartnerGrabPage() {
           compositeKey={detailKey}
           month={search.month}
           year={search.year}
+          mode={search.mode}
           onClose={() => setDetailKey(null)}
         />
       )}

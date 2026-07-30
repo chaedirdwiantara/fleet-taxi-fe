@@ -6,7 +6,12 @@ export const Route = createFileRoute('/_partner/partner/')({
   beforeLoad: () => {
     throw redirect({
       to: '/partner/fleet-monitoring',
-      search: { month: currentMonthWIB(), year: currentYearWIB(), rentalPartner: [] },
+      search: {
+        month: currentMonthWIB(),
+        year: currentYearWIB(),
+        rentalPartner: [],
+        mode: 'plate',
+      },
     });
   },
 });

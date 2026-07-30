@@ -24,9 +24,16 @@ export const fleetSearchSchema = z.object({
   plate: z.string().optional().catch(undefined),
   // "<plateNorm|compositeKey>:<day>" → deep-linkable day-breakdown modal
   cell: z.string().optional().catch(undefined),
+  // Row subject of the pivot: one row per plate (default) or per driver. It
+  // lives in the URL — not in component state — because the server returns
+  // genuinely different rows and the link should stay shareable.
+  mode: z.enum(['plate', 'driver']).catch('plate'),
 });
 
 export type FleetSearch = z.infer<typeof fleetSearchSchema>;
+
+/** Row subject of a monitoring pivot — mirrors the backend's `mode` param. */
+export type MonitoringMode = FleetSearch['mode'];
 
 /** Parse the `cell` param; null when absent or malformed. */
 export function parseCellParam(cell: string | undefined): { key: string; day: number } | null {

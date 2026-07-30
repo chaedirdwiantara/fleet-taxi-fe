@@ -3,6 +3,9 @@
 // qk.fleet.grid(...) so URL ↔ cache stay in lockstep.
 
 export type Platform = 'gojek' | 'grab';
+/** Row subject of a monitoring pivot; part of every grid/cell key because the
+ * server returns different rows per mode. */
+export type MonitoringMode = 'plate' | 'driver';
 
 export const qk = {
   // separate auth surfaces (admin console vs partner portal)
@@ -33,9 +36,16 @@ export const qk = {
       year: number;
       rentalPartner: string[];
       plate?: string;
+      mode?: MonitoringMode;
     }) => ['fleet', p.platform, 'grid', p] as const,
-    cell: (p: { platform: Platform; key: string; day: number; month: number; year: number }) =>
-      ['fleet', p.platform, 'cell', p] as const,
+    cell: (p: {
+      platform: Platform;
+      key: string;
+      day: number;
+      month: number;
+      year: number;
+      mode?: MonitoringMode;
+    }) => ['fleet', p.platform, 'cell', p] as const,
     imports: (platform: Platform) => ['fleet', platform, 'imports'] as const,
     importStatus: (platform: Platform, id: string) => ['fleet', platform, 'imports', id] as const,
     summary: (p: {
@@ -84,10 +94,26 @@ export const qk = {
     },
     fleet: {
       all: ['partner', 'fleet'] as const, // invalidation prefix for every portal fleet query
-      grid: (p: { platform: Platform; month: number; year: number }) =>
+      grid: (p: { platform: Platform; month: number; year: number; mode?: MonitoringMode }) =>
         ['partner', 'fleet', p.platform, 'grid', p] as const,
-      cell: (p: { platform: Platform; key: string; day: number; month: number; year: number }) =>
-        ['partner', 'fleet', p.platform, 'cell', p] as const,
+      cell: (p: {
+        platform: Platform;
+        key: string;
+        day: number;
+        month: number;
+        year: number;
+        mode?: MonitoringMode;
+      }) => ['partner', 'fleet', p.platform, 'cell', p] as const,
+      // All Fleet Monitoring: the combined Gojek + Grab + Rental matrix.
+      allGrid: (p: { month: number; year: number; mode: MonitoringMode }) =>
+        ['partner', 'fleet', 'all', 'grid', p] as const,
+      allCell: (p: {
+        key: string;
+        day: number;
+        month: number;
+        year: number;
+        mode: MonitoringMode;
+      }) => ['partner', 'fleet', 'all', 'cell', p] as const,
       summary: (p: { month: number; year: number; day?: number }) =>
         ['partner', 'fleet', 'gojek', 'summary', p] as const,
       exceptions: (p: { month: number; year: number }) =>
