@@ -305,7 +305,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Dashboard aggregates: summary cards + driver activity + charts */
+        /** Dashboard aggregates: summary cards + driver activity + charts, plus the date-range block when ?dateFrom&dateTo is sent */
         get: operations["GojekController_summary"];
         put?: never;
         post?: never;
@@ -392,7 +392,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Dashboard summary — cards + daily/by-partner charts */
+        /** Dashboard summary — cards + daily/by-partner charts, plus the date-range block when ?dateFrom&dateTo is sent */
         get: operations["GrabController_summary"];
         put?: never;
         post?: never;
@@ -702,6 +702,23 @@ export interface paths {
         };
         /** Own Grab earnings grid (scoped to registered plates) */
         get: operations["PortalFleetController_grabGrid"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/fleet/grab/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Own Grab dashboard aggregates (cards + charts) */
+        get: operations["PortalFleetController_grabSummary"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2157,7 +2174,9 @@ export interface operations {
             query: {
                 month: number;
                 year: number;
-                day?: number;
+                /** @description Inclusive date range for the summary aggregates (YYYY-MM-DD). Send with dateTo or not at all; may span months; max 92 days. Omitted = whole selected month. */
+                dateFrom?: string;
+                dateTo?: string;
                 rentalPartner?: string[];
             };
             header?: never;
@@ -2306,6 +2325,9 @@ export interface operations {
             query: {
                 month: number;
                 year: number;
+                /** @description Inclusive date range for the summary aggregates (YYYY-MM-DD). Send with dateTo or not at all; may span months; max 92 days. Omitted = whole selected month. */
+                dateFrom?: string;
+                dateTo?: string;
                 rentalPartner?: string[];
             };
             header?: never;
@@ -2652,7 +2674,9 @@ export interface operations {
             query: {
                 month: number;
                 year: number;
-                day?: number;
+                /** @description Inclusive date range for the summary aggregates (YYYY-MM-DD). Send with dateTo or not at all; may span months; max 92 days. Omitted = whole selected month. */
+                dateFrom?: string;
+                dateTo?: string;
             };
             header?: never;
             path?: never;
@@ -2734,6 +2758,29 @@ export interface operations {
                 month: number;
                 year: number;
                 mode?: "plate" | "driver";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalFleetController_grabSummary: {
+        parameters: {
+            query: {
+                month: number;
+                year: number;
+                /** @description Inclusive date range for the summary aggregates (YYYY-MM-DD). Send with dateTo or not at all; may span months; max 92 days. Omitted = whole selected month. */
+                dateFrom?: string;
+                dateTo?: string;
             };
             header?: never;
             path?: never;

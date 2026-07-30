@@ -11,9 +11,14 @@ import {
 import { QuickLink } from '@/components/shared/QuickLink';
 import { SummaryCards } from '@/features/fleet/components/SummaryCards';
 import { FleetChartsPanel } from '@/features/fleet/components/FleetChartsPanel';
-import { DaySelect } from '@/features/fleet/components/DaySelect';
+import { DateRangePicker } from '@/components/shared/DateRangePicker';
 import { useGojekSummaryQuery } from '@/features/fleet/hooks/useFleetQueries';
-import { currentMonthWIB, currentYearWIB, MONTH_NAMES_ID } from '@/lib/datetime';
+import {
+  currentMonthWIB,
+  currentYearWIB,
+  MONTH_NAMES_ID,
+  type DateRangeValue,
+} from '@/lib/datetime';
 
 export const Route = createFileRoute('/_admin/admin/gojek/dashboard')({
   component: GojekDashboard,
@@ -26,22 +31,23 @@ function GojekDashboard() {
   const [year, setYear] = useState(currentYearWIB());
   // Default = omset seluruh partner; the select narrows every aggregate to one.
   const [partner, setPartner] = useState(ALL_PARTNERS);
-  // Tanggal filter (undefined = whole month) — resets when the period changes.
-  const [day, setDay] = useState<number | undefined>(undefined);
+  // Tanggal filter (undefined = whole month) — resets when the period changes,
+  // since a range picked for July says nothing about August.
+  const [range, setRange] = useState<DateRangeValue | undefined>(undefined);
 
   const changeMonth = (m: number) => {
     setMonth(m);
-    setDay(undefined);
+    setRange(undefined);
   };
   const changeYear = (y: number) => {
     setYear(y);
-    setDay(undefined);
+    setRange(undefined);
   };
 
   const summary = useGojekSummaryQuery({
     month,
     year,
-    day,
+    ...range,
     rentalPartner: partner === ALL_PARTNERS ? undefined : partner,
   });
   const years = Array.from({ length: 6 }, (_, i) => currentYearWIB() - 4 + i);
@@ -68,7 +74,13 @@ function GojekDashboard() {
               ))}
             </SelectContent>
           </Select>
-          <DaySelect day={day} month={month} year={year} onChange={setDay} />
+          <DateRangePicker
+            value={range}
+            onChange={setRange}
+            month={month}
+            year={year}
+            className="w-full sm:w-auto"
+          />
           <Select value={String(month)} onValueChange={(v) => changeMonth(Number(v))}>
             <SelectTrigger className="w-36" aria-label="Bulan">
               <SelectValue />
@@ -106,11 +118,11 @@ function GojekDashboard() {
         >
           <SummaryCards
             summary={summary.data.globalSummary}
-            dayFilter={summary.data.dayFilter}
+            range={summary.data.range}
             exitedDrivers={summary.data.exitedDrivers}
             lastImportDate={summary.data.lastImportDate}
           />
-          <FleetChartsPanel charts={summary.data.charts} selectedDay={day} />
+          <FleetChartsPanel charts={summary.data.charts} range={summary.data.range} />
         </div>
       )}
 

@@ -4,10 +4,12 @@ import { Car, Gift, Info, Wallet } from 'lucide-react';
 import { GradientStatRow } from '@/features/fleet/components/GradientStat';
 import { MonthYearPicker } from '@/features/fleet/components/MonthYearPicker';
 import { ViewModeToggle } from '@/features/fleet/components/ViewModeToggle';
+import { DateRangePicker } from '@/components/shared/DateRangePicker';
 import { GrabMonitoringTable } from '@/features/grab/GrabMonitoringTable';
 import { GrabCellModal } from '@/features/grab/GrabCellModal';
-import { usePartnerGrabGridQuery } from '@/features/grab/hooks';
-import { fleetSearchSchema, type FleetSearch } from '@/features/fleet/searchSchema';
+import { usePartnerGrabGridQuery, usePartnerGrabSummaryQuery } from '@/features/grab/hooks';
+import { fleetSearchSchema, normalizeRange, type FleetSearch } from '@/features/fleet/searchSchema';
+import { formatRangeNoteID, monthYearLabelID } from '@/lib/datetime';
 
 // Partner portal Grab monitoring — read-only, scoped to registered plates.
 export const Route = createFileRoute('/_partner/partner/fleet-monitoring-grab')({
@@ -28,11 +30,22 @@ function PartnerGrabPage() {
     [navigate],
   );
 
+  // Guard hand-edited URLs (half a pair, inverted, over-long) — treat as "Semua".
+  const range = normalizeRange(search.dateFrom, search.dateTo);
+
   const grid = usePartnerGrabGridQuery({
     month: search.month,
     year: search.year,
     mode: search.mode,
   });
+  // Cards come from the summary endpoint (the admin surface reads the same one),
+  // so the range and whole-month figures can never be derived two different ways.
+  const summary = usePartnerGrabSummaryQuery({
+    month: search.month,
+    year: search.year,
+    ...range,
+  });
+  const stats = summary.data?.range ?? summary.data?.globalSummary;
 
   return (
     <div className="space-y-4">
@@ -46,40 +59,64 @@ function PartnerGrabPage() {
         </div>
         <div className="flex w-full flex-wrap gap-2 sm:w-auto">
           <ViewModeToggle mode={search.mode} onChange={(mode) => setPeriod({ mode })} />
+          <DateRangePicker
+            value={range}
+            onChange={(next) => setPeriod({ dateFrom: next?.dateFrom, dateTo: next?.dateTo })}
+            month={search.month}
+            year={search.year}
+          />
           <MonthYearPicker
             month={search.month}
             year={search.year}
-            onMonth={(m) => setPeriod({ month: m })}
-            onYear={(y) => setPeriod({ year: y })}
+            onMonth={(m) => setPeriod({ month: m, dateFrom: undefined, dateTo: undefined })}
+            onYear={(y) => setPeriod({ year: y, dateFrom: undefined, dateTo: undefined })}
           />
         </div>
       </div>
 
-      {grid.data && grid.data.rows.length > 0 && (
-        <div className={grid.isFetching ? 'opacity-60 transition-opacity' : undefined}>
+      {stats && (
+        <div className={summary.isFetching ? 'opacity-60 transition-opacity' : undefined}>
           <GradientStatRow
             cards={[
               {
                 label: 'Total Pendapatan Terkumpul',
-                value: grid.data.totals.earning,
+                value: stats.totalEarning,
                 icon: Wallet,
                 gradient: 'from-blue-500 to-sky-400',
+                ...(summary.data?.range
+                  ? {
+                      note: formatRangeNoteID(
+                        summary.data.range.fromDate,
+                        summary.data.range.toDate,
+                        summary.data.range.days,
+                      ),
+                    }
+                  : {}),
               },
               {
                 label: 'Total Tarif Driver',
-                value: grid.data.totals.driverFare,
+                value: stats.totalDriverFare,
                 icon: Car,
                 gradient: 'from-emerald-500 to-green-400',
               },
               {
                 label: 'Total Insentif',
-                value: grid.data.totals.incentive,
+                value: stats.totalIncentive,
                 icon: Gift,
                 gradient: 'from-orange-500 to-amber-400',
               },
             ]}
           />
         </div>
+      )}
+
+      {/* The range may reach outside the month, so say which period the daily
+          table below covers rather than letting the two read as one. */}
+      {range && (
+        <p className="text-xs text-muted-foreground">
+          Kartu mengikuti rentang tanggal · tabel harian di bawah tetap{' '}
+          <span className="font-medium">{monthYearLabelID(search.month, search.year)}</span>.
+        </p>
       )}
 
       {grid.isPending && <p className="text-sm text-muted-foreground">Memuat grid…</p>}

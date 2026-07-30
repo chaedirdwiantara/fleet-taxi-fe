@@ -8,9 +8,9 @@ import { ExceptionPanel } from '@/features/fleet/components/ExceptionPanel';
 import { SummaryCards } from '@/features/fleet/components/SummaryCards';
 import { FleetChartsPanel } from '@/features/fleet/components/FleetChartsPanel';
 import { MonthYearPicker } from '@/features/fleet/components/MonthYearPicker';
-import { DaySelect } from '@/features/fleet/components/DaySelect';
+import { DateRangePicker } from '@/components/shared/DateRangePicker';
 import { ViewModeToggle } from '@/features/fleet/components/ViewModeToggle';
-import { daysInMonth } from '@/lib/datetime';
+import { monthYearLabelID } from '@/lib/datetime';
 import {
   usePartnerGojekGridQuery,
   usePartnerGojekSummaryQuery,
@@ -18,6 +18,7 @@ import {
 import {
   fleetSearchSchema,
   makeCellParam,
+  normalizeRange,
   parseCellParam,
   type FleetSearch,
 } from '@/features/fleet/searchSchema';
@@ -48,9 +49,8 @@ function PartnerGojekPage() {
     [navigate],
   );
 
-  // Guard hand-edited URLs like ?month=2&day=31 — treat as "Semua".
-  const effectiveDay =
-    search.day && search.day <= daysInMonth(search.month, search.year) ? search.day : undefined;
+  // Guard hand-edited URLs (half a pair, inverted, over-long) — treat as "Semua".
+  const range = normalizeRange(search.dateFrom, search.dateTo);
 
   const grid = usePartnerGojekGridQuery({
     month: search.month,
@@ -61,7 +61,7 @@ function PartnerGojekPage() {
   const summary = usePartnerGojekSummaryQuery({
     month: search.month,
     year: search.year,
-    day: effectiveDay,
+    ...range,
   });
 
   const openCell = useCallback(
@@ -87,17 +87,17 @@ function PartnerGojekPage() {
         </div>
         <div className="flex w-full flex-wrap gap-2 sm:w-auto">
           <ViewModeToggle mode={search.mode} onChange={(mode) => setPeriod({ mode })} />
-          <DaySelect
-            day={effectiveDay}
+          <DateRangePicker
+            value={range}
+            onChange={(next) => setPeriod({ dateFrom: next?.dateFrom, dateTo: next?.dateTo })}
             month={search.month}
             year={search.year}
-            onChange={(d) => setPeriod({ day: d })}
           />
           <MonthYearPicker
             month={search.month}
             year={search.year}
-            onMonth={(m) => setPeriod({ month: m, day: undefined })}
-            onYear={(y) => setPeriod({ year: y, day: undefined })}
+            onMonth={(m) => setPeriod({ month: m, dateFrom: undefined, dateTo: undefined })}
+            onYear={(y) => setPeriod({ year: y, dateFrom: undefined, dateTo: undefined })}
           />
         </div>
       </div>
@@ -111,7 +111,7 @@ function PartnerGojekPage() {
         >
           <SummaryCards
             summary={summary.data.globalSummary}
-            dayFilter={summary.data.dayFilter}
+            range={summary.data.range}
             exitedDrivers={summary.data.exitedDrivers}
             lastImportDate={summary.data.lastImportDate}
           />
@@ -119,9 +119,18 @@ function PartnerGojekPage() {
           <FleetChartsPanel
             charts={summary.data.charts}
             showPartnerSplit={false}
-            selectedDay={effectiveDay}
+            range={summary.data.range}
           />
         </div>
+      )}
+
+      {/* The range may reach outside the month, so say which period the daily
+          table below covers rather than letting the two read as one. */}
+      {range && (
+        <p className="text-xs text-muted-foreground">
+          Ringkasan mengikuti rentang tanggal · tabel harian di bawah tetap{' '}
+          <span className="font-medium">{monthYearLabelID(search.month, search.year)}</span>.
+        </p>
       )}
 
       <CellLegend mode={search.mode} />

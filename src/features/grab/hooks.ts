@@ -131,7 +131,13 @@ export function usePartnerGrabDriverDetailQuery(p: {
   });
 }
 
-export function useGrabSummaryQuery(p: { month: number; year: number; rentalPartner?: string }) {
+export function useGrabSummaryQuery(p: {
+  month: number;
+  year: number;
+  dateFrom?: string;
+  dateTo?: string;
+  rentalPartner?: string;
+}) {
   return useQuery({
     queryKey: qk.fleet.summary({ platform: 'grab', ...p }),
     queryFn: async (): Promise<GrabSummary> => {
@@ -140,7 +146,34 @@ export function useGrabSummaryQuery(p: { month: number; year: number; rentalPart
           query: {
             month: p.month,
             year: p.year,
+            ...(p.dateFrom && p.dateTo ? { dateFrom: p.dateFrom, dateTo: p.dateTo } : {}),
             ...(p.rentalPartner ? { rentalPartner: [p.rentalPartner] } : {}),
+          },
+        },
+      });
+      if (error) throwEnvelope(error);
+      return unwrap(data) as GrabSummary;
+    },
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** Partner twin of useGrabSummaryQuery — server-scoped to the own plates. */
+export function usePartnerGrabSummaryQuery(p: {
+  month: number;
+  year: number;
+  dateFrom?: string;
+  dateTo?: string;
+}) {
+  return useQuery({
+    queryKey: qk.partner.fleet.summary({ platform: 'grab', ...p }),
+    queryFn: async (): Promise<GrabSummary> => {
+      const { data, error } = await api.GET('/partner/portal/fleet/grab/summary', {
+        params: {
+          query: {
+            month: p.month,
+            year: p.year,
+            ...(p.dateFrom && p.dateTo ? { dateFrom: p.dateFrom, dateTo: p.dateTo } : {}),
           },
         },
       });
