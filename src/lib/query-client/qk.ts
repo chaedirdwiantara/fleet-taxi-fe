@@ -135,6 +135,8 @@ export const qk = {
         page: number;
       }) => ['partner', 'driver', 'list', p] as const,
       detail: (id: number) => ['partner', 'driver', 'detail', id] as const,
+      /** Roster slice behind a name picker (server-side search term). */
+      picker: (q: string) => ['partner', 'driver', 'picker', q] as const,
     },
     // Rental Monitoring (own rental transactions + COGS presets).
     rental: {

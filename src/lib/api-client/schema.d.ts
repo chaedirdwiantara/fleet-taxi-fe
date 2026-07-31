@@ -1418,7 +1418,12 @@ export interface components {
              */
             handoverType: "delivery_to_customer" | "return_from_customer" | "delivery_to_driver" | "return_from_driver";
             /**
-             * @description Nama pihak penerima/penyerah
+             * @description Nama petugas partner — penyerah on a delivery, penerima on a return
+             * @example Andi Pratama
+             */
+            partnerStaffName?: string;
+            /**
+             * @description Nama pihak eksternal (customer/driver) — penerima on a delivery, penyerah on a return
              * @example Budi Santoso
              */
             counterpartName?: string;
@@ -1426,7 +1431,15 @@ export interface components {
             counterpartPhone?: string;
         };
         UpdateCheckpointDto: {
-            /** @example Budi Santoso */
+            /**
+             * @description Nama petugas partner
+             * @example Andi Pratama
+             */
+            partnerStaffName?: string;
+            /**
+             * @description Nama pihak eksternal
+             * @example Budi Santoso
+             */
             counterpartName?: string;
             /** @example 0812xxxxxxx */
             counterpartPhone?: string;
