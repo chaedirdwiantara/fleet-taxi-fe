@@ -19,12 +19,14 @@ export function PlateCombobox({
   loading,
   value,
   onChange,
+  invalid = false,
 }: {
   id?: string;
   plates: PartnerPlate[];
   loading: boolean;
   value: string;
   onChange: (plateNumber: string) => void;
+  invalid?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -43,7 +45,12 @@ export function PlateCombobox({
   const selected = plates.find((p) => p.plateNumber === value);
 
   return (
+    // `modal` is required, not cosmetic: Radix portals the content to <body>,
+    // outside the Dialog's scroll-lock container, and react-remove-scroll then
+    // cancels every wheel/touch event over it — the list becomes unscrollable.
+    // Modal mode gives the popover its own lock, so its list scrolls again.
     <Popover
+      modal
       open={open}
       onOpenChange={(o) => {
         setOpen(o);
@@ -61,7 +68,8 @@ export function PlateCombobox({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between font-normal"
+          aria-invalid={invalid}
+          className="w-full justify-between font-normal aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40"
         >
           <span className={cn('truncate', !selected && 'text-muted-foreground')}>
             {selected

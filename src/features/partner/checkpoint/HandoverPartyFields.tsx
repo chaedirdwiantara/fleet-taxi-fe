@@ -1,6 +1,7 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { DriverCombobox } from './DriverCombobox';
+import type { CreateCheckpointErrors } from './createCheckpointSchema';
 import { handoverSides, type HandoverPartyNames, type HandoverType } from './types';
 
 /**
@@ -16,12 +17,15 @@ export function HandoverPartyFields({
   handoverType,
   value,
   onChange,
+  errors = {},
   idPrefix = 'cp',
 }: {
   /** Empty until a handover type is chosen — the sides are unknown until then. */
   handoverType: HandoverType | '';
   value: HandoverPartyNames;
   onChange: (next: HandoverPartyNames) => void;
+  /** Validation messages keyed by role, shown once the form was submitted. */
+  errors?: CreateCheckpointErrors;
   idPrefix?: string;
 }) {
   const sides = handoverType ? handoverSides(handoverType) : null;
@@ -41,7 +45,11 @@ export function HandoverPartyFields({
         maxLength={30}
         inputMode="tel"
         autoComplete="off"
+        aria-invalid={!!errors.counterpartPhone}
       />
+      {errors.counterpartPhone && (
+        <p className="text-xs text-destructive">{errors.counterpartPhone}</p>
+      )}
     </div>
   );
 
@@ -51,6 +59,7 @@ export function HandoverPartyFields({
         const side = sides?.[role === 'giver' ? 0 : 1];
         const fieldId = `${idPrefix}-${role}`;
         const name = role === 'giver' ? value.giverName : value.receiverName;
+        const error = role === 'giver' ? errors.giverName : errors.receiverName;
         const setName = (next: string) =>
           role === 'giver' ? patch({ giverName: next }) : patch({ receiverName: next });
 
@@ -67,6 +76,7 @@ export function HandoverPartyFields({
                 <DriverCombobox
                   id={fieldId}
                   value={name}
+                  invalid={!!error}
                   onChange={(driverName, driver) =>
                     patch({
                       ...(role === 'giver'
@@ -85,8 +95,10 @@ export function HandoverPartyFields({
                   placeholder={role === 'giver' ? 'Andi Pratama' : 'Budi Santoso'}
                   maxLength={120}
                   autoComplete="off"
+                  aria-invalid={!!error}
                 />
               )}
+              {error && <p className="text-xs text-destructive">{error}</p>}
             </div>
 
             {/* Contact details belong to the external side, so they sit with it */}
@@ -99,7 +111,7 @@ export function HandoverPartyFields({
       {!sides && phoneField()}
 
       <p className="text-xs text-muted-foreground">
-        Opsional — nama kedua pihak dicetak di bawah tanda tangan pada berita acara.
+        Nama kedua pihak dicetak di bawah tanda tangan pada berita acara.
       </p>
     </div>
   );
