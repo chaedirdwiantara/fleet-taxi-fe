@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState, type ReactNode } from 'react';
 import { CompletionCard } from './CompletionCard';
 import { HandoverPartyFields } from './HandoverPartyFields';
+import { createCheckpointErrors } from './createCheckpointSchema';
 import {
   useCheckpointQuery,
   useCheckpointsQuery,
@@ -279,6 +280,45 @@ function PartyFieldsHarness({ handoverType }: { handoverType: HandoverType | '' 
   });
   return <HandoverPartyFields handoverType={handoverType} value={value} onChange={setValue} />;
 }
+
+describe('createCheckpointErrors', () => {
+  const valid = {
+    plateNumber: 'B 1001 XYZ',
+    handoverType: 'delivery_to_driver',
+    giverName: 'Andi Pratama',
+    receiverName: 'Slamet Riyadi',
+    counterpartPhone: '0812345678',
+  };
+
+  it('accepts a fully filled form', () => {
+    expect(createCheckpointErrors(valid)).toEqual({});
+  });
+
+  it('requires every field', () => {
+    expect(
+      createCheckpointErrors({
+        plateNumber: '',
+        handoverType: '',
+        giverName: '   ',
+        receiverName: '',
+        counterpartPhone: '',
+      }),
+    ).toEqual({
+      plateNumber: 'Nomor plat wajib dipilih',
+      handoverType: 'Jenis serah terima wajib dipilih',
+      giverName: 'Nama penyerah wajib diisi',
+      receiverName: 'Nama penerima wajib diisi',
+      // "wajib diisi" wins over the format complaint that also fires when empty
+      counterpartPhone: 'Telepon wajib diisi',
+    });
+  });
+
+  it('rejects a phone number that is not a number', () => {
+    expect(createCheckpointErrors({ ...valid, counterpartPhone: 'nanti saja' })).toEqual({
+      counterpartPhone: 'Nomor telepon tidak valid',
+    });
+  });
+});
 
 describe('HandoverPartyFields', () => {
   it('keeps both sides free-text for a customer handover', () => {

@@ -27,11 +27,13 @@ export function DriverCombobox({
   id,
   value,
   onChange,
+  invalid = false,
   placeholder = 'Pilih driver',
 }: {
   id?: string;
   value: string;
   onChange: (name: string, driver: DriverSummary) => void;
+  invalid?: boolean;
   placeholder?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -49,7 +51,10 @@ export function DriverCombobox({
   const truncated = (drivers.data?.total ?? 0) > rows.length;
 
   return (
+    // `modal` is required, not cosmetic — see the note in PlateCombobox: without
+    // it the Dialog's scroll lock cancels wheel/touch over the portalled list.
     <Popover
+      modal
       open={open}
       onOpenChange={(next) => {
         setOpen(next);
@@ -63,7 +68,8 @@ export function DriverCombobox({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between font-normal"
+          aria-invalid={invalid}
+          className="w-full justify-between font-normal aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40"
         >
           <span className={cn('truncate', !value && 'text-muted-foreground')}>
             {value || placeholder}
