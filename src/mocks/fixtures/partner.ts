@@ -103,6 +103,7 @@ export type MockCheckpoint = {
   plateNumberNorm: string;
   handoverType: string;
   status: 'draft' | 'completed';
+  partnerStaffName: string | null;
   counterpartName: string | null;
   counterpartPhone: string | null;
   odometerKm: number | null;
@@ -148,6 +149,7 @@ export const seedCheckpoints: MockCheckpoint[] = [
     plateNumberNorm: 'B1000XYZ',
     handoverType: 'delivery_to_customer',
     status: 'completed',
+    partnerStaffName: 'Andi Pratama',
     counterpartName: 'Budi Santoso',
     counterpartPhone: '081234567890',
     odometerKm: 15320,
@@ -179,6 +181,7 @@ export const seedCheckpoints: MockCheckpoint[] = [
     plateNumberNorm: 'B1000XYZ',
     handoverType: 'return_from_customer',
     status: 'draft',
+    partnerStaffName: 'Andi Pratama',
     counterpartName: 'Budi Santoso',
     counterpartPhone: '081234567890',
     odometerKm: null,

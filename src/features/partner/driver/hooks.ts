@@ -64,6 +64,34 @@ export function useDriversQuery(params: {
   });
 }
 
+/** Page size of a picker slice — searching happens server-side, so this is a cap, not a window. */
+const PICKER_PAGE_SIZE = 50;
+
+/**
+ * Roster slice for a name picker (e.g. the checkpoint handover parties).
+ * The search runs server-side so partners with a large roster stay reachable;
+ * results are cached per term and kept while the next term loads.
+ */
+export function useDriverPickerQuery(q: string, enabled = true) {
+  const term = q.trim();
+  return useQuery({
+    queryKey: qk.partner.driver.picker(term),
+    enabled,
+    placeholderData: keepPreviousData,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await api.GET('/partner/portal/drivers', {
+        params: {
+          query: { page: '1', pageSize: String(PICKER_PAGE_SIZE), ...(term && { q: term }) },
+        },
+      });
+      if (error) throwEnvelope(error);
+      const { data: rows, meta } = unwrapWithMeta(data);
+      return { rows: rows as DriverSummary[], total: meta?.total ?? 0 };
+    },
+  });
+}
+
 export function useDriverQuery(id: number) {
   return useQuery({
     queryKey: qk.partner.driver.detail(id),

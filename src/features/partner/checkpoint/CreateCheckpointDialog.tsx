@@ -10,7 +10,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -20,12 +19,22 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { usePartnerPlatesQuery } from '@/features/partner/hooks';
+import { HandoverPartyFields } from './HandoverPartyFields';
 import { PlateCombobox } from './PlateCombobox';
 import { useCreateCheckpoint } from './hooks';
-import { HANDOVER_LABELS, HANDOVER_TYPES, type HandoverType } from './types';
+import {
+  HANDOVER_LABELS,
+  HANDOVER_TYPES,
+  toPartyFields,
+  type HandoverPartyNames,
+  type HandoverType,
+} from './types';
+
+const EMPTY_PARTIES: HandoverPartyNames = { giverName: '', receiverName: '', counterpartPhone: '' };
 
 // New draft checkpoint: plate comes from the registered-plate list (the BE
-// enforces the same allowlist), handover direction, and the counterpart.
+// enforces the same allowlist), the handover direction, and both parties —
+// penyerah and penerima, which the direction assigns to partner/counterpart.
 export function CreateCheckpointDialog({
   open,
   onOpenChange,
@@ -39,8 +48,7 @@ export function CreateCheckpointDialog({
 
   const [plateNumber, setPlateNumber] = useState('');
   const [handoverType, setHandoverType] = useState<HandoverType | ''>('');
-  const [counterpartName, setCounterpartName] = useState('');
-  const [counterpartPhone, setCounterpartPhone] = useState('');
+  const [parties, setParties] = useState<HandoverPartyNames>(EMPTY_PARTIES);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,8 +57,7 @@ export function CreateCheckpointDialog({
       {
         plateNumber,
         handoverType,
-        counterpartName: counterpartName.trim() || undefined,
-        counterpartPhone: counterpartPhone.trim() || undefined,
+        ...toPartyFields(handoverType, parties),
       },
       {
         onSuccess: (detail) => {
@@ -63,7 +70,7 @@ export function CreateCheckpointDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Checkpoint Baru</DialogTitle>
           <DialogDescription>
@@ -103,30 +110,7 @@ export function CreateCheckpointDialog({
             </Select>
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="cp-name">Nama Pihak Penerima/Penyerah (opsional)</Label>
-            <Input
-              id="cp-name"
-              value={counterpartName}
-              onChange={(e) => setCounterpartName(e.target.value)}
-              placeholder="Budi Santoso"
-              maxLength={120}
-              autoComplete="off"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="cp-phone">Telepon (opsional)</Label>
-            <Input
-              id="cp-phone"
-              value={counterpartPhone}
-              onChange={(e) => setCounterpartPhone(e.target.value)}
-              placeholder="0812xxxxxxx"
-              maxLength={30}
-              inputMode="tel"
-              autoComplete="off"
-            />
-          </div>
+          <HandoverPartyFields handoverType={handoverType} value={parties} onChange={setParties} />
 
           {create.isError && (
             <p className="text-sm text-destructive" role="alert">

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { ArrowLeft, CheckCircle2, FileDown, Loader2, Trash2 } from 'lucide-react';
+import { ArrowLeft, FileDown, Loader2, Trash2 } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,7 +15,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { CompleteSheet } from '@/features/partner/checkpoint/CompleteSheet';
+import { CompletionCard } from '@/features/partner/checkpoint/CompletionCard';
 import { PointCard } from '@/features/partner/checkpoint/PointCard';
 import {
   downloadCheckpointPdf,
@@ -25,12 +25,16 @@ import {
   useDeleteCheckpoint,
 } from '@/features/partner/checkpoint/hooks';
 import {
+  checkpointProgress,
+  handoverSides,
+  partyName,
   HANDOVER_LABELS,
   RETURN_TYPES,
   type CheckpointDetail,
   type CheckpointPoint,
 } from '@/features/partner/checkpoint/types';
 import { formatDateTimeWIB } from '@/lib/datetime';
+import { cn } from '@/lib/utils';
 
 export const Route = createFileRoute('/_partner/partner/checkpoint/$id')({
   component: CheckpointDetailPage,
@@ -65,7 +69,6 @@ function CheckpointDetailView({ detail }: { detail: CheckpointDetail }) {
   const isReturn = RETURN_TYPES.includes(detail.handoverType);
   const comparison = useComparisonQuery(detail.id, isReturn);
   const remove = useDeleteCheckpoint();
-  const [completeOpen, setCompleteOpen] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
 
@@ -75,10 +78,10 @@ function CheckpointDetailView({ detail }: { detail: CheckpointDetail }) {
     return map;
   }, [comparison.data]);
 
-  const assessed = detail.points.filter((p) => p.passed !== null).length;
-  const photographed = detail.points.filter((p) =>
-    p.media.some((m) => m.kind === 'photo' && m.status === 'uploaded'),
-  ).length;
+  const { assessed } = checkpointProgress(detail);
+  const [giver, receiver] = handoverSides(detail.handoverType);
+  // The phone belongs to the external party, whichever side that is
+  const counterpartLabel = (giver.party === 'counterpart' ? giver : receiver).partyLabel;
 
   const download = async () => {
     setDownloading(true);
@@ -93,7 +96,7 @@ function CheckpointDetailView({ detail }: { detail: CheckpointDetail }) {
   };
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4 pb-20">
+    <div className={cn('mx-auto max-w-2xl space-y-4', !isDraft && 'pb-20')}>
       {/* Sticky progress header: keeps plate + progress visible mid-inspection */}
       <div className="sticky top-14 z-10 -mx-4 border-b bg-background/95 px-4 py-2 backdrop-blur md:-mx-6 md:px-6">
         <div className="mx-auto flex max-w-2xl items-center gap-2">
@@ -171,8 +174,12 @@ function CheckpointDetailView({ detail }: { detail: CheckpointDetail }) {
 
       <Card className="py-4">
         <CardContent className="grid grid-cols-2 gap-x-4 gap-y-2 px-4 text-sm">
-          <Info label="Pihak Penerima/Penyerah" value={detail.counterpartName ?? '-'} />
-          <Info label="Telepon" value={detail.counterpartPhone ?? '-'} />
+          <Info label={`Penyerah · ${giver.partyLabel}`} value={partyName(detail, giver.party)} />
+          <Info
+            label={`Penerima · ${receiver.partyLabel}`}
+            value={partyName(detail, receiver.party)}
+          />
+          <Info label={`Telepon ${counterpartLabel}`} value={detail.counterpartPhone ?? '-'} />
           <Info
             label="Odometer"
             value={
@@ -215,32 +222,31 @@ function CheckpointDetailView({ detail }: { detail: CheckpointDetail }) {
         ))}
       </div>
 
+      {isDraft && <CompletionCard detail={detail} />}
+
       {!isDraft && detail.signatures.length > 0 && (
         <Card className="py-4">
           <CardContent className="px-4">
             <h3 className="mb-3 text-sm font-semibold">Tanda Tangan</h3>
             <div className="grid grid-cols-2 gap-4">
-              {(['signature_partner', 'signature_counterpart'] as const).map((kind) => {
+              {[giver, receiver].map((side) => {
                 const sig = detail.signatures.find(
-                  (s) => s.kind === kind && s.status === 'uploaded',
+                  (s) => s.kind === side.signatureKind && s.status === 'uploaded',
                 );
                 return (
-                  <div key={kind} className="space-y-1 text-center">
+                  <div key={side.role} className="space-y-1 text-center">
                     {sig ? (
                       <img
                         src={resolveMediaUrl(sig.url)}
-                        alt={
-                          kind === 'signature_partner'
-                            ? 'Tanda tangan petugas partner'
-                            : 'Tanda tangan pihak penerima/penyerah'
-                        }
+                        alt={`Tanda tangan ${side.roleLabel.toLowerCase()} (${side.partyLabel})`}
                         className="mx-auto h-24 rounded border bg-white object-contain"
                       />
                     ) : (
                       <div className="mx-auto h-24 rounded border border-dashed" />
                     )}
+                    <p className="text-xs font-medium">{side.roleLabel}</p>
                     <p className="text-xs text-muted-foreground">
-                      {kind === 'signature_partner' ? 'Petugas Partner' : 'Penerima/Penyerah'}
+                      {partyName(detail, side.party)} · {side.partyLabel}
                     </p>
                   </div>
                 );
@@ -256,16 +262,11 @@ function CheckpointDetailView({ detail }: { detail: CheckpointDetail }) {
         </p>
       )}
 
-      {/* Sticky bottom action bar — thumb-reachable on phones */}
-      <div className="fixed inset-x-0 bottom-0 z-10 border-t bg-background/95 p-3 backdrop-blur md:left-60">
-        <div className="mx-auto max-w-2xl">
-          {isDraft ? (
-            <Button className="h-12 w-full" onClick={() => setCompleteOpen(true)}>
-              <CheckCircle2 aria-hidden />
-              Selesaikan Checkpoint ({assessed}/{detail.points.length} dinilai · {photographed}/
-              {detail.points.length} difoto)
-            </Button>
-          ) : (
+      {/* Sticky bottom action bar — thumb-reachable on phones. Drafts finish
+          inline in the completion card, so only the export lives down here. */}
+      {!isDraft && (
+        <div className="fixed inset-x-0 bottom-0 z-10 border-t bg-background/95 p-3 backdrop-blur md:left-60">
+          <div className="mx-auto max-w-2xl">
             <Button
               variant="outline"
               className="h-12 w-full"
@@ -279,11 +280,9 @@ function CheckpointDetailView({ detail }: { detail: CheckpointDetail }) {
               )}
               Unduh Berita Acara (PDF)
             </Button>
-          )}
+          </div>
         </div>
-      </div>
-
-      <CompleteSheet checkpointId={detail.id} open={completeOpen} onOpenChange={setCompleteOpen} />
+      )}
     </div>
   );
 }

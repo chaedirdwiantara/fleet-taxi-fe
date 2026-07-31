@@ -1252,6 +1252,7 @@ export const handlers = [
     const body = (await request.json()) as {
       plateNumber?: string;
       handoverType?: string;
+      partnerStaffName?: string;
       counterpartName?: string;
       counterpartPhone?: string;
     };
@@ -1265,6 +1266,7 @@ export const handlers = [
       plateNumberNorm: norm,
       handoverType: body.handoverType ?? 'delivery_to_customer',
       status: 'draft',
+      partnerStaffName: body.partnerStaffName?.trim() || null,
       counterpartName: body.counterpartName?.trim() || null,
       counterpartPhone: body.counterpartPhone?.trim() || null,
       odometerKm: null,
@@ -1290,6 +1292,7 @@ export const handlers = [
     if (!cp) return err(404, 'NOT_FOUND', 'Checkpoint tidak ditemukan');
     if (cp.status !== 'draft') return err(409, 'CONFLICT', 'Checkpoint sudah diselesaikan');
     const body = (await request.json()) as Partial<MockCheckpoint>;
+    if (body.partnerStaffName !== undefined) cp.partnerStaffName = body.partnerStaffName || null;
     if (body.counterpartName !== undefined) cp.counterpartName = body.counterpartName || null;
     if (body.counterpartPhone !== undefined) cp.counterpartPhone = body.counterpartPhone || null;
     if (body.odometerKm !== undefined) cp.odometerKm = body.odometerKm;
@@ -1420,13 +1423,17 @@ export const handlers = [
     }
     for (const kind of ['signature_partner', 'signature_counterpart'] as const) {
       if (!cp.signatures.some((s) => s.kind === kind)) {
-        details.push({
-          field: kind,
-          message:
-            kind === 'signature_partner'
-              ? 'Tanda tangan petugas partner belum ada'
-              : 'Tanda tangan pihak penerima/penyerah belum ada',
-        });
+        // Spelled out the way the BE does, not derived from the FE helper, so
+        // a wrong penyerah/penerima mapping in the app still fails a test.
+        const isDelivery = cp.handoverType.startsWith('delivery_');
+        const isPartner = kind === 'signature_partner';
+        const role = isPartner === isDelivery ? 'penyerah' : 'penerima';
+        const who = isPartner
+          ? 'Petugas Partner'
+          : cp.handoverType.endsWith('_driver')
+            ? 'Driver'
+            : 'Customer';
+        details.push({ field: kind, message: `Tanda tangan ${role} (${who}) belum ada` });
       }
     }
     if (details.length) {

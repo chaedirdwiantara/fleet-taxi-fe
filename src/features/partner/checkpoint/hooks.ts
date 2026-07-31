@@ -101,6 +101,7 @@ export function useCreateCheckpoint() {
     mutationFn: async (body: {
       plateNumber: string;
       handoverType: HandoverType;
+      partnerStaffName?: string;
       counterpartName?: string;
       counterpartPhone?: string;
     }) => {
@@ -120,6 +121,7 @@ export function useUpdateCheckpoint(id: number) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (body: {
+      partnerStaffName?: string;
       counterpartName?: string;
       counterpartPhone?: string;
       odometerKm?: number;

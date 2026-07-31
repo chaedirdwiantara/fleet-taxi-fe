@@ -12,13 +12,18 @@ export interface SignaturePadHandle {
 
 // Hand-rolled canvas signature pad: Pointer Events (pen/finger/mouse),
 // devicePixelRatio-aware so strokes stay crisp, `touch-action: none` so
-// drawing doesn't scroll the page.
+// drawing doesn't scroll the page. `signerName` is the party signing here —
+// it is printed under the signature on the berita acara.
 export function SignaturePad({
   label,
+  signerName,
+  disabled = false,
   ref,
   className,
 }: {
   label: string;
+  signerName?: string | null;
+  disabled?: boolean;
   ref: Ref<SignaturePadHandle>;
   className?: string;
 }) {
@@ -55,6 +60,7 @@ export function SignaturePad({
   };
 
   const onPointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (disabled) return;
     e.currentTarget.setPointerCapture(e.pointerId);
     drawing.current = true;
     const ctx = e.currentTarget.getContext('2d');
@@ -93,13 +99,19 @@ export function SignaturePad({
 
   return (
     <div className={cn('space-y-1.5', className)}>
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-medium">{label}</span>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <span className="text-sm font-medium">{label}</span>
+          <p className="truncate text-xs text-muted-foreground">
+            {signerName?.trim() || 'Nama belum diisi'}
+          </p>
+        </div>
         <Button
           type="button"
           variant="ghost"
           size="sm"
-          className="h-7 px-2 text-muted-foreground"
+          className="h-7 shrink-0 px-2 text-muted-foreground"
+          disabled={disabled}
           onClick={setupCanvas}
         >
           <Eraser className="size-3.5" aria-hidden />
@@ -110,7 +122,11 @@ export function SignaturePad({
         ref={canvasRef}
         role="img"
         aria-label={`Area tanda tangan: ${label}`}
-        className="h-36 w-full touch-none rounded-md border border-dashed border-input bg-white"
+        aria-disabled={disabled}
+        className={cn(
+          'h-36 w-full touch-none rounded-md border border-dashed border-input bg-white',
+          disabled && 'pointer-events-none opacity-40',
+        )}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}

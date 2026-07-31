@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { renderHook, waitFor, act } from '@testing-library/react';
+import { render, renderHook, screen, waitFor, act } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
+import { CompletionCard } from './CompletionCard';
+import { HandoverPartyFields } from './HandoverPartyFields';
 import {
   useCheckpointQuery,
   useCheckpointsQuery,
@@ -11,7 +14,15 @@ import {
   useDeleteCheckpoint,
   useUpdatePoint,
 } from './hooks';
-import { resetCheckpoints, resetPartnerPlates } from '@/mocks/handlers';
+import {
+  checkpointProgress,
+  handoverSides,
+  toPartyFields,
+  type CheckpointDetail,
+  type HandoverPartyNames,
+  type HandoverType,
+} from './types';
+import { resetCheckpoints, resetDrivers, resetPartnerPlates } from '@/mocks/handlers';
 
 const makeClient = () => new QueryClient({ defaultOptions: { queries: { retry: false } } });
 const wrapperFor =
@@ -23,6 +34,7 @@ const wrapperFor =
 beforeEach(() => {
   resetPartnerPlates();
   resetCheckpoints();
+  resetDrivers();
 });
 
 describe('checkpoint — dokumentasi serah terima', () => {
@@ -135,9 +147,16 @@ describe('checkpoint — dokumentasi serah terima', () => {
       ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
     });
     await waitFor(() => {
-      const err = result.current.error as { details?: { field: string }[] } | null;
+      const err = result.current.error as { details?: { field: string; message: string }[] } | null;
       // 10 unassessed + 10 photoless + 2 signatures
       expect(err?.details).toHaveLength(22);
+      // Seed 2 is a return: the counterpart hands over, the partner receives
+      expect(err?.details?.find((d) => d.field === 'signature_counterpart')?.message).toBe(
+        'Tanda tangan penyerah (Customer) belum ada',
+      );
+      expect(err?.details?.find((d) => d.field === 'signature_partner')?.message).toBe(
+        'Tanda tangan penerima (Petugas Partner) belum ada',
+      );
     });
   });
 
@@ -175,5 +194,165 @@ describe('checkpoint — dokumentasi serah terima', () => {
     });
     await waitFor(() => expect(none.current.isSuccess).toBe(true));
     expect(none.current.data).toBeNull();
+  });
+});
+
+describe('checkpoint — penyerah & penerima', () => {
+  it('derives both sides from the handover direction', () => {
+    const [deliveryGiver, deliveryReceiver] = handoverSides('delivery_to_driver');
+    expect(deliveryGiver.party).toBe('partner');
+    expect(deliveryGiver.partyLabel).toBe('Petugas Partner');
+    expect(deliveryGiver.fromDriverRoster).toBe(false);
+    expect(deliveryReceiver.party).toBe('counterpart');
+    expect(deliveryReceiver.partyLabel).toBe('Driver');
+    expect(deliveryReceiver.fromDriverRoster).toBe(true);
+    expect(deliveryReceiver.signatureKind).toBe('signature_counterpart');
+
+    // A return flips who hands over — and moves the roster picker with it
+    const [returnGiver, returnReceiver] = handoverSides('return_from_driver');
+    expect(returnGiver.party).toBe('counterpart');
+    expect(returnGiver.fromDriverRoster).toBe(true);
+    expect(returnReceiver.party).toBe('partner');
+    expect(returnReceiver.fromDriverRoster).toBe(false);
+
+    // Only driver handovers use the roster; customers are typed free-hand
+    expect(handoverSides('delivery_to_customer')[1].fromDriverRoster).toBe(false);
+    expect(handoverSides('delivery_to_customer')[1].partyLabel).toBe('Customer');
+  });
+
+  it('maps the role-keyed form values onto the party fields the API stores', () => {
+    const names: HandoverPartyNames = {
+      giverName: 'Andi Pratama',
+      receiverName: 'Budi Santoso',
+      counterpartPhone: '0812',
+    };
+    expect(toPartyFields('delivery_to_customer', names)).toEqual({
+      partnerStaffName: 'Andi Pratama',
+      counterpartName: 'Budi Santoso',
+      counterpartPhone: '0812',
+    });
+    // Same form values, opposite direction → the parties swap
+    expect(toPartyFields('return_from_customer', names)).toEqual({
+      partnerStaffName: 'Budi Santoso',
+      counterpartName: 'Andi Pratama',
+      counterpartPhone: '0812',
+    });
+    expect(
+      toPartyFields('delivery_to_customer', {
+        giverName: ' ',
+        receiverName: '',
+        counterpartPhone: '',
+      }),
+    ).toEqual({
+      partnerStaffName: undefined,
+      counterpartName: undefined,
+      counterpartPhone: undefined,
+    });
+  });
+
+  it('creates a draft carrying both names on the right sides', async () => {
+    const { result } = renderHook(() => useCreateCheckpoint(), {
+      wrapper: wrapperFor(makeClient()),
+    });
+    let created!: CheckpointDetail;
+    await act(async () => {
+      created = await result.current.mutateAsync({
+        plateNumber: 'B 1001 XYZ',
+        handoverType: 'return_from_driver',
+        ...toPartyFields('return_from_driver', {
+          giverName: 'Slamet Riyadi',
+          receiverName: 'Andi Pratama',
+          counterpartPhone: '08123',
+        }),
+      });
+    });
+    expect(created.partnerStaffName).toBe('Andi Pratama');
+    expect(created.counterpartName).toBe('Slamet Riyadi');
+  });
+});
+
+function PartyFieldsHarness({ handoverType }: { handoverType: HandoverType | '' }) {
+  const [value, setValue] = useState<HandoverPartyNames>({
+    giverName: '',
+    receiverName: '',
+    counterpartPhone: '',
+  });
+  return <HandoverPartyFields handoverType={handoverType} value={value} onChange={setValue} />;
+}
+
+describe('HandoverPartyFields', () => {
+  it('keeps both sides free-text for a customer handover', () => {
+    render(<PartyFieldsHarness handoverType="delivery_to_customer" />, {
+      wrapper: wrapperFor(makeClient()),
+    });
+    expect(screen.getByLabelText(/Nama Penyerah/)).toHaveRole('textbox');
+    expect(screen.getByLabelText(/Nama Penerima/)).toHaveRole('textbox');
+    expect(screen.getByLabelText(/Telepon/)).toBeInTheDocument();
+  });
+
+  it('turns the driver side into a searchable roster picker', async () => {
+    const user = userEvent.setup();
+    render(<PartyFieldsHarness handoverType="delivery_to_driver" />, {
+      wrapper: wrapperFor(makeClient()),
+    });
+
+    // Penyerah is the partner's own officer — still typed by hand
+    expect(screen.getByLabelText(/Nama Penyerah/)).toHaveRole('textbox');
+    const picker = screen.getByLabelText(/Nama Penerima/);
+    expect(picker).toHaveRole('combobox');
+
+    await user.click(picker);
+    const search = await screen.findByLabelText('Cari nama driver');
+    await user.type(search, 'agus');
+    const option = await screen.findByRole('option', { name: /Agus Salim/i });
+    await user.click(option);
+    await waitFor(() => expect(picker).toHaveTextContent(/Agus Salim/i));
+  });
+
+  it('moves the roster picker to the penyerah on a return', () => {
+    render(<PartyFieldsHarness handoverType="return_from_driver" />, {
+      wrapper: wrapperFor(makeClient()),
+    });
+    expect(screen.getByLabelText(/Nama Penyerah/)).toHaveRole('combobox');
+    expect(screen.getByLabelText(/Nama Penerima/)).toHaveRole('textbox');
+  });
+});
+
+describe('CompletionCard', () => {
+  const renderCard = (detail: CheckpointDetail) =>
+    render(<CompletionCard detail={detail} />, { wrapper: wrapperFor(makeClient()) });
+
+  const loadDetail = async (id: number) => {
+    const client = makeClient();
+    const { result } = renderHook(() => useCheckpointQuery(id), { wrapper: wrapperFor(client) });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    return result.current.data!;
+  };
+
+  it('locks the signature pads until every point is assessed and photographed', async () => {
+    const detail = await loadDetail(2); // seed draft: nothing assessed yet
+    expect(checkpointProgress(detail).ready).toBe(false);
+    renderCard(detail);
+
+    expect(screen.getByText(/Tanda tangan aktif setelah semua titik/)).toBeInTheDocument();
+    for (const pad of screen.getAllByRole('img', { name: /Area tanda tangan/ })) {
+      expect(pad).toHaveAttribute('aria-disabled', 'true');
+    }
+    expect(screen.getByRole('button', { name: /Selesaikan & Kunci/ })).toBeDisabled();
+  });
+
+  it('unlocks them once the inspection is complete, labelled by role and signer', async () => {
+    const source = await loadDetail(1); // seed completed: all points done + photographed
+    const detail: CheckpointDetail = { ...source, status: 'draft' };
+    expect(checkpointProgress(detail).ready).toBe(true);
+    renderCard(detail);
+
+    expect(screen.queryByText(/Tanda tangan aktif setelah semua titik/)).not.toBeInTheDocument();
+    // Delivery: the partner's officer hands over, the customer receives
+    expect(screen.getByText('Tanda Tangan Penyerah')).toBeInTheDocument();
+    expect(screen.getByText('Andi Pratama · Petugas Partner')).toBeInTheDocument();
+    expect(screen.getByText('Tanda Tangan Penerima')).toBeInTheDocument();
+    expect(screen.getByText('Budi Santoso · Customer')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Selesaikan & Kunci/ })).toBeEnabled();
   });
 });

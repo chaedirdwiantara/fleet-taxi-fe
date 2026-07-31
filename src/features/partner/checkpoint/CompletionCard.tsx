@@ -2,15 +2,22 @@ import { useRef, useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { Loader2 } from 'lucide-react';
+import { CheckCircle2, Loader2, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
 import { ApiErrorException } from '@/lib/api-client/client';
 import { SignaturePad, type SignaturePadHandle } from './SignaturePad';
 import { useCompleteCheckpoint, useUploadMedia } from './hooks';
+import {
+  checkpointProgress,
+  handoverSides,
+  partyName,
+  type CheckpointDetail,
+  type HandoverSide,
+} from './types';
 
 const schema = z.object({
   odometerKm: z
@@ -26,49 +33,49 @@ const schema = z.object({
 });
 type FormValues = z.infer<typeof schema>;
 
-// Final step, in a bottom sheet: odometer + battery + notes, both parties'
-// signatures (uploaded as PNGs through the same presign flow), then complete.
-// A 400 from the server carries `details` listing what's still missing.
-export function CompleteSheet({
-  checkpointId,
-  open,
-  onOpenChange,
-}: {
-  checkpointId: number;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}) {
-  const complete = useCompleteCheckpoint(checkpointId);
-  const upload = useUploadMedia(checkpointId);
-  const partnerSigRef = useRef<SignaturePadHandle>(null);
-  const counterpartSigRef = useRef<SignaturePadHandle>(null);
+/**
+ * Final step of a draft, inline at the bottom of the inspection: odometer +
+ * battery + notes, both parties' signatures (uploaded as PNGs through the same
+ * presign flow), then complete.
+ *
+ * The signature pads stay disabled until every point is assessed *and*
+ * photographed — the same condition the BE enforces on `complete` — so the two
+ * parties never sign a record that is about to be rejected. A 400 from the
+ * server still carries `details` listing anything else that is missing.
+ */
+export function CompletionCard({ detail }: { detail: CheckpointDetail }) {
+  const complete = useCompleteCheckpoint(detail.id);
+  const upload = useUploadMedia(detail.id);
+  const giverSigRef = useRef<SignaturePadHandle>(null);
+  const receiverSigRef = useRef<SignaturePadHandle>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [missingItems, setMissingItems] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
   const form = useForm<FormValues>({ resolver: zodResolver(schema) });
+  const { total, assessed, photographed, ready } = checkpointProgress(detail);
+  const [giver, receiver] = handoverSides(detail.handoverType);
 
   const save = async (values: FormValues) => {
     setSubmitError(null);
     setMissingItems([]);
 
-    const partnerSig = await partnerSigRef.current?.toBlob();
-    const counterpartSig = await counterpartSigRef.current?.toBlob();
-    if (!partnerSig || !counterpartSig) {
-      setSubmitError('Kedua tanda tangan wajib diisi.');
+    const giverSig = await giverSigRef.current?.toBlob();
+    const receiverSig = await receiverSigRef.current?.toBlob();
+    if (!giverSig || !receiverSig) {
+      setSubmitError('Tanda tangan penyerah dan penerima wajib diisi.');
       return;
     }
 
     setSubmitting(true);
     try {
-      await upload.mutateAsync({ kind: 'signature_partner', blob: partnerSig });
-      await upload.mutateAsync({ kind: 'signature_counterpart', blob: counterpartSig });
+      await upload.mutateAsync({ kind: giver.signatureKind, blob: giverSig });
+      await upload.mutateAsync({ kind: receiver.signatureKind, blob: receiverSig });
       await complete.mutateAsync({
         odometerKm: values.odometerKm,
         batteryPercent: values.batteryPercent,
         generalNotes: values.generalNotes?.trim() || undefined,
       });
-      onOpenChange(false);
     } catch (err) {
       if (err instanceof ApiErrorException && err.details?.length) {
         setMissingItems(err.details.map((d) => d.message));
@@ -80,14 +87,26 @@ export function CompleteSheet({
     }
   };
 
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="max-h-[92svh] overflow-y-auto rounded-t-xl">
-        <SheetHeader className="pb-0">
-          <SheetTitle>Selesaikan Checkpoint</SheetTitle>
-        </SheetHeader>
+  const signaturePad = (side: HandoverSide, ref: React.Ref<SignaturePadHandle>) => (
+    <SignaturePad
+      ref={ref}
+      label={`Tanda Tangan ${side.roleLabel}`}
+      signerName={`${partyName(detail, side.party)} · ${side.partyLabel}`}
+      disabled={!ready}
+    />
+  );
 
-        <form onSubmit={(e) => void form.handleSubmit(save)(e)} className="grid gap-4 p-4 pt-2">
+  return (
+    <Card className="py-4">
+      <CardContent className="space-y-4 px-4">
+        <div>
+          <h3 className="text-sm font-semibold">Penyelesaian</h3>
+          <p className="text-xs text-muted-foreground">
+            Isi odometer & baterai, lalu kedua pihak menandatangani.
+          </p>
+        </div>
+
+        <form onSubmit={(e) => void form.handleSubmit(save)(e)} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="cp-odo">Odometer (km)</Label>
@@ -136,8 +155,17 @@ export function CompleteSheet({
             />
           </div>
 
-          <SignaturePad ref={partnerSigRef} label="Tanda Tangan Petugas Partner" />
-          <SignaturePad ref={counterpartSigRef} label="Tanda Tangan Pihak Penerima/Penyerah" />
+          {!ready && (
+            <p className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
+              Tanda tangan aktif setelah semua titik dinilai dan difoto — saat ini {assessed}/
+              {total} dinilai · {photographed}/{total} difoto.
+            </p>
+          )}
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            {signaturePad(giver, giverSigRef)}
+            {signaturePad(receiver, receiverSigRef)}
+          </div>
 
           {missingItems.length > 0 && (
             <div
@@ -158,15 +186,21 @@ export function CompleteSheet({
             </p>
           )}
 
-          <Button type="submit" className="h-11" disabled={submitting}>
-            {submitting && <Loader2 className="animate-spin" aria-hidden />}
+          <Button type="submit" className="h-12 w-full" disabled={submitting || !ready}>
+            {submitting ? (
+              <Loader2 className="animate-spin" aria-hidden />
+            ) : ready ? (
+              <CheckCircle2 aria-hidden />
+            ) : (
+              <Lock aria-hidden />
+            )}
             Selesaikan & Kunci Checkpoint
           </Button>
           <p className="text-center text-xs text-muted-foreground">
             Setelah diselesaikan, checkpoint terkunci dan tidak bisa diubah.
           </p>
         </form>
-      </SheetContent>
-    </Sheet>
+      </CardContent>
+    </Card>
   );
 }
