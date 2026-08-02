@@ -93,6 +93,20 @@ export const qk = {
       }) => ['partner', 'cicilan', 'list', p] as const,
       recap: (id: number) => ['partner', 'cicilan', 'recap', id] as const,
       driverOptions: ['partner', 'cicilan', 'driver-options'] as const,
+      // Car Ownership Program report — nested under `cicilan` on purpose: it
+      // reads the same rules, so any cicilan mutation must invalidate it too.
+      cop: {
+        list: (p: {
+          status?: string;
+          search?: string;
+          sortBy: string;
+          sortOrder: string;
+          page: number;
+          pageSize: number;
+        }) => ['partner', 'cicilan', 'cop', 'list', p] as const,
+        summary: (p: { status?: string; search?: string }) =>
+          ['partner', 'cicilan', 'cop', 'summary', p] as const,
+      },
     },
     fleet: {
       all: ['partner', 'fleet'] as const, // invalidation prefix for every portal fleet query

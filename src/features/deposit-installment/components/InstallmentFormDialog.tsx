@@ -35,7 +35,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ApiErrorException } from '@/lib/api-client/client';
 import { cn } from '@/lib/utils';
 import { useCreateInstallment, useDriverOptionsQuery, useUpdateInstallment } from '../hooks';
-import type { InstallmentRule, InstallmentUpsertInput } from '../types';
+import { MAX_INSTALLMENT_COUNT, type InstallmentRule, type InstallmentUpsertInput } from '../types';
 import { TitleCombobox } from './TitleCombobox';
 
 // Numeric inputs stay strings in the form (RHF-friendly); toInput() converts.
@@ -50,8 +50,9 @@ const formSchema = z.object({
     'Nominal harus lebih dari 0',
   ),
   installmentCount: intString('Durasi wajib diisi', 'Durasi harus bilangan bulat').refine(
-    (v) => Number(v) >= 1 && Number(v) <= 999,
-    'Durasi harus 1–999',
+    // mirrors the BE @Max — COP 60 bulan needs 60 × 30 = 1.800 cicilan harian
+    (v) => Number(v) >= 1 && Number(v) <= MAX_INSTALLMENT_COUNT,
+    `Durasi harus 1–${MAX_INSTALLMENT_COUNT}`,
   ),
   minDailySetoran: z.string().trim().regex(/^\d*$/, 'Min setoran harus bilangan bulat').optional(),
   effectiveDate: z.string().min(1, 'Tanggal aktif wajib diisi'),

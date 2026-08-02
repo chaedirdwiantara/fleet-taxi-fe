@@ -9,6 +9,9 @@ import {
 } from '@/lib/api-client/client';
 import { qk } from '@/lib/query-client';
 import type {
+  CopListParams,
+  CopRow,
+  CopSummary,
   DriverOption,
   InstallmentListParams,
   InstallmentRecap,
@@ -47,6 +50,48 @@ export function useInstallmentListQuery(params: InstallmentListParams) {
       if (error) throwEnvelope(error);
       const { data: rows, meta } = unwrapWithMeta(data);
       return { data: rows as InstallmentRule[], meta };
+    },
+  });
+}
+
+// Car Ownership Program — read-only report over the COP-titled subset. The
+// list is paginated; the summary is deliberately a second endpoint because it
+// covers EVERY matching row, not the page on screen.
+
+export function useCopListQuery(params: CopListParams) {
+  return useQuery({
+    queryKey: qk.partner.cicilan.cop.list(params),
+    placeholderData: keepPreviousData,
+    queryFn: async (): Promise<{ data: CopRow[]; meta?: Meta }> => {
+      const { data, error } = await api.GET('/partner/portal/deposit-installments/cop', {
+        params: {
+          query: {
+            status: params.status,
+            search: params.search || undefined,
+            sortBy: params.sortBy,
+            sortOrder: params.sortOrder,
+            page: String(params.page),
+            pageSize: String(params.pageSize),
+          },
+        },
+      });
+      if (error) throwEnvelope(error);
+      const { data: rows, meta } = unwrapWithMeta(data);
+      return { data: rows as CopRow[], meta };
+    },
+  });
+}
+
+export function useCopSummaryQuery(params: Pick<CopListParams, 'status' | 'search'>) {
+  return useQuery({
+    queryKey: qk.partner.cicilan.cop.summary(params),
+    placeholderData: keepPreviousData,
+    queryFn: async (): Promise<CopSummary> => {
+      const { data, error } = await api.GET('/partner/portal/deposit-installments/cop/summary', {
+        params: { query: { status: params.status, search: params.search || undefined } },
+      });
+      if (error) throwEnvelope(error);
+      return unwrap(data) as CopSummary;
     },
   });
 }

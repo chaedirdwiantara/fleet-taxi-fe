@@ -34,14 +34,17 @@ import {
 } from './fixtures/rental';
 import { seedDrivers, type SeedDriver, type SeedDriverDocument } from './fixtures/driver';
 import {
+  copSummary,
   createInstallment,
   deleteInstallment,
   driverOptions,
   findRecap,
+  queryCop,
   queryInstallments,
   updateInstallment,
 } from './fixtures/depositInstallment';
 import type {
+  CopSortField,
   InstallmentSortField,
   InstallmentStatus,
   InstallmentUpsertInput,
@@ -2207,6 +2210,31 @@ export const handlers = [
 
   // ---- Partner portal — Cicilan Deposit (installment rules + derived rekap) --
   http.get('*/partner/portal/deposit-installments/driver-options', () => ok(driverOptions)),
+
+  // Car Ownership Program report — declared BEFORE the `:id` and bare-list
+  // handlers so `cop` is never captured as a rule id.
+  http.get('*/partner/portal/deposit-installments/cop/summary', ({ request }) => {
+    const p = new URL(request.url).searchParams;
+    return ok(
+      copSummary({
+        status: (p.get('status') as InstallmentStatus | null) ?? undefined,
+        search: p.get('search') ?? undefined,
+      }),
+    );
+  }),
+
+  http.get('*/partner/portal/deposit-installments/cop', ({ request }) => {
+    const p = new URL(request.url).searchParams;
+    const { data, meta } = queryCop({
+      status: (p.get('status') as InstallmentStatus | null) ?? undefined,
+      search: p.get('search') ?? undefined,
+      sortBy: (p.get('sortBy') as CopSortField | null) ?? undefined,
+      sortOrder: (p.get('sortOrder') as 'asc' | 'desc' | null) ?? undefined,
+      page: int(p.get('page'), 1),
+      pageSize: int(p.get('pageSize'), 10),
+    });
+    return ok(data, meta);
+  }),
 
   http.get('*/partner/portal/deposit-installments/:id/recap', ({ params }) => {
     const recap = findRecap(Number(params.id));

@@ -1,17 +1,11 @@
-import { ArrowDown, ArrowUp, ArrowUpDown, History, Pencil, Trash2 } from 'lucide-react';
+import { History, Pencil, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableRow } from '@/components/ui/table';
 import { formatDateID, formatDateTimeWIB } from '@/lib/datetime';
 import { formatRupiah } from '@/lib/money';
 import { cn } from '@/lib/utils';
+import { SortableHeaderRow, type SortColumn } from './SortableHeaderRow';
 import type { InstallmentRule, InstallmentSortField, SortOrder } from '../types';
 
 /** Money cell — muted dash for zero/null so real amounts stand out. */
@@ -62,7 +56,7 @@ export function InstallmentProgress({ rule }: { rule: InstallmentRule }) {
   );
 }
 
-const COLUMNS: Array<{ label: string; sort?: InstallmentSortField; numeric?: boolean }> = [
+const COLUMNS: Array<SortColumn<InstallmentSortField>> = [
   { label: 'Judul', sort: 'title' },
   { label: 'Driver', sort: 'driverName' },
   { label: 'Tgl Dibuat', sort: 'createdAt' },
@@ -131,41 +125,12 @@ export function InstallmentTable({
       {/* Desktop */}
       <div className="hidden overflow-x-auto md:block">
         <Table>
-          <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              {COLUMNS.map((col) => (
-                <TableHead
-                  key={col.label}
-                  className={cn('whitespace-nowrap', col.numeric && 'text-right')}
-                >
-                  {col.sort ? (
-                    <button
-                      type="button"
-                      onClick={() => onSort(col.sort!)}
-                      className={cn(
-                        'inline-flex items-center gap-1 hover:text-foreground',
-                        col.numeric && 'flex-row-reverse',
-                        sortBy === col.sort && 'text-foreground',
-                      )}
-                    >
-                      {col.label}
-                      {sortBy === col.sort ? (
-                        sortOrder === 'asc' ? (
-                          <ArrowUp className="size-3.5" aria-label="urut naik" />
-                        ) : (
-                          <ArrowDown className="size-3.5" aria-label="urut turun" />
-                        )
-                      ) : (
-                        <ArrowUpDown className="size-3.5 opacity-40" aria-hidden />
-                      )}
-                    </button>
-                  ) : (
-                    col.label
-                  )}
-                </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
+          <SortableHeaderRow
+            columns={COLUMNS}
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            onSort={onSort}
+          />
           <TableBody>
             {rows.map((rule) => (
               <TableRow key={rule.id}>
