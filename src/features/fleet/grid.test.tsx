@@ -269,5 +269,43 @@ describe('GojekMonitoringTable (faithful legacy pivot)', () => {
       await user.click(firstCell);
       expect(onCellClick).toHaveBeenCalledWith(expect.stringMatching(/^drv:/), expect.any(Number));
     });
+
+    // The row is a person, so it is announced by name — these drivers DO have
+    // plates (the Plat column lists them); "Tanpa Plat" belongs to the unplated
+    // Manual Payment rows of the plate view only.
+    it('announces day cells by driver name, never as "Tanpa Plat"', () => {
+      render(<GojekMonitoringTable grid={driverGrid} onCellClick={vi.fn()} mode="driver" />);
+
+      const names = new Set(driverGrid.rows.map((r) => r.driverName));
+      const cells = screen.getAllByRole('button', { name: /tanggal \d+:/ });
+      expect(cells.length).toBeGreaterThan(0);
+      for (const cell of cells) {
+        const label = cell.getAttribute('aria-label') ?? '';
+        expect(label).not.toMatch(/^Tanpa Plat tanggal/);
+        // keeps the "<subject> tanggal <d>: <amount>" shape
+        const [, subject, day, amount] = label.match(/^(.*) tanggal (\d+): (.+)$/) ?? [];
+        expect(names.has(subject)).toBe(true);
+        expect(Number(day)).toBeGreaterThan(0);
+        expect(amount).toBeTruthy();
+      }
+    });
+
+    it('falls back to the Driver column wording when the name is empty', () => {
+      const row: FleetGrid['rows'][number] = {
+        ...driverGrid.rows[0],
+        driverName: '',
+        driverHistory: [],
+      };
+      render(
+        <GojekMonitoringTable
+          grid={{ ...driverGrid, rows: [row] }}
+          onCellClick={vi.fn()}
+          mode="driver"
+        />,
+      );
+      expect(
+        screen.getAllByRole('button', { name: /^Tanpa nama driver tanggal \d+: / }).length,
+      ).toBeGreaterThan(0);
+    });
   });
 });
