@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from '@tanstack/react-router';
 import { Handshake, ShieldCheck } from 'lucide-react';
-import { LogoMark } from '@/components/shared/Logo';
+import { LogoBadge } from '@/components/shared/Logo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -83,7 +83,7 @@ export function LoginForm({
         {/* One brand, two doors: the mark stays identical across audiences — what
             differs is the badge below it, so nobody mistakes this for two products. */}
         <div className="flex flex-col items-center gap-2.5">
-          <LogoMark className="size-12" />
+          <LogoBadge className="size-12" />
           <span className="text-base font-semibold tracking-tight">
             Fleet<span className="text-brand"> Taxi</span>
           </span>
