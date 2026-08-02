@@ -4,6 +4,18 @@ import { currentMonthWIB, currentYearWIB } from '@/lib/datetime';
 // page (whose default filter is the current period) shows data out of the box
 // in dev and tests. Plates match seedPartnerPlates (fixtures/partner.ts).
 
+export type SeedRentalProof = {
+  id: number;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  status: 'pending' | 'uploaded';
+  url?: string;
+  uploadedByName: string | null;
+  uploadedByEmail: string;
+  uploadedAt: string;
+};
+
 export type SeedRental = {
   id: number;
   plateNumber: string;
@@ -23,9 +35,24 @@ export type SeedRental = {
   customerName: string | null;
   customerPhone: string | null;
   paymentStatus: 'Belum Dibayar' | 'Sudah Dibayar';
+  /** Payment evidence; the backend refuses 'Sudah Dibayar' without at least one. */
+  paymentProofs: SeedRentalProof[];
   createdAt: string;
   updatedAt: string;
 };
+
+/** Evidence already on file for the seeded paid rentals. */
+const proof = (id: number, fileName: string, contentType: string): SeedRentalProof => ({
+  id,
+  fileName,
+  contentType,
+  sizeBytes: 248_320,
+  status: 'uploaded',
+  url: `/partner/portal/rentals/proofs/${id}/file`,
+  uploadedByName: 'Partner Bhisa',
+  uploadedByEmail: 'partner@bhisa.example',
+  uploadedAt: `${currentYearWIB()}-${String(currentMonthWIB()).padStart(2, '0')}-04T03:05:00.000Z`,
+});
 
 const mm = String(currentMonthWIB()).padStart(2, '0');
 const yyyy = currentYearWIB();
@@ -51,6 +78,10 @@ export const seedRentals: SeedRental[] = [
     customerName: 'Andi Saputra',
     customerPhone: '081234567890',
     paymentStatus: 'Sudah Dibayar',
+    paymentProofs: [
+      proof(9001, 'bukti-transfer-bca.jpg', 'image/jpeg'),
+      proof(9002, 'invoice-rental.pdf', 'application/pdf'),
+    ],
     createdAt: `${yyyy}-${mm}-04T03:00:00.000Z`,
     updatedAt: `${yyyy}-${mm}-04T03:00:00.000Z`,
   },
@@ -73,6 +104,7 @@ export const seedRentals: SeedRental[] = [
     customerName: 'Siti Rahma',
     customerPhone: '081298765432',
     paymentStatus: 'Belum Dibayar',
+    paymentProofs: [],
     createdAt: `${yyyy}-${mm}-09T03:00:00.000Z`,
     updatedAt: `${yyyy}-${mm}-09T03:00:00.000Z`,
   },
@@ -95,6 +127,7 @@ export const seedRentals: SeedRental[] = [
     customerName: 'Budi Hartono',
     customerPhone: '081377788899',
     paymentStatus: 'Sudah Dibayar',
+    paymentProofs: [proof(9003, 'bukti-tf-mandiri.png', 'image/png')],
     createdAt: `${yyyy}-${mm}-01T03:00:00.000Z`,
     updatedAt: `${yyyy}-${mm}-01T03:00:00.000Z`,
   },

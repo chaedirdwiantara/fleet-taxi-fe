@@ -4,6 +4,23 @@
 // computed by the backend — the FE only formats them for display.
 
 export type PaymentStatus = 'Belum Dibayar' | 'Sudah Dibayar';
+
+/**
+ * One payment-evidence file. `uploadedBy*` is the backend's snapshot of who
+ * uploaded it — displayed as-is, never re-derived from the current session.
+ */
+export type RentalPaymentProof = {
+  id: number;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  status: 'pending' | 'uploaded';
+  /** Present for uploaded proofs only (presigned S3 GET in prod). */
+  url?: string;
+  uploadedByName: string | null;
+  uploadedByEmail: string;
+  uploadedAt: string;
+};
 export type RentalType = 'Dengan Driver' | 'Lepas Kunci';
 export type RentalSortBy = 'date' | 'duration' | 'status' | 'omset' | 'cogs';
 export type RentalSortOrder = 'asc' | 'desc';
@@ -30,6 +47,8 @@ export type RentalItem = {
   customerName: string | null;
   customerPhone: string | null;
   paymentStatus: PaymentStatus;
+  /** Non-empty for every 'Sudah Dibayar' row — the BE refuses paid without it. */
+  paymentProofs: RentalPaymentProof[];
   gross: number;
   cogsTotal: number;
   nettProfit: number;
@@ -92,6 +111,8 @@ export type RentalUpsertInput = {
   customerName?: string;
   customerPhone?: string;
   paymentStatus?: PaymentStatus;
+  /** Confirmed proof ids to attach; required when paymentStatus is paid. */
+  paymentProofIds?: number[];
 };
 
 export type CogsDefault = {
