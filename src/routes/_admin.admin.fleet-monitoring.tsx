@@ -12,7 +12,6 @@ import { ImportHistoryDialog } from '@/features/fleet/components/ImportHistoryDi
 import { ExceptionPanel } from '@/features/fleet/components/ExceptionPanel';
 import { ManualPaymentEditor } from '@/features/fleet/components/ManualPaymentEditor';
 import { RawDataPanel } from '@/features/fleet/components/RawDataPanel';
-import { ViewModeToggle } from '@/features/fleet/components/ViewModeToggle';
 import { useGojekGridQuery } from '@/features/fleet/hooks/useFleetQueries';
 import {
   fleetSearchSchema,
@@ -100,11 +99,7 @@ function GojekGridPage() {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <ViewModeToggle mode={search.mode} onChange={(mode) => patchSearch({ mode })} />
-        <FilterBar search={search} rentalPartnerOptions={partnerOptions} onChange={patchSearch} />
-      </div>
-      <CellLegend mode={search.mode} />
+      <FilterBar search={search} rentalPartnerOptions={partnerOptions} onChange={patchSearch} />
 
       {grid.isPending && <p className="text-sm text-muted-foreground">Memuat grid…</p>}
       {grid.isError && (
@@ -117,9 +112,12 @@ function GojekGridPage() {
           onProcess={setEditingDetailId}
         />
       )}
-      {/* Filters that narrow the table sit immediately above it. */}
+      {/* Everything that shapes the table sits immediately above it — the mode
+          toggle included, since it decides what a row is. The legend follows,
+          because its wording depends on that mode. */}
       {grid.isSuccess && (
         <TableFilterBar
+          mode={search.mode}
           q={search.q}
           vehicleType={search.vehicleType}
           typeOptions={grid.data.availableVehicleTypes ?? []}
@@ -128,6 +126,7 @@ function GojekGridPage() {
           resultNoun={search.mode === 'driver' ? 'driver' : 'kendaraan'}
         />
       )}
+      <CellLegend mode={search.mode} />
       {grid.isSuccess && (
         <div className={grid.isFetching ? 'opacity-60 transition-opacity' : undefined}>
           <GojekMonitoringTable

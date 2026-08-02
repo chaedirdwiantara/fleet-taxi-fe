@@ -12,7 +12,6 @@ import { SummaryCards } from '@/features/fleet/components/SummaryCards';
 import { FleetChartsPanel } from '@/features/fleet/components/FleetChartsPanel';
 import { MonthYearPicker } from '@/features/fleet/components/MonthYearPicker';
 import { DateRangePicker } from '@/components/shared/DateRangePicker';
-import { ViewModeToggle } from '@/features/fleet/components/ViewModeToggle';
 import { monthYearLabelID } from '@/lib/datetime';
 import {
   usePartnerGojekGridQuery,
@@ -92,7 +91,6 @@ function PartnerGojekPage() {
           </p>
         </div>
         <div className="flex w-full flex-wrap gap-2 sm:w-auto">
-          <ViewModeToggle mode={search.mode} onChange={(mode) => patchSearch({ mode })} />
           <DateRangePicker
             value={range}
             onChange={(next) => patchSearch({ dateFrom: next?.dateFrom, dateTo: next?.dateTo })}
@@ -139,16 +137,16 @@ function PartnerGojekPage() {
         </p>
       )}
 
-      <CellLegend mode={search.mode} />
-
       {grid.isPending && <p className="text-sm text-muted-foreground">Memuat grid…</p>}
       {grid.isError && (
         <p className="text-sm text-destructive">Gagal memuat grid: {grid.error.message}</p>
       )}
-      {/* Last control before the table: its effect shows directly below, without
-          scrolling back past the cards and the chart. */}
+      {/* Everything that shapes the table sits directly above it — the mode
+          toggle included, since it decides what a row is. Their effect shows
+          immediately below, without scrolling back past the cards and chart. */}
       {grid.isSuccess && (
         <TableFilterBar
+          mode={search.mode}
           q={search.q}
           vehicleType={search.vehicleType}
           typeOptions={grid.data.availableVehicleTypes ?? []}
@@ -158,6 +156,8 @@ function PartnerGojekPage() {
           hasUnfilteredAggregates
         />
       )}
+      {/* after the controls: its wording depends on the mode chosen above */}
+      <CellLegend mode={search.mode} />
       {/* An active filter with no match must not read as "no data this month" —
           it needs a way back, not an invitation to register plates. */}
       {grid.isSuccess && grid.data.rows.length === 0 && isFiltered && (

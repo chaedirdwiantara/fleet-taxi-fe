@@ -7,7 +7,6 @@ import { ImportPanel } from '@/features/fleet/components/ImportPanel';
 import { ImportHistoryDialog } from '@/features/fleet/components/ImportHistoryDialog';
 import { TargetEditor } from '@/features/fleet/components/TargetEditor';
 import { GradientStatRow } from '@/features/fleet/components/GradientStat';
-import { ViewModeToggle } from '@/features/fleet/components/ViewModeToggle';
 import { fleetSearchSchema, type FleetSearch } from '@/features/fleet/searchSchema';
 import { GrabMonitoringTable } from '@/features/grab/GrabMonitoringTable';
 import { GrabCellModal } from '@/features/grab/GrabCellModal';
@@ -86,10 +85,7 @@ function GrabGridPage() {
         />
       )}
 
-      <div className="flex flex-wrap items-center gap-2">
-        <ViewModeToggle mode={search.mode} onChange={(mode) => patchSearch({ mode })} />
-        <FilterBar search={search} rentalPartnerOptions={partnerOptions} onChange={patchSearch} />
-      </div>
+      <FilterBar search={search} rentalPartnerOptions={partnerOptions} onChange={patchSearch} />
 
       {grid.isPending && <p className="text-sm text-muted-foreground">Memuat grid…</p>}
       {grid.isError && (
@@ -98,6 +94,7 @@ function GrabGridPage() {
       {/* Filters that narrow the table sit immediately above it. */}
       {grid.isSuccess && (
         <TableFilterBar
+          mode={search.mode}
           q={search.q}
           vehicleType={search.vehicleType}
           typeOptions={grid.data.availableVehicleTypes ?? []}
