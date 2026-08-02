@@ -1,4 +1,4 @@
-import { useState, type ComponentType, type ReactNode, type SVGProps } from 'react';
+import { useEffect, useState, type ComponentType, type ReactNode, type SVGProps } from 'react';
 import { Link, useLocation } from '@tanstack/react-router';
 import {
   CalendarDays,
@@ -9,6 +9,8 @@ import {
   LayoutGrid,
   LogOut,
   Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
   ScrollText,
   Table2,
   Users,
@@ -216,20 +218,51 @@ function SidebarContent({
   );
 }
 
+// Desktop sidebar visibility, remembered across sessions the same way the theme is.
+// Default is visible — only an explicit 'hidden' collapses it.
+const SIDEBAR_STORAGE_KEY = 'ui-sidebar';
+
+const readStoredSidebar = () => localStorage.getItem(SIDEBAR_STORAGE_KEY) !== 'hidden';
+
 export function AppShell({ audience, user, onLogout, logoutPending, children }: AppShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [desktopOpen, setDesktopOpen] = useState(readStoredSidebar);
   const sidebarProps = { audience, user, onLogout, logoutPending };
+
+  useEffect(() => {
+    localStorage.setItem(SIDEBAR_STORAGE_KEY, desktopOpen ? 'open' : 'hidden');
+  }, [desktopOpen]);
 
   return (
     <div className="flex min-h-svh">
-      <aside className="hidden w-60 shrink-0 border-r bg-sidebar text-sidebar-foreground md:block">
-        <div className="sticky top-0 h-svh">
+      {/* Collapses to zero width rather than unmounting, so the width can animate.
+          `inert` keeps the hidden links out of the tab order and off screen readers. */}
+      <aside
+        id="sidebar-utama"
+        inert={!desktopOpen}
+        className={cn(
+          'hidden shrink-0 overflow-hidden bg-sidebar text-sidebar-foreground transition-[width] duration-200 ease-out motion-reduce:transition-none md:block',
+          desktopOpen ? 'border-r md:w-60' : 'md:w-0',
+        )}
+      >
+        <div className="sticky top-0 h-svh w-60">
           <SidebarContent {...sidebarProps} />
         </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b bg-background px-4 md:px-6">
+          <Button
+            variant="outline"
+            size="icon-sm"
+            className="hidden md:inline-flex"
+            aria-label={desktopOpen ? 'Sembunyikan menu' : 'Tampilkan menu'}
+            aria-expanded={desktopOpen}
+            aria-controls="sidebar-utama"
+            onClick={() => setDesktopOpen((open) => !open)}
+          >
+            {desktopOpen ? <PanelLeftClose /> : <PanelLeftOpen />}
+          </Button>
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
               <Button variant="outline" size="icon-sm" className="md:hidden" aria-label="Buka menu">
