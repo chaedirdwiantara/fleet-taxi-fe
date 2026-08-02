@@ -6,10 +6,19 @@ import { routeTree } from './routeTree.gen';
 import { queryClient } from '@/lib/query-client';
 import { env } from '@/lib/env';
 import { ThemeProvider } from '@/components/shared/ThemeProvider';
+import { installStaleChunkRecovery, recoverFromStaleChunk } from '@/lib/stale-chunk';
 import '@fontsource-variable/inter/index.css';
 import './index.css';
 
-const router = createRouter({ routeTree });
+// A route chunk can fail to load for hours after a deploy — see
+// `@/lib/stale-chunk`. Catch it at both edges: Vite's preload hook, and the
+// router boundary for anything that slips past it.
+installStaleChunkRecovery();
+
+const router = createRouter({
+  routeTree,
+  defaultOnCatch: (error) => void recoverFromStaleChunk(error),
+});
 
 declare module '@tanstack/react-router' {
   interface Register {

@@ -45,6 +45,8 @@ started when `VITE_USE_MSW=false`.)
 
 - Build command `pnpm build`, output dir `dist`.
 - SPA fallback is automatic (or add `public/_redirects`: `/*  /index.html  200`).
+- ⚠️ **The SPA fallback is also served for assets that have not propagated yet** —
+  see "Stale chunks after a deploy" below.
 
 **AWS S3 + CloudFront**
 
@@ -69,10 +71,44 @@ location / { try_files $uri $uri/ /index.html; }
 - DevTools → Network: requests go to `https://api.fleet-taxi.id/...` with
   `Cookie` sent and `200`s (verifies CORS + credentials).
 
+## Stale chunks after a deploy
+
+Symptom, seen twice in production: minutes after `wrangler pages deploy`, users
+get the "Something went wrong!" boundary with
+`TypeError: Failed to fetch dynamically imported module: .../assets/<chunk>.js`,
+while the file itself serves fine to a fresh client.
+
+Cause: Cloudflare Pages answers a request for a not-yet-propagated asset with the
+**SPA fallback** — `index.html`, **HTTP 200**, `cache-control: public,
+max-age=14400`. Check it yourself:
+
+```bash
+curl -sI https://fleet-taxi.id/assets/does-not-exist.js
+```
+
+`content-type: text/html` with a four-hour `max-age` means any browser that
+loaded the app during the propagation window is holding HTML as the body of a
+`.js` file for the next four hours. Every `import()` of that chunk fails until
+the entry expires or the user hard-reloads. (`/` itself is fine —
+`max-age=0, must-revalidate`.) The same trap once hit `/favicon.ico`.
+
+Two mitigations are in the repo; neither is optional:
+
+- `src/lib/stale-chunk` — hooks Vite's `vite:preloadError` and the router's
+  `defaultOnCatch`, evicts the poisoned entry from the HTTP cache with a
+  `cache: 'reload'` refetch, then reloads the page once. A sessionStorage stamp
+  caps it at one reload per 30s, so a genuinely missing chunk reaches the error
+  boundary instead of looping.
+- `public/_headers` — caps `/assets/*` at `max-age=3600`. **Never** raise this
+  to `immutable` / a long max-age: no header rule can distinguish a real asset
+  from the fallback, so a long TTL would pin a poisoned response — including the
+  entry bundle, where the app never boots far enough to self-heal.
+
 ## Notes
 
-- Cache: fingerprinted `assets/*` are safe to cache long; `index.html` should be
-  short-cache / no-cache so new deploys are picked up.
+- Cache: fingerprinted `assets/*` are safe to cache long _in principle_, but see
+  the stale-chunk section above for why we deliberately don't; `index.html`
+  should be short-cache / no-cache so new deploys are picked up.
 - Optional slimming: MSW is only used in dev/tests; the `browser-*.js` chunk is a
   lazy import gated on `VITE_USE_MSW` and is never fetched in prod, so it's dead
   weight (~160 kB gz) that could be excluded later, but it doesn't affect runtime.
