@@ -1,2 +1,8 @@
 allowBuilds:
+  # cloudflare/wrangler-action installs wrangler on the fly in the deploy job,
+  # and both of these ship a postinstall that fetches a platform binary. pnpm 11
+  # treats an unapproved build script as a HARD error, so without them
+  # `pnpm add wrangler@3.90.0` exits 1 and the deploy step never runs.
+  esbuild: true
   msw: true
+  workerd: true
