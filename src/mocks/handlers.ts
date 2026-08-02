@@ -34,7 +34,6 @@ import {
 } from './fixtures/rental';
 import { seedDrivers, type SeedDriver, type SeedDriverDocument } from './fixtures/driver';
 import {
-  copSummary,
   createInstallment,
   deleteInstallment,
   driverOptions,
@@ -2260,16 +2259,6 @@ export const handlers = [
 
   // Car Ownership Program report — declared BEFORE the `:id` and bare-list
   // handlers so `cop` is never captured as a rule id.
-  http.get('*/partner/portal/deposit-installments/cop/summary', ({ request }) => {
-    const p = new URL(request.url).searchParams;
-    return ok(
-      copSummary({
-        status: (p.get('status') as InstallmentStatus | null) ?? undefined,
-        search: p.get('search') ?? undefined,
-      }),
-    );
-  }),
-
   http.get('*/partner/portal/deposit-installments/cop', ({ request }) => {
     const p = new URL(request.url).searchParams;
     const { data, meta } = queryCop({

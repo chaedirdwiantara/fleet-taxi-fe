@@ -13,10 +13,9 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { SearchInput } from '@/components/shared/SearchInput';
-import { CopSummaryCards, CopSummarySkeleton } from './components/CopSummaryCards';
 import { CopTable } from './components/CopTable';
 import { RekapSheet } from './components/RekapSheet';
-import { useCopListQuery, useCopSummaryQuery } from './hooks';
+import { useCopListQuery } from './hooks';
 import { cicilanSearchSchema } from './searchSchema';
 import type { CopSearch } from './copSearchSchema';
 import type { CopListParams, CopRow, CopSortField } from './types';
@@ -51,7 +50,6 @@ export function CopPage({
   };
 
   const list = useCopListQuery(params);
-  const summary = useCopSummaryQuery({ status: search.status, search: search.q });
   const [rekap, setRekap] = useState<CopRow | null>(null);
 
   // free-text search: local state, debounced into the URL (and the query key)
@@ -72,17 +70,11 @@ export function CopPage({
         : { sortBy: field, sortOrder: 'desc', page: 1 },
     );
 
-  const refresh = () => {
-    void list.refetch();
-    void summary.refetch();
-  };
-
   const total = list.data?.meta?.total ?? 0;
   const lastPage = Math.max(1, Math.ceil(total / search.pageSize));
   const from = total === 0 ? 0 : (search.page - 1) * search.pageSize + 1;
   const to = Math.min(search.page * search.pageSize, total);
   const isFiltered = Boolean(search.q || search.status);
-  const isBusy = list.isFetching || summary.isFetching;
 
   return (
     <div className="space-y-4">
@@ -101,14 +93,6 @@ export function CopPage({
           Monitoring.
         </p>
       </div>
-
-      {summary.isPending && <CopSummarySkeleton />}
-      {summary.isError && (
-        <p className="text-sm text-destructive" role="alert">
-          Gagal memuat ringkasan: {summary.error.message}
-        </p>
-      )}
-      {summary.isSuccess && <CopSummaryCards summary={summary.data} />}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
         <SearchInput
@@ -152,8 +136,13 @@ export function CopPage({
               ))}
             </SelectContent>
           </Select>
-          <Button variant="outline" onClick={refresh} disabled={isBusy} className="ml-auto sm:ml-0">
-            <RefreshCw className={isBusy ? 'animate-spin' : undefined} aria-hidden />
+          <Button
+            variant="outline"
+            onClick={() => void list.refetch()}
+            disabled={list.isFetching}
+            className="ml-auto sm:ml-0"
+          >
+            <RefreshCw className={list.isFetching ? 'animate-spin' : undefined} aria-hidden />
             Refresh
           </Button>
         </div>

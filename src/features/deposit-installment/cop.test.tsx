@@ -77,18 +77,18 @@ describe('CopPage', () => {
     expect(screen.getAllByText('Sesuai jadwal').length).toBeGreaterThan(0);
   });
 
-  it('summarises the whole programme above the table', async () => {
+  it('shows the driver list only — no programme summary cards', async () => {
     renderPage();
+    await waitFor(() =>
+      expect(screen.getAllByText('YULIUS BAMBANG TRIUTOMO').length).toBeGreaterThan(0),
+    );
 
-    // the label also heads a table column, hence getAllByText
-    await waitFor(() => expect(screen.getAllByText('Total Kewajiban').length).toBeGreaterThan(0));
-    // 2 × 63.000.000 kewajiban, 129.000 + 70.000 tertarik, gap hanya yang positif
-    expect(screen.getByText(/Rp\s?126\.000\.000/)).toBeInTheDocument();
-    expect(screen.getByText(/Rp\s?199\.000/)).toBeInTheDocument();
-    expect(screen.getByText(/Rp\s?125\.801\.000/)).toBeInTheDocument();
-    expect(screen.getByText('2 driver · 2 program — seluruh tenor')).toBeInTheDocument();
-    expect(screen.getByText('5 kali penarikan')).toBeInTheDocument();
-    expect(screen.getByText('2 berjalan · 0 lunas')).toBeInTheDocument();
+    // 'Total Kewajiban' survives ONLY as a table column/label, never as a KPI
+    // card, so the aggregate figures must not appear anywhere.
+    expect(screen.queryByText(/Rp\s?126\.000\.000/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Rp\s?125\.801\.000/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/kali penarikan$/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/berjalan · .* lunas/)).not.toBeInTheDocument();
   });
 
   it('filters by driver via the debounced search', async () => {

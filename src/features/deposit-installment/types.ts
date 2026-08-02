@@ -99,18 +99,6 @@ export interface CopRow extends InstallmentRule {
   scheduleGap: number; // scheduleDue − totalPaid; > 0 tertinggal, < 0 bayar di muka
 }
 
-export interface CopSummary {
-  driverCount: number;
-  ruleCount: number;
-  berjalanCount: number;
-  lunasCount: number;
-  totalTarget: number;
-  totalPaid: number;
-  totalRemaining: number;
-  totalGap: number; // hanya gap positif — baris bayar-di-muka tidak menutupi tunggakan
-  totalWithdrawals: number;
-}
-
 export const COP_SORT_FIELDS = [
   'driverName',
   'effectiveDate',
