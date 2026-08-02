@@ -26,6 +26,11 @@ const formatRate = (rateBps: number): string =>
  */
 export function TaxSettingsDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const settings = useTaxSettingsQuery();
+  // The mutation lives HERE, not in the keyed form below: a save invalidates
+  // the settings query, which changes that key and remounts the form. A
+  // form-local mutation would be a fresh instance with isPending back to
+  // false, so the button would flicker out of its saving state mid-flight.
+  const update = useUpdateTaxSettings();
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -47,6 +52,7 @@ export function TaxSettingsDialog({ open, onClose }: { open: boolean; onClose: (
           <TaxSettingsForm
             key={`${settings.data.isPkp}:${settings.data.npwp ?? ''}`}
             settings={settings.data}
+            update={update}
             onClose={onClose}
           />
         )}
@@ -57,16 +63,20 @@ export function TaxSettingsDialog({ open, onClose }: { open: boolean; onClose: (
 
 function TaxSettingsForm({
   settings,
+  update,
   onClose,
 }: {
   settings: RentalTaxSettings;
+  update: ReturnType<typeof useUpdateTaxSettings>;
   onClose: () => void;
 }) {
-  const update = useUpdateTaxSettings();
   const [isPkp, setIsPkp] = useState(settings.isPkp);
   const [npwp, setNpwp] = useState(settings.npwp ?? '');
 
-  const save = () => update.mutate({ isPkp, npwp: npwp.trim() }, { onSuccess: () => onClose() });
+  // Nothing to submit until something actually differs from what is stored.
+  const dirty = isPkp !== settings.isPkp || npwp.trim() !== (settings.npwp ?? '');
+
+  const save = () => update.mutate({ isPkp, npwp: npwp.trim() }, { onSuccess: onClose });
 
   return (
     <>
@@ -116,9 +126,9 @@ function TaxSettingsForm({
         <Button variant="outline" onClick={onClose} disabled={update.isPending}>
           Batal
         </Button>
-        <Button onClick={save} disabled={update.isPending}>
+        <Button onClick={save} disabled={!dirty || update.isPending}>
           {update.isPending && <Loader2 className="size-4 animate-spin" aria-hidden />}
-          Simpan
+          {update.isPending ? 'Menyimpan…' : 'Simpan'}
         </Button>
       </DialogFooter>
     </>

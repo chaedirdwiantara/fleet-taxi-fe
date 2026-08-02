@@ -138,6 +138,8 @@ describe('RentalMonitoringPage', () => {
     await user.click(screen.getByRole('button', { name: /Atur PPN/i }));
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByLabelText('Partner berstatus PKP')).toBeChecked();
+    // Nothing edited yet — there is nothing to submit.
+    expect(within(dialog).getByRole('button', { name: 'Simpan' })).toBeDisabled();
     expect(
       within(dialog).getByText(/tidak menulis ulang invoice yang sudah terbit/i),
     ).toBeInTheDocument();
