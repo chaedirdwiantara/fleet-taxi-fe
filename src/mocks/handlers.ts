@@ -415,9 +415,24 @@ let nextProofId = 5000;
 /** proofId → proof, for rows not yet attached to a rental. */
 let draftProofs = new Map<number, SeedRentalProof>();
 
+const PPN_RATE_BPS = 1100;
+const seedTaxSettings: {
+  isPkp: boolean;
+  npwp: string | null;
+  ppnRateBps: number;
+  statutoryRateBps: number;
+} = {
+  isPkp: true,
+  npwp: '01.234.567.8-901.000',
+  ppnRateBps: PPN_RATE_BPS,
+  statutoryRateBps: PPN_RATE_BPS,
+};
+let taxSettingsState = { ...seedTaxSettings };
+
 /** Reset rentals + COGS presets to the seed (call between tests). */
 export const resetPartnerRentals = () => {
   rentalsState = structuredClone(seedRentals);
+  taxSettingsState = { ...seedTaxSettings };
   nextRentalId = 100;
   nextProofId = 5000;
   draftProofs = new Map();
@@ -481,7 +496,21 @@ const presentRental = (r: SeedRental, period?: { month: number; year: number }) 
     if (displayStartDate < monthStart) displayStartDate = monthStart;
     if (displayEndDate > monthEnd) displayEndDate = monthEnd;
   }
-  return { ...r, displayStartDate, displayEndDate, days, gross, cogsTotal, nettProfit, omset };
+  const ppnBase = gross + r.additionalCost;
+  const ppnAmount = r.ppnRateBps > 0 ? Math.round((ppnBase * r.ppnRateBps) / 10_000) : 0;
+  return {
+    ...r,
+    displayStartDate,
+    displayEndDate,
+    days,
+    gross,
+    cogsTotal,
+    nettProfit,
+    omset,
+    ppnBase,
+    ppnAmount,
+    totalBilled: ppnBase + ppnAmount,
+  };
 };
 
 type RentalUpsertBody = Partial<
@@ -526,6 +555,8 @@ const rentalFromBody = (
     customerName: body.customerName ?? null,
     customerPhone: body.customerPhone ?? null,
     paymentStatus: body.paymentStatus ?? 'Belum Dibayar',
+    // Captured at write time from the partner's PKP status, like the backend.
+    ppnRateBps: taxSettingsState.ppnRateBps,
     paymentProofs: [], // filled by the caller after resolveProofs()
     createdAt,
     updatedAt: new Date().toISOString(),
@@ -1855,6 +1886,19 @@ export const handlers = [
     });
   }),
 
+  http.get('*/partner/portal/rentals/tax-settings', () => ok({ ...taxSettingsState })),
+
+  http.put('*/partner/portal/rentals/tax-settings', async ({ request }) => {
+    const body = (await request.json()) as { isPkp?: boolean; npwp?: string };
+    taxSettingsState = {
+      isPkp: !!body.isPkp,
+      npwp: body.npwp?.trim() || null,
+      ppnRateBps: body.isPkp ? PPN_RATE_BPS : 0,
+      statutoryRateBps: PPN_RATE_BPS,
+    };
+    return ok({ ...taxSettingsState });
+  }),
+
   http.get('*/partner/portal/rentals/:id/invoice', ({ params }) => {
     const rental = rentalsState.find((r) => r.id === Number(params.id));
     if (!rental) return err(404, 'NOT_FOUND', 'Rental tidak ditemukan');
@@ -1928,6 +1972,9 @@ export const handlers = [
       paidCogs: sum(paid, (r) => r.cogsTotal),
       paidAdditionalCost: sum(paid, (r) => r.additionalCost),
       paidNettProfit: sum(paid, (r) => r.nettProfit),
+      paidPpn: sum(paid, (r) => r.ppnAmount),
+      paidTotalBilled: sum(paid, (r) => r.totalBilled),
+      unpaidPpn: sum(unpaid, (r) => r.ppnAmount),
     };
     const byType = new Map<
       string,

@@ -10,6 +10,7 @@ import type {
   RentalItem,
   RentalListData,
   RentalListParams,
+  RentalTaxSettings,
   RentalPaymentProof,
   RentalUpsertInput,
 } from './types';
@@ -211,6 +212,34 @@ export function useUpsertCogsDefault() {
       const { data, error } = await api.PUT('/partner/portal/rentals/cogs-defaults', { body });
       if (error) throwEnvelope(error);
       return unwrap(data) as CogsDefault;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: RENTAL_NS }),
+  });
+}
+
+/**
+ * Per-partner VAT settings. New rentals inherit the rate from here, so any
+ * change invalidates the whole rental namespace — the list's PPN figures are
+ * derived from rows written under the OLD rate and must be re-read.
+ */
+export function useTaxSettingsQuery() {
+  return useQuery({
+    queryKey: qk.partner.rental.taxSettings,
+    queryFn: async (): Promise<RentalTaxSettings> => {
+      const { data, error } = await api.GET('/partner/portal/rentals/tax-settings');
+      if (error) throwEnvelope(error);
+      return unwrap(data) as RentalTaxSettings;
+    },
+  });
+}
+
+export function useUpdateTaxSettings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: { isPkp: boolean; npwp?: string }): Promise<RentalTaxSettings> => {
+      const { data, error } = await api.PUT('/partner/portal/rentals/tax-settings', { body });
+      if (error) throwEnvelope(error);
+      return unwrap(data) as RentalTaxSettings;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: RENTAL_NS }),
   });
