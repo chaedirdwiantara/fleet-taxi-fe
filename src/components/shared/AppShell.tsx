@@ -17,7 +17,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import { GojekIcon, GrabIcon } from '@/components/shared/BrandIcons';
-import { Logo } from '@/components/shared/Logo';
+import { LogoMark } from '@/components/shared/Logo';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { ThemeToggle } from '@/components/shared/ThemeToggle';
@@ -71,6 +71,7 @@ const NAV: Record<Audience, NavEntry[]> = {
     { to: '/partner/all-fleet-monitoring', label: 'All Fleet Monitoring', icon: LayoutGrid },
     { to: '/partner/fleet-monitoring', label: 'Gojek', icon: GojekIcon },
     { to: '/partner/fleet-monitoring-grab', label: 'Grab', icon: GrabIcon },
+    { to: '/partner/rental-monitoring', label: 'Rental Monitoring', icon: CalendarDays },
     {
       label: 'Driver',
       icon: Users,
@@ -79,7 +80,6 @@ const NAV: Record<Audience, NavEntry[]> = {
         { to: '/partner/cicilan', label: 'Cicilan', icon: Wallet },
       ],
     },
-    { to: '/partner/rental-monitoring', label: 'Rental Monitoring', icon: CalendarDays },
     { to: '/partner/checkpoint', label: 'Checkpoint', icon: ClipboardCheck },
     { to: '/partner/daftarkan-plat', label: 'Plate Registration', icon: ClipboardList },
   ],
@@ -89,7 +89,9 @@ const roleAllows = (user: SessionUser | null | undefined, requireRole?: string) 
   !requireRole || (user?.roles ?? []).includes(requireRole);
 
 const LINK_CLASS =
-  'flex items-center gap-2 rounded-md px-3 py-2 text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground [&.active]:bg-sidebar-accent [&.active]:font-medium';
+  // The active item wears the brand colour. Icons carry no colour of their own, so
+  // `text-primary` turns the glyph red too — no extra wiring needed.
+  'flex items-center gap-2 rounded-md px-3 py-2 text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground [&.active]:bg-primary/10 [&.active]:font-medium [&.active]:text-primary dark:[&.active]:bg-primary/15';
 
 function NavLink({
   item,
@@ -180,11 +182,20 @@ function SidebarContent({
 }: Omit<AppShellProps, 'children'> & { onNavigate?: () => void }) {
   return (
     <div className="flex h-full flex-col">
-      <div className="flex h-14 items-center gap-2 border-b px-4">
-        <Logo />
-        <span className="ml-auto rounded bg-muted px-1.5 py-0.5 text-xs tracking-wide text-muted-foreground uppercase">
-          {audience}
-        </span>
+      {/* Brand panel. Stays red in both themes — this is a brand surface, not a
+          themed one. The angled lower edge follows the supplied design; putting the
+          audience on its own line (rather than `ml-auto`) also keeps it clear of the
+          Sheet's close button on mobile. */}
+      <div className="flex h-20 shrink-0 items-center gap-3 bg-[linear-gradient(135deg,var(--brand-gradient-from),var(--brand-gradient-to))] px-4 text-white [clip-path:polygon(0_0,100%_0,100%_72%,74%_100%,0_100%)]">
+        <LogoMark className="size-9 shrink-0" />
+        <div className="min-w-0">
+          <div className="truncate text-sm font-semibold tracking-[0.18em] uppercase">
+            Fleet Taxi
+          </div>
+          <div className="truncate text-xs tracking-[0.2em] text-white/70 uppercase">
+            {audience}
+          </div>
+        </div>
       </div>
       <nav className="flex-1 space-y-1 overflow-y-auto p-2" aria-label="Navigasi utama">
         {NAV[audience]
