@@ -23,7 +23,14 @@ import { formatRupiah } from '@/lib/money';
 import { usePartnerPlatesQuery } from '@/features/partner/hooks';
 import { matchCogsKey } from '../cogsMatcher';
 import { useCogsDefaultsQuery, useCreateRental, useUpdateRental } from '../hooks';
-import type { PaymentStatus, RentalItem, RentalType, RentalUpsertInput } from '../types';
+import type {
+  PaymentStatus,
+  RentalItem,
+  RentalPaymentProof,
+  RentalType,
+  RentalUpsertInput,
+} from '../types';
+import { PaymentProofUploader } from './PaymentProofUploader';
 
 const OTHER = '__other';
 
@@ -104,6 +111,8 @@ function RentalForm({ initial, onClose }: { initial: RentalItem | null; onClose:
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>(
     initial?.paymentStatus ?? 'Belum Dibayar',
   );
+  // Evidence is uploaded before the rental exists (create) and sent as ids on save.
+  const [proofs, setProofs] = useState<RentalPaymentProof[]>(initial?.paymentProofs ?? []);
 
   // Informasi Pelanggan
   const [customerName, setCustomerName] = useState(initial?.customerName ?? '');
@@ -154,6 +163,10 @@ function RentalForm({ initial, onClose }: { initial: RentalItem | null; onClose:
     setCogsPerDay(preset.cogsPerDay);
   };
 
+  const isPaid = paymentStatus === 'Sudah Dibayar';
+  // The backend enforces this too — the UI just refuses to send a doomed call.
+  const missingProof = isPaid && proofs.length === 0;
+
   const dateOrderInvalid = !!startDate && !!endDate && endDate < startDate;
   const canSubmit =
     !!plateNumber &&
@@ -162,7 +175,8 @@ function RentalForm({ initial, onClose }: { initial: RentalItem | null; onClose:
     !dateOrderInvalid &&
     price.trim() !== '' &&
     Number(price) > 0 &&
-    cogsPerDay != null;
+    cogsPerDay != null &&
+    !missingProof;
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -188,6 +202,7 @@ function RentalForm({ initial, onClose }: { initial: RentalItem | null; onClose:
       customerName: customerName.trim() || undefined,
       customerPhone: customerPhone.trim() || undefined,
       paymentStatus,
+      ...(proofs.length ? { paymentProofIds: proofs.map((p) => p.id) } : {}),
     };
     if (initial) {
       update.mutate({ id: initial.id, body }, { onSuccess: onClose });
@@ -408,6 +423,21 @@ function RentalForm({ initial, onClose }: { initial: RentalItem | null; onClose:
             </Select>
           </div>
         </div>
+
+        {/* Full width under the 2-col grid: evidence is a list, not a field.
+            Kept visible after a revert so the history stays reachable. */}
+        {(isPaid || proofs.length > 0) && (
+          <PaymentProofUploader
+            proofs={proofs}
+            onChange={setProofs}
+            disabled={mutation.isPending}
+          />
+        )}
+        {missingProof && (
+          <p className="text-xs text-muted-foreground">
+            Unggah minimal satu bukti pembayaran untuk menyimpan transaksi sebagai Sudah Dibayar.
+          </p>
+        )}
       </div>
 
       <Separator />

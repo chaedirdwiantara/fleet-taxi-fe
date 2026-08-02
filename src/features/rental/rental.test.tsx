@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -8,6 +8,13 @@ import { rentalSearchSchema, type RentalSearch } from './searchSchema';
 import { matchCogsKey } from './cogsMatcher';
 import { resetPartnerPlates, resetPartnerRentals } from '@/mocks/handlers';
 import { currentMonthWIB, currentYearWIB } from '@/lib/datetime';
+
+// compressImage re-encodes through createImageBitmap + canvas, neither of
+// which jsdom implements. These tests are about the upload gating, not the
+// re-encoding, so the compressor is stubbed to pass the blob through.
+vi.mock('@/features/partner/checkpoint/compressImage', () => ({
+  compressImage: (file: File | Blob) => Promise.resolve(file),
+}));
 
 // Radix Select needs these pointer APIs that jsdom doesn't implement.
 window.HTMLElement.prototype.scrollIntoView = () => {};
@@ -38,6 +45,22 @@ const renderPage = () => render(<Harness />, { wrapper: wrapperFor(makeClient())
 // a date inside the current WIB month (fixtures are anchored there too)
 const isoDay = (day: number) =>
   `${currentYearWIB()}-${String(currentMonthWIB()).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+/**
+ * Drives the uploader's file input directly. The input is `sr-only` rather
+ * than hidden, but userEvent.upload still refuses it, so the change event is
+ * dispatched with an explicit FileList.
+ */
+async function attachProof(
+  container: HTMLElement,
+  fileName: string,
+  contentType = 'image/jpeg',
+): Promise<void> {
+  const input = within(container).getByLabelText('Pilih file bukti pembayaran') as HTMLInputElement;
+  const file = new File(['proof-bytes'], fileName, { type: contentType });
+  fireEvent.change(input, { target: { files: [file] } });
+  await waitFor(() => expect(within(container).getByText(fileName)).toBeInTheDocument());
+}
 
 beforeEach(() => {
   resetPartnerRentals();
@@ -177,7 +200,7 @@ describe('RentalMonitoringPage', () => {
     expect(within(dialog).getByRole('button', { name: 'Simpan' })).toBeDisabled();
   });
 
-  it('toggles payment status from the badge dialog', async () => {
+  it('blocks marking a rental paid until evidence is attached, then saves', async () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByText('1 transaksi belum dibayar');
@@ -188,11 +211,102 @@ describe('RentalMonitoringPage', () => {
 
     await user.click(within(dialog).getByLabelText('Status Bayar'));
     await user.click(await screen.findByRole('option', { name: 'Sudah Dibayar' }));
+
+    // Status alone is not enough — the uploader appears and Simpan stays locked.
+    expect(within(dialog).getByText('0 / 5 file')).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Simpan' })).toBeDisabled();
+
+    await attachProof(dialog, 'bukti-transfer.jpg');
+    await waitFor(() =>
+      expect(within(dialog).getByRole('button', { name: 'Simpan' })).toBeEnabled(),
+    );
     await user.click(within(dialog).getByRole('button', { name: 'Simpan' }));
 
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     // summary refreshes: nothing unpaid anymore
     await waitFor(() => expect(screen.getByText('0 transaksi belum dibayar')).toBeInTheDocument());
+  });
+
+  it('shows who uploaded each existing proof and keeps them after a revert', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText('B 1000 XYZ');
+
+    // The paid seed row advertises its evidence count in the table.
+    expect(screen.getByText('2 bukti')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Ubah status bayar B 1000 XYZ' }));
+    const dialog = await screen.findByRole('dialog');
+
+    expect(within(dialog).getByText('bukti-transfer-bca.jpg')).toBeInTheDocument();
+    expect(within(dialog).getByText('invoice-rental.pdf')).toBeInTheDocument();
+    expect(within(dialog).getAllByText(/Diunggah oleh/)).toHaveLength(2);
+    expect(within(dialog).getAllByText('Partner Bhisa')).toHaveLength(2);
+
+    // Reverting keeps the evidence — it is the payment's history.
+    await user.click(within(dialog).getByLabelText('Status Bayar'));
+    await user.click(await screen.findByRole('option', { name: 'Belum Dibayar' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Simpan' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('2 transaksi belum dibayar')).toBeInTheDocument());
+    expect(screen.getByText('2 bukti')).toBeInTheDocument();
+  });
+
+  it('stops accepting files once the 5-file cap is reached', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText('1 transaksi belum dibayar');
+
+    await user.click(screen.getByRole('button', { name: 'Ubah status bayar B 1001 XYZ' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByLabelText('Status Bayar'));
+    await user.click(await screen.findByRole('option', { name: 'Sudah Dibayar' }));
+
+    for (let i = 1; i <= 5; i += 1) {
+      await attachProof(dialog, `bukti-${i}.jpg`);
+      await waitFor(() => expect(within(dialog).getByText(`${i} / 5 file`)).toBeInTheDocument());
+    }
+
+    // At the cap the picker is gone entirely — nothing left to click.
+    expect(within(dialog).queryByLabelText('Pilih file bukti pembayaran')).not.toBeInTheDocument();
+  });
+
+  it('creates a paid rental from the form with evidence attached', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText('B 1000 XYZ');
+
+    await user.click(screen.getByRole('button', { name: /Tambah Rental Data/ }));
+    const dialog = await screen.findByRole('dialog');
+
+    await user.click(within(dialog).getByLabelText('Plat'));
+    await user.click(await screen.findByRole('option', { name: /B 1000 XYZ/ }));
+    // this plate's type auto-picks a COGS preset, which submit requires
+    await waitFor(() => expect(within(dialog).getByText(/COGS dipakai:/)).toBeInTheDocument());
+    fireEvent.change(within(dialog).getByLabelText('Tanggal Mulai'), {
+      target: { value: isoDay(20) },
+    });
+    fireEvent.change(within(dialog).getByLabelText('Tanggal Selesai'), {
+      target: { value: isoDay(22) },
+    });
+    fireEvent.change(within(dialog).getByLabelText('Harga'), { target: { value: '750000' } });
+
+    // Choosing paid reveals the uploader inside the form and locks Simpan.
+    await user.click(within(dialog).getByLabelText('Status Bayar'));
+    await user.click(await screen.findByRole('option', { name: 'Sudah Dibayar' }));
+    expect(within(dialog).getByRole('button', { name: 'Simpan' })).toBeDisabled();
+
+    await attachProof(dialog, 'bukti-form.pdf', 'application/pdf');
+    await waitFor(() =>
+      expect(within(dialog).getByRole('button', { name: 'Simpan' })).toBeEnabled(),
+    );
+    await user.click(within(dialog).getByRole('button', { name: 'Simpan' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    // The new paid row lands with its evidence: the B 2000 GRB seed already
+    // shows "1 bukti", so a second one proves the form's proof reached the API.
+    await waitFor(() => expect(screen.getAllByText('1 bukti')).toHaveLength(2));
   });
 
   it('deletes a rental after the confirm dialog', async () => {

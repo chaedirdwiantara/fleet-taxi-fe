@@ -1,4 +1,4 @@
-import { Pencil, Trash2 } from 'lucide-react';
+import { Paperclip, Pencil, Trash2 } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -86,7 +86,7 @@ export function RentalTable({
               <TableCell>
                 <button
                   type="button"
-                  className="cursor-pointer"
+                  className="flex cursor-pointer flex-col items-start gap-1"
                   aria-label={`Ubah status bayar ${item.plateNumber}`}
                   onClick={() => onPaymentClick(item)}
                 >
@@ -101,6 +101,13 @@ export function RentalTable({
                     >
                       Belum Dibayar
                     </Badge>
+                  )}
+                  {/* Evidence count, not a new column — the table is already wide. */}
+                  {item.paymentProofs.length > 0 && (
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <Paperclip className="size-3" aria-hidden />
+                      {item.paymentProofs.length} bukti
+                    </span>
                   )}
                 </button>
               </TableCell>
