@@ -33,7 +33,13 @@ export const fleetSearchSchema = z.object({
   // between the two is checked by normalizeRange at the call site.
   dateFrom: z.string().regex(ISO_DATE).optional().catch(undefined),
   dateTo: z.string().regex(ISO_DATE).optional().catch(undefined),
-  plate: z.string().optional().catch(undefined),
+  // Table filters (TableFilterBar), applied server-side. They narrow the pivot
+  // ONLY — the summary cards and charts come from the summary endpoint and
+  // describe the whole fleet on purpose.
+  // `q` supersedes the old plate-only `plate` param: it matches a plate OR a
+  // driver name, so one box covers both ways a reader knows a row.
+  q: z.string().optional().catch(undefined),
+  vehicleType: z.array(z.string()).catch([]),
   // "<plateNorm|compositeKey>:<day>" → deep-linkable day-breakdown modal
   cell: z.string().optional().catch(undefined),
   // Row subject of the pivot: one row per plate (default) or per driver. It

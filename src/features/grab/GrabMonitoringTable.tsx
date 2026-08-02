@@ -5,6 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { monthYearLabelID } from '@/lib/datetime';
 import { formatNumberID, formatRupiah } from '@/lib/money';
 import {
+  frozenPrefixCount,
+  frozenWidth,
   groupRowSpans,
   identityWidth,
   stickyLefts,
@@ -36,7 +38,8 @@ const IDENTITY_DRIVER: IdentityCol[] = [
   { id: 'no', label: 'No', width: 44 },
   { id: 'rentalPartner', label: 'Rental Partner', width: 120 },
   { id: 'driver', label: 'Driver Name', width: 168 },
-  { id: 'plate', label: 'Plat · Kota', width: 150 },
+  // lists "PLAT - Model · Kota" per line; wider now that the column scrolls
+  { id: 'plate', label: 'Plat · Kota', width: 210 },
   { id: 'tiering', label: 'Tiering', width: 92 },
 ];
 const DAY_W = 74;
@@ -76,8 +79,15 @@ export function GrabMonitoringTable({
       ? columns.filter((c) => c.id !== 'action' && c.id !== 'rentalPartner')
       : columns;
   }, [byDriver, readOnly]);
-  const lefts = useMemo(() => stickyLefts(identity), [identity]);
+  // Pin No … up to the row's subject only (its plate, or the driver); the
+  // remaining attribute columns scroll with the day band so more days fit.
+  const frozenCount = useMemo(
+    () => frozenPrefixCount(identity, byDriver ? 'driver' : 'plate'),
+    [identity, byDriver],
+  );
+  const lefts = useMemo(() => stickyLefts(identity, frozenCount), [identity, frozenCount]);
   const idW = useMemo(() => identityWidth(identity), [identity]);
+  const frozenW = useMemo(() => frozenWidth(identity, frozenCount), [identity, frozenCount]);
   const rpSpans = useMemo(() => groupRowSpans(grid.rows, (r) => r.rentalPartner), [grid.rows]);
   const citySpans = useMemo(
     () => groupRowSpans(grid.rows, (r) => `${r.rentalPartner}|${r.city}`),
@@ -86,8 +96,14 @@ export function GrabMonitoringTable({
   const days = Array.from({ length: grid.daysInMonth }, (_, i) => i + 1);
   const monthLabel = monthYearLabelID(grid.month, grid.year);
 
-  const lastBorder = (isLast: boolean) => (isLast ? 'border-r-2 border-r-slate-300' : 'border-r');
-  const stickyCell = 'sticky z-10 border-b bg-white group-hover:bg-slate-50 dark:bg-slate-950';
+  // Heavier rule where the pinned block ends, so the reader can see what stays.
+  const lastBorder = (isLast: boolean, isLastFrozen: boolean) =>
+    isLast || isLastFrozen ? 'border-r-2 border-r-slate-300' : 'border-r';
+  const cellBase = (left?: number) =>
+    cn(
+      left !== undefined && 'sticky z-10',
+      'border-b bg-white group-hover:bg-slate-50 dark:bg-slate-950',
+    );
 
   return (
     <div className="relative scrollbar-slim max-h-[78svh] overflow-auto rounded-lg border">
@@ -102,9 +118,12 @@ export function GrabMonitoringTable({
                 key={c.id}
                 rowSpan={2}
                 className={cn(
-                  'sticky top-0 z-30 border-r border-b border-indigo-300/40 px-2 py-2 text-center font-semibold',
+                  // vertical stickiness for all; horizontal only for the pinned
+                  // prefix, which then has to outrank the scrolling day headers
+                  'sticky top-0 border-b border-indigo-300/40 px-2 py-2 text-center font-semibold',
+                  lefts[i] !== undefined ? 'z-30' : 'z-20',
                   HEAD_BG,
-                  i === identity.length - 1 && 'border-r-2 border-r-slate-300',
+                  lastBorder(i === identity.length - 1, i === frozenCount - 1),
                 )}
                 style={{ left: lefts[i], width: c.width, minWidth: c.width }}
               >
@@ -120,7 +139,7 @@ export function GrabMonitoringTable({
             >
               {/* pinned past the frozen columns so the label stays visible
                   while the ~31-day band scrolls horizontally */}
-              <span className="sticky inline-block w-fit" style={{ left: idW + 12 }}>
+              <span className="sticky inline-block w-fit" style={{ left: frozenW + 12 }}>
                 Tanggal ({monthLabel})
               </span>
             </th>
@@ -170,12 +189,11 @@ export function GrabMonitoringTable({
                 {/* Emitted in `identity` order so header and body always agree
                     across the admin/partner × plate/driver layouts. */}
                 {identity.map((col, colIdx) => {
-                  const pos = {
-                    left: lefts[colIdx],
-                    width: col.width,
-                    isLast: colIdx === identity.length - 1,
-                  };
-                  const base = cn(stickyCell, lastBorder(pos.isLast));
+                  const pos = { left: lefts[colIdx], width: col.width };
+                  const base = cn(
+                    cellBase(pos.left),
+                    lastBorder(colIdx === identity.length - 1, colIdx === frozenCount - 1),
+                  );
 
                   switch (col.id) {
                     case 'no':
@@ -194,7 +212,10 @@ export function GrabMonitoringTable({
                         <td
                           key={col.id}
                           rowSpan={rpSpans[idx]}
-                          className="sticky z-10 border-r border-b bg-slate-50 px-2 py-1 text-center align-middle font-semibold dark:bg-slate-900"
+                          className={cn(
+                            pos.left !== undefined && 'sticky z-10',
+                            'border-r border-b bg-slate-50 px-2 py-1 text-center align-middle font-semibold dark:bg-slate-900',
+                          )}
                           style={{ left: pos.left, width: pos.width }}
                         >
                           {row.rentalPartner || '-'}
@@ -206,7 +227,10 @@ export function GrabMonitoringTable({
                         <td
                           key={col.id}
                           rowSpan={citySpans[idx]}
-                          className="sticky z-10 border-r border-b bg-slate-50/70 px-2 py-1 text-center align-middle dark:bg-slate-900/70"
+                          className={cn(
+                            pos.left !== undefined && 'sticky z-10',
+                            'border-r border-b bg-slate-50/70 px-2 py-1 text-center align-middle dark:bg-slate-900/70',
+                          )}
                           style={{ left: pos.left, width: pos.width }}
                         >
                           {row.city}
@@ -229,9 +253,22 @@ export function GrabMonitoringTable({
                                   <div
                                     key={`${use.plate}|${use.city}`}
                                     className="truncate"
-                                    title={`${use.plate}${use.city ? ` · ${use.city}` : ''}`}
+                                    title={[
+                                      use.type ? `${use.plate} - ${use.type}` : use.plate,
+                                      use.city,
+                                    ]
+                                      .filter(Boolean)
+                                      .join(' · ')}
                                   >
                                     {use.plate}
+                                    {/* the Car Model plate mode shows in its own
+                                        column — a driver row has no single one */}
+                                    {use.type && (
+                                      <span className="font-normal text-slate-500 dark:text-slate-400">
+                                        {' '}
+                                        - {use.type}
+                                      </span>
+                                    )}
                                     {use.city && (
                                       <span className="font-normal text-slate-400">
                                         {' '}

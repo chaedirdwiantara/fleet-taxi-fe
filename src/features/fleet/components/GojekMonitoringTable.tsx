@@ -7,7 +7,14 @@ import { formatDateID, monthYearLabelID } from '@/lib/datetime';
 import { formatNumberID, formatRupiah } from '@/lib/money';
 import type { MonitoringMode } from '../searchSchema';
 import type { FleetGrid, FleetRow } from '../types';
-import { groupRowSpans, identityWidth, stickyLefts, type IdentityCol } from './stickyGrid';
+import {
+  frozenPrefixCount,
+  frozenWidth,
+  groupRowSpans,
+  identityWidth,
+  stickyLefts,
+  type IdentityCol,
+} from './stickyGrid';
 
 // Faithful port of the legacy Gojek pivot (_table.blade.php): two-row sticky
 // blue header, frozen identity columns, rental-partner rowspan grouping,
@@ -44,17 +51,19 @@ const IDENTITY_PARTNER: IdentityCol[] = [
   { id: 'setoran', label: 'Setoran', width: 82 },
   { id: 'aksi', label: 'Aksi', width: 56 },
 ];
+// Driver mode lists "PLAT - Tipe" per line, so the Plat column is wider than
+// its plate-mode twin — affordable now that it scrolls instead of being pinned.
 const IDENTITY_ADMIN_DRIVER: IdentityCol[] = [
   { id: 'no', label: 'No', width: 44 },
   { id: 'rentalPartner', label: 'Rental Partner', width: 130 },
   { id: 'driver', label: 'Driver', width: 160 },
-  { id: 'plate', label: 'Plat', width: 104 },
+  { id: 'plate', label: 'Plat', width: 208 },
   { id: 'setoran', label: 'Setoran', width: 78 },
 ];
 const IDENTITY_PARTNER_DRIVER: IdentityCol[] = [
   { id: 'no', label: 'No', width: 44 },
   { id: 'driver', label: 'Driver', width: 168 },
-  { id: 'plate', label: 'Plat', width: 112 },
+  { id: 'plate', label: 'Plat', width: 214 },
   { id: 'setoran', label: 'Setoran', width: 82 },
 ];
 const DAY_W = 62;
@@ -137,16 +146,38 @@ export function GojekMonitoringTable({
           : IDENTITY_ADMIN,
     [byDriver, readOnly],
   );
-  const lefts = useMemo(() => stickyLefts(identity), [identity]);
+  // Pin No + the row's subject only; Type/Driver/Setoran/Aksi scroll with the
+  // day band so far more of the month fits on screen (and on a phone at all).
+  const frozenCount = useMemo(
+    () => frozenPrefixCount(identity, byDriver ? 'driver' : 'plate'),
+    [identity, byDriver],
+  );
+  const lefts = useMemo(() => stickyLefts(identity, frozenCount), [identity, frozenCount]);
   const idW = useMemo(() => identityWidth(identity), [identity]);
+  const frozenW = useMemo(() => frozenWidth(identity, frozenCount), [identity, frozenCount]);
+  // Per-plate Type, for the "B2449SNC - BYD M6" lines the driver view renders.
+  const typeByPlate = useMemo(
+    () => new Map(grid.availablePlates.map((p) => [p.plate, p.type])),
+    [grid.availablePlates],
+  );
+  const plateLabel = (plate: string) => {
+    const type = typeByPlate.get(plate);
+    return type ? `${plate} - ${type}` : plate;
+  };
   const rpSpans = useMemo(() => groupRowSpans(grid.rows, (r) => r.rentalPartner), [grid.rows]);
   const days = Array.from({ length: grid.daysInMonth }, (_, i) => i + 1);
   const monthLabel = monthYearLabelID(grid.month, grid.year);
 
   // Sticky offsets come from the identity array itself, so the partner/admin ×
   // plate/driver layouts all reindex without any per-column bookkeeping.
-  const stickyBase = 'sticky z-10 border-b bg-white group-hover:bg-slate-50 dark:bg-slate-950';
-  const lastBorder = (isLast: boolean) => (isLast ? 'border-r-2 border-r-slate-300' : 'border-r');
+  const cellBase = (left?: number) =>
+    cn(
+      left !== undefined && 'sticky z-10',
+      'border-b bg-white group-hover:bg-slate-50 dark:bg-slate-950',
+    );
+  // Heavier rule where the pinned block ends, so the reader can see what stays.
+  const lastBorder = (isLast: boolean, isLastFrozen: boolean) =>
+    isLast || isLastFrozen ? 'border-r-2 border-r-slate-300' : 'border-r';
 
   return (
     <div className="relative scrollbar-slim max-h-[78svh] overflow-auto rounded-lg border">
@@ -162,9 +193,12 @@ export function GojekMonitoringTable({
                 key={c.id}
                 rowSpan={2}
                 className={cn(
-                  'sticky top-0 z-30 border-r border-b border-indigo-300/40 px-2 py-2 text-center font-semibold',
+                  // every identity header stays sticky VERTICALLY; only the
+                  // frozen prefix also pins horizontally (and outranks the days)
+                  'sticky top-0 border-b border-indigo-300/40 px-2 py-2 text-center font-semibold',
+                  lefts[i] !== undefined ? 'z-30' : 'z-20',
                   HEAD_BG,
-                  i === identity.length - 1 && 'border-r-2 border-r-slate-300',
+                  lastBorder(i === identity.length - 1, i === frozenCount - 1),
                 )}
                 style={{ left: lefts[i], width: c.width, minWidth: c.width }}
               >
@@ -180,7 +214,7 @@ export function GojekMonitoringTable({
             >
               {/* pinned past the frozen columns so the label stays visible
                   while the ~31-day band scrolls horizontally */}
-              <span className="sticky inline-block w-fit" style={{ left: idW + 12 }}>
+              <span className="sticky inline-block w-fit" style={{ left: frozenW + 12 }}>
                 Tanggal ({monthLabel})
               </span>
             </th>
@@ -236,12 +270,11 @@ export function GojekMonitoringTable({
                     and the body can never disagree about which column is which
                     (the two layouts × two modes reorder them). */}
                 {identity.map((col, colIdx) => {
-                  const pos = {
-                    left: lefts[colIdx],
-                    width: col.width,
-                    isLast: colIdx === identity.length - 1,
-                  };
-                  const base = cn(stickyBase, lastBorder(pos.isLast));
+                  const pos = { left: lefts[colIdx], width: col.width };
+                  const base = cn(
+                    cellBase(pos.left),
+                    lastBorder(colIdx === identity.length - 1, colIdx === frozenCount - 1),
+                  );
 
                   switch (col.id) {
                     case 'no':
@@ -261,7 +294,10 @@ export function GojekMonitoringTable({
                         <td
                           key={col.id}
                           rowSpan={rpSpans[idx]}
-                          className="sticky z-10 border-r border-b bg-slate-50 px-2 py-1 text-center align-middle font-semibold dark:bg-slate-900"
+                          className={cn(
+                            pos.left !== undefined && 'sticky z-10',
+                            'border-r border-b bg-slate-50 px-2 py-1 text-center align-middle font-semibold dark:bg-slate-900',
+                          )}
                           style={{ left: pos.left, width: pos.width }}
                         >
                           {row.rentalPartner || '-'}
@@ -280,7 +316,7 @@ export function GojekMonitoringTable({
                           style={{ left: pos.left, width: pos.width, maxWidth: pos.width }}
                           title={
                             byDriver
-                              ? (row.plateHistory ?? []).join(', ')
+                              ? (row.plateHistory ?? []).map(plateLabel).join(', ')
                               : row.detailId !== null
                                 ? 'Manual Payment tanpa plat'
                                 : row.plateRaw
@@ -288,12 +324,20 @@ export function GojekMonitoringTable({
                         >
                           {byDriver ? (
                             // Mirror of the Driver column: every plate this person
-                            // drove this month, one per line.
+                            // drove this month, one per line — each with its
+                            // vehicle type, which plate mode shows in its own
+                            // column but a driver row has no single value for.
                             (row.plateHistory ?? []).length > 0 ? (
                               <div className="space-y-0.5">
                                 {(row.plateHistory ?? []).map((plate) => (
-                                  <div key={plate} className="truncate">
+                                  <div key={plate} className="truncate" title={plateLabel(plate)}>
                                     {plate}
+                                    {typeByPlate.get(plate) && (
+                                      <span className="font-normal text-slate-500 dark:text-slate-400">
+                                        {' '}
+                                        - {typeByPlate.get(plate)}
+                                      </span>
+                                    )}
                                   </div>
                                 ))}
                               </div>
@@ -559,12 +603,21 @@ export function GojekMonitoringTable({
                 'sticky bottom-0 border-b border-r bg-indigo-50 px-2 py-1.5 text-right tabular-nums dark:bg-indigo-950';
               return (
                 <tr className="font-semibold">
+                  {/* Split at the frozen boundary: one cell spanning the whole
+                      identity block would be pinned as a whole and would cover
+                      the day columns as soon as the reader scrolls. */}
                   <td
-                    colSpan={identity.length}
-                    className="sticky bottom-0 left-0 z-20 border-r-2 border-b border-r-slate-300 bg-indigo-50 px-2 py-1.5 text-right dark:bg-indigo-950"
+                    colSpan={frozenCount}
+                    className="sticky bottom-0 left-0 z-20 border-r-2 border-b border-r-slate-300 bg-indigo-50 px-2 py-1.5 text-right whitespace-nowrap dark:bg-indigo-950"
                   >
                     TOTAL HARI INI
                   </td>
+                  {frozenCount < identity.length && (
+                    <td
+                      colSpan={identity.length - frozenCount}
+                      className="sticky bottom-0 border-r-2 border-b border-r-slate-300 bg-indigo-50 dark:bg-indigo-950"
+                    />
+                  )}
                   {days.map((d) => (
                     <td key={d} className={cn(foot, 'px-1')} style={{ width: DAY_W }}>
                       {grid.dailyTotals[d] > 0 ? nf(grid.dailyTotals[d]) : '-'}

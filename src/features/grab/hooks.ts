@@ -1,6 +1,7 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { api, unwrap, ApiErrorException, type ApiError } from '@/lib/api-client/client';
 import { qk } from '@/lib/query-client';
+import { gridFilterQuery } from '@/features/fleet/hooks/useFleetQueries';
 import type { MonitoringMode } from '@/features/fleet/searchSchema';
 import type { GrabDriverDetail, GrabGrid, GrabSummary } from './types';
 
@@ -12,7 +13,8 @@ export function useGrabGridQuery(p: {
   month: number;
   year: number;
   rentalPartner: string[];
-  plate?: string;
+  q?: string;
+  vehicleType?: string[];
   mode?: MonitoringMode;
 }) {
   return useQuery({
@@ -21,7 +23,8 @@ export function useGrabGridQuery(p: {
       month: p.month,
       year: p.year,
       rentalPartner: p.rentalPartner,
-      plate: p.plate,
+      q: p.q,
+      vehicleType: p.vehicleType,
       mode: p.mode,
     }),
     queryFn: async (): Promise<GrabGrid> => {
@@ -31,7 +34,7 @@ export function useGrabGridQuery(p: {
             month: p.month,
             year: p.year,
             ...(p.rentalPartner.length ? { rentalPartner: p.rentalPartner } : {}),
-            ...(p.plate ? { plate: p.plate } : {}),
+            ...gridFilterQuery(p),
             ...(p.mode ? { mode: p.mode } : {}),
           },
         },
@@ -80,13 +83,24 @@ export function useGrabDriverDetailQuery(p: {
 
 // ---- Partner portal variants (read-only, scoped server-side to own plates) ----
 
-export function usePartnerGrabGridQuery(p: { month: number; year: number; mode?: MonitoringMode }) {
+export function usePartnerGrabGridQuery(p: {
+  month: number;
+  year: number;
+  mode?: MonitoringMode;
+  q?: string;
+  vehicleType?: string[];
+}) {
   return useQuery({
     queryKey: qk.partner.fleet.grid({ platform: 'grab', ...p }),
     queryFn: async (): Promise<GrabGrid> => {
       const { data, error } = await api.GET('/partner/portal/fleet/grab/grid', {
         params: {
-          query: { month: p.month, year: p.year, ...(p.mode ? { mode: p.mode } : {}) },
+          query: {
+            month: p.month,
+            year: p.year,
+            ...(p.mode ? { mode: p.mode } : {}),
+            ...gridFilterQuery(p),
+          },
         },
       });
       if (error) throwEnvelope(error);

@@ -35,7 +35,8 @@ export const qk = {
       month: number;
       year: number;
       rentalPartner: string[];
-      plate?: string;
+      q?: string;
+      vehicleType?: string[];
       mode?: MonitoringMode;
     }) => ['fleet', p.platform, 'grid', p] as const,
     cell: (p: {
@@ -95,8 +96,14 @@ export const qk = {
     },
     fleet: {
       all: ['partner', 'fleet'] as const, // invalidation prefix for every portal fleet query
-      grid: (p: { platform: Platform; month: number; year: number; mode?: MonitoringMode }) =>
-        ['partner', 'fleet', p.platform, 'grid', p] as const,
+      grid: (p: {
+        platform: Platform;
+        month: number;
+        year: number;
+        mode?: MonitoringMode;
+        q?: string;
+        vehicleType?: string[];
+      }) => ['partner', 'fleet', p.platform, 'grid', p] as const,
       cell: (p: {
         platform: Platform;
         key: string;

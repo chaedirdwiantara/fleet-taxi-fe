@@ -16,11 +16,24 @@ const throwEnvelope = (error: unknown): never => {
   throw new ApiErrorException((error as { error: ApiError }).error);
 };
 
+/**
+ * The two TableFilterBar params, omitted when unset so an untouched filter never
+ * appears in the request (and the query key stays comparable). Shared by both
+ * platforms and both surfaces — the backend applies them identically.
+ */
+export function gridFilterQuery(p: { q?: string; vehicleType?: string[] }) {
+  return {
+    ...(p.q ? { q: p.q } : {}),
+    ...(p.vehicleType?.length ? { vehicleType: p.vehicleType } : {}),
+  };
+}
+
 export function useGojekGridQuery(p: {
   month: number;
   year: number;
   rentalPartner: string[];
-  plate?: string;
+  q?: string;
+  vehicleType?: string[];
   mode?: MonitoringMode;
 }) {
   return useQuery({
@@ -32,7 +45,7 @@ export function useGojekGridQuery(p: {
             month: p.month,
             year: p.year,
             ...(p.rentalPartner.length ? { rentalPartner: p.rentalPartner } : {}),
-            ...(p.plate ? { plate: p.plate } : {}),
+            ...gridFilterQuery(p),
             ...(p.mode ? { mode: p.mode } : {}),
           },
         },
@@ -133,13 +146,20 @@ export function usePartnerGojekGridQuery(p: {
   month: number;
   year: number;
   mode?: MonitoringMode;
+  q?: string;
+  vehicleType?: string[];
 }) {
   return useQuery({
     queryKey: qk.partner.fleet.grid({ platform: 'gojek', ...p }),
     queryFn: async (): Promise<FleetGrid> => {
       const { data, error } = await api.GET('/partner/portal/fleet/gojek/grid', {
         params: {
-          query: { month: p.month, year: p.year, ...(p.mode ? { mode: p.mode } : {}) },
+          query: {
+            month: p.month,
+            year: p.year,
+            ...(p.mode ? { mode: p.mode } : {}),
+            ...gridFilterQuery(p),
+          },
         },
       });
       if (error) throwEnvelope(error);

@@ -6,6 +6,7 @@ const fleetSearchDefaults = {
   month: currentMonthWIB(),
   year: currentYearWIB(),
   rentalPartner: [] as string[],
+  vehicleType: [] as string[],
   mode: 'plate' as const, // rows per plate — the default reading mode
 };
 

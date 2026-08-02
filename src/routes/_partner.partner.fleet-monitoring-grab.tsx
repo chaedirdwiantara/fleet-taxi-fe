@@ -1,7 +1,10 @@
 import { useCallback, useState } from 'react';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { Car, Gift, Info, Wallet } from 'lucide-react';
+import { Car, Gift, Info, SearchX, Wallet } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/shared/EmptyState';
 import { GradientStatRow } from '@/features/fleet/components/GradientStat';
+import { TableFilterBar } from '@/features/fleet/components/TableFilterBar';
 import { MonthYearPicker } from '@/features/fleet/components/MonthYearPicker';
 import { ViewModeToggle } from '@/features/fleet/components/ViewModeToggle';
 import { DateRangePicker } from '@/components/shared/DateRangePicker';
@@ -22,7 +25,7 @@ function PartnerGrabPage() {
   const navigate = Route.useNavigate();
   const [detailKey, setDetailKey] = useState<string | null>(null);
 
-  const setPeriod = useCallback(
+  const patchSearch = useCallback(
     (patch: Partial<FleetSearch>) => {
       setDetailKey(null); // close a stale detail modal when the period changes
       navigate({ search: (prev) => ({ ...prev, ...patch }), replace: true });
@@ -37,7 +40,10 @@ function PartnerGrabPage() {
     month: search.month,
     year: search.year,
     mode: search.mode,
+    q: search.q,
+    vehicleType: search.vehicleType,
   });
+  const isFiltered = Boolean(search.q) || search.vehicleType.length > 0;
   // Cards come from the summary endpoint (the admin surface reads the same one),
   // so the range and whole-month figures can never be derived two different ways.
   const summary = usePartnerGrabSummaryQuery({
@@ -58,18 +64,18 @@ function PartnerGrabPage() {
           </p>
         </div>
         <div className="flex w-full flex-wrap gap-2 sm:w-auto">
-          <ViewModeToggle mode={search.mode} onChange={(mode) => setPeriod({ mode })} />
+          <ViewModeToggle mode={search.mode} onChange={(mode) => patchSearch({ mode })} />
           <DateRangePicker
             value={range}
-            onChange={(next) => setPeriod({ dateFrom: next?.dateFrom, dateTo: next?.dateTo })}
+            onChange={(next) => patchSearch({ dateFrom: next?.dateFrom, dateTo: next?.dateTo })}
             month={search.month}
             year={search.year}
           />
           <MonthYearPicker
             month={search.month}
             year={search.year}
-            onMonth={(m) => setPeriod({ month: m, dateFrom: undefined, dateTo: undefined })}
-            onYear={(y) => setPeriod({ year: y, dateFrom: undefined, dateTo: undefined })}
+            onMonth={(m) => patchSearch({ month: m, dateFrom: undefined, dateTo: undefined })}
+            onYear={(y) => patchSearch({ year: y, dateFrom: undefined, dateTo: undefined })}
           />
         </div>
       </div>
@@ -123,7 +129,36 @@ function PartnerGrabPage() {
       {grid.isError && (
         <p className="text-sm text-destructive">Gagal memuat grid: {grid.error.message}</p>
       )}
-      {grid.isSuccess && grid.data.rows.length === 0 && (
+      {/* Last control before the table: its effect shows directly below, without
+          scrolling back past the summary cards. */}
+      {grid.isSuccess && (
+        <TableFilterBar
+          q={search.q}
+          vehicleType={search.vehicleType}
+          typeOptions={grid.data.availableVehicleTypes ?? []}
+          onChange={patchSearch}
+          resultCount={grid.data.rows.length}
+          resultNoun={search.mode === 'driver' ? 'driver' : 'baris'}
+          hasUnfilteredAggregates
+        />
+      )}
+      {/* An active filter with no match must not read as "no data this month". */}
+      {grid.isSuccess && grid.data.rows.length === 0 && isFiltered && (
+        <EmptyState
+          icon={SearchX}
+          title="Tidak ada baris yang cocok"
+          description="Tidak ada plat atau driver yang cocok dengan pencarian dan tipe kendaraan yang dipilih pada periode ini."
+          action={
+            <Button
+              variant="outline"
+              onClick={() => patchSearch({ q: undefined, vehicleType: [] })}
+            >
+              Bersihkan filter
+            </Button>
+          }
+        />
+      )}
+      {grid.isSuccess && grid.data.rows.length === 0 && !isFiltered && (
         <div className="flex items-start gap-2 rounded-lg border border-dashed bg-muted/40 px-4 py-6 text-sm text-muted-foreground">
           <Info className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
           <span>

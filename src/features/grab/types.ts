@@ -12,7 +12,8 @@ export type GrabRow = {
   // Mirror of the plate view's single driver: the plates behind this row (its
   // own in plate mode, all of them in driver mode). Optional so the grid
   // tolerates a backend that predates the field.
-  plateHistory?: { plate: string; city: string }[];
+  // `type` is the plate's resolved Car Model; optional for the same reason.
+  plateHistory?: { plate: string; city: string; type?: string }[];
   days: Record<number, { earning: number } | undefined>;
   summary: {
     earning: number;
@@ -36,6 +37,8 @@ export type GrabGrid = {
   totals: { earning: number; driverFare: number; incentive: number };
   availableRentalPartners: string[];
   availableCities: string[];
+  // Options of the Tipe Kendaraan filter; optional (FE-ahead deploy window).
+  availableVehicleTypes?: string[];
 };
 
 // Whole-month performance detail (legacy "eye" modal).

@@ -9,7 +9,8 @@ describe('fleetSearchSchema (URL ⇄ query key, kickoff §4)', () => {
         month: 7,
         year: 2026,
         rentalPartner: ['BHISA'],
-        plate: 'B1234',
+        q: 'B1234',
+        vehicleType: ['BYD M6'],
         cell: 'B1234XYZ:14',
         mode: 'driver',
       }),
@@ -17,7 +18,8 @@ describe('fleetSearchSchema (URL ⇄ query key, kickoff §4)', () => {
       month: 7,
       year: 2026,
       rentalPartner: ['BHISA'],
-      plate: 'B1234',
+      q: 'B1234',
+      vehicleType: ['BYD M6'],
       cell: 'B1234XYZ:14',
       mode: 'driver',
     });
@@ -40,8 +42,17 @@ describe('fleetSearchSchema (URL ⇄ query key, kickoff §4)', () => {
     const parsed = fleetSearchSchema.parse({});
     expect(parsed.month).toBeGreaterThanOrEqual(1);
     expect(parsed.month).toBeLessThanOrEqual(12);
-    expect(parsed.plate).toBeUndefined();
+    expect(parsed.q).toBeUndefined();
+    expect(parsed.vehicleType).toEqual([]);
     expect(parsed.cell).toBeUndefined();
+  });
+
+  it('keeps the table filters: q as free text, vehicleType as a list', () => {
+    const parsed = fleetSearchSchema.parse({ q: 'chandra', vehicleType: ['BYD M6', 'BYD ATTO 1'] });
+    expect(parsed.q).toBe('chandra');
+    expect(parsed.vehicleType).toEqual(['BYD M6', 'BYD ATTO 1']);
+    // a hand-edited URL that sends the wrong shape falls back, never throws
+    expect(fleetSearchSchema.parse({ vehicleType: 'BYD M6' }).vehicleType).toEqual([]);
   });
 });
 

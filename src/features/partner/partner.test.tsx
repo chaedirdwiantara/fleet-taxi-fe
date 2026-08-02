@@ -76,6 +76,52 @@ describe('partner fleet monitoring — scoped to registered plates', () => {
     expect(norms.every((n) => ['B1000XYZ', 'B1001XYZ'].includes(n))).toBe(true);
   });
 
+  it('sends the table filters to the server and stays inside the own-plate scope', async () => {
+    const unfiltered = renderHook(() => usePartnerGojekGridQuery({ month: 6, year: 2026 }), {
+      wrapper: wrapperFor(makeClient()),
+    });
+    await waitFor(() => expect(unfiltered.result.current.isSuccess).toBe(true));
+    const all = unfiltered.result.current.data!;
+    expect(all.availableVehicleTypes!.length).toBeGreaterThan(0);
+
+    // free text narrows by plate…
+    const byPlate = renderHook(
+      () => usePartnerGojekGridQuery({ month: 6, year: 2026, q: 'B1000' }),
+      { wrapper: wrapperFor(makeClient()) },
+    );
+    await waitFor(() => expect(byPlate.result.current.isSuccess).toBe(true));
+    expect(byPlate.result.current.data!.rows.map((r) => r.plateNorm)).toEqual(['B1000XYZ']);
+
+    // …and by driver, from the same box
+    const driverName = all.rows[0].driverName;
+    const byDriver = renderHook(
+      () => usePartnerGojekGridQuery({ month: 6, year: 2026, q: driverName }),
+      { wrapper: wrapperFor(makeClient()) },
+    );
+    await waitFor(() => expect(byDriver.result.current.isSuccess).toBe(true));
+    expect(byDriver.result.current.data!.rows.length).toBeGreaterThan(0);
+    expect(byDriver.result.current.data!.rows.every((r) => r.driverName === driverName)).toBe(true);
+
+    // a plate this partner never registered can never be reached through a filter
+    const foreign = renderHook(
+      () => usePartnerGojekGridQuery({ month: 6, year: 2026, q: 'B1099XYZ' }),
+      { wrapper: wrapperFor(makeClient()) },
+    );
+    await waitFor(() => expect(foreign.result.current.isSuccess).toBe(true));
+    expect(foreign.result.current.data!.rows).toEqual([]);
+
+    // the type filter matches the Type the grid displays
+    const type = all.availableVehicleTypes![0];
+    const byType = renderHook(
+      () => usePartnerGojekGridQuery({ month: 6, year: 2026, vehicleType: [type] }),
+      { wrapper: wrapperFor(makeClient()) },
+    );
+    await waitFor(() => expect(byType.result.current.isSuccess).toBe(true));
+    expect(byType.result.current.data!.rows.every((r) => r.vehicleType === type)).toBe(true);
+    // the options list never shrinks with the selection
+    expect(byType.result.current.data!.availableVehicleTypes).toEqual(all.availableVehicleTypes);
+  });
+
   it('with no registered plates the grid is empty and the summary is Rp 0', async () => {
     const delClient = makeClient();
     const { result: del } = renderHook(() => useDeletePlate(), { wrapper: wrapperFor(delClient) });
