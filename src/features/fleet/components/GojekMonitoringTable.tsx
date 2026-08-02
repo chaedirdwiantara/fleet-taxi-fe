@@ -264,6 +264,12 @@ export function GojekMonitoringTable({
             const billed = billedSpan(row);
             const outstanding = row.summary.outstanding;
             const outstandingMonth = row.summary.outstandingMonth ?? 0;
+            // Day cells announce whoever the row is *about*: a person in driver
+            // mode (these rows have plates — "Tanpa Plat" is reserved for the
+            // unplated Manual Payment rows of the plate view), a vehicle otherwise.
+            const cellSubject = byDriver
+              ? row.driverName || 'Tanpa nama driver'
+              : row.plateRaw || 'Tanpa Plat';
             return (
               <tr key={row.plateNorm} className="group">
                 {/* Identity cells are emitted in `identity` order, so the header
@@ -509,11 +515,7 @@ export function GojekMonitoringTable({
                     <td
                       key={d}
                       role={clickable ? 'button' : undefined}
-                      aria-label={
-                        clickable
-                          ? `${row.plateRaw || 'Tanpa Plat'} tanggal ${d}: ${label}`
-                          : undefined
-                      }
+                      aria-label={clickable ? `${cellSubject} tanggal ${d}: ${label}` : undefined}
                       className={cn(
                         'border-r border-b px-1 py-1 text-right tabular-nums',
                         toneClass(tone),
