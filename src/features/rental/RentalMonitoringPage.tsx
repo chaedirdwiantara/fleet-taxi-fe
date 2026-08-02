@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Download, FileSpreadsheet, Info, Plus, Search, Settings, X } from 'lucide-react';
+import { Download, FileSpreadsheet, Info, Landmark, Plus, Search, Settings, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -11,6 +11,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { MONTH_NAMES_ID } from '@/lib/datetime';
 import { CogsDefaultsDialog } from './components/CogsDefaultsDialog';
+import { TaxSettingsDialog } from './components/TaxSettingsDialog';
 import { PaymentStatusDialog } from './components/PaymentStatusDialog';
 import { RentalFilterBar } from './components/RentalFilterBar';
 import { RentalFormDialog } from './components/RentalFormDialog';
@@ -51,6 +52,7 @@ export function RentalMonitoringPage({
   const [editing, setEditing] = useState<RentalItem | null>(null);
   const [paymentItem, setPaymentItem] = useState<RentalItem | null>(null);
   const [cogsOpen, setCogsOpen] = useState(false);
+  const [taxOpen, setTaxOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
@@ -124,6 +126,10 @@ export function RentalMonitoringPage({
             <Button variant="outline" onClick={() => setCogsOpen(true)}>
               <Settings aria-hidden />
               Atur Default COGS
+            </Button>
+            <Button variant="outline" onClick={() => setTaxOpen(true)}>
+              <Landmark aria-hidden />
+              Atur PPN
             </Button>
             <div className="relative w-full sm:ml-auto sm:w-72">
               <Search
@@ -203,6 +209,7 @@ export function RentalMonitoringPage({
       />
       <PaymentStatusDialog item={paymentItem} onClose={() => setPaymentItem(null)} />
       <CogsDefaultsDialog open={cogsOpen} onClose={() => setCogsOpen(false)} />
+      <TaxSettingsDialog open={taxOpen} onClose={() => setTaxOpen(false)} />
     </div>
   );
 }

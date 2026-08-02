@@ -57,6 +57,7 @@ export function RentalTable({
             <TableHead>Status Bayar</TableHead>
             <TableHead className="text-right">Gross</TableHead>
             <TableHead className="text-right">Additional Cost</TableHead>
+            <TableHead className="text-right">Total Tagihan</TableHead>
             <TableHead className="text-right">COGS</TableHead>
             <TableHead className="text-right">Nett Profit</TableHead>
             <TableHead className="w-28 text-right">Aksi</TableHead>
@@ -130,6 +131,14 @@ export function RentalTable({
                   </>
                 ) : (
                   '-'
+                )}
+              </TableCell>
+              <TableCell className="text-right tabular-nums">
+                <div className="font-medium">{formatRupiah(item.totalBilled)}</div>
+                {item.ppnAmount > 0 && (
+                  <div className="text-xs text-muted-foreground">
+                    inc. PPN {formatRupiah(item.ppnAmount)}
+                  </div>
                 )}
               </TableCell>
               <TableCell className="text-right tabular-nums">

@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
-import { CalendarDays, Clock, TrendingDown, TrendingUp, Wallet } from 'lucide-react';
+import { CalendarDays, Clock, Landmark, TrendingDown, TrendingUp, Wallet } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatNumberID, formatRupiah } from '@/lib/money';
 import type { RentalNettByType, RentalSummary } from '../types';
@@ -68,6 +68,19 @@ export function RentalSummarySection({
       gradient: 'from-amber-500 to-orange-600',
     },
   ];
+
+  // Shown only once VAT is actually in play — a non-PKP partner would just
+  // read "Rp 0" forever. It sits apart from the revenue cards on purpose:
+  // this money is collected FOR the state, it is not income.
+  if (summary.paidPpn > 0 || summary.unpaidPpn > 0) {
+    cards.push({
+      label: 'PPN Terutang',
+      display: formatRupiah(summary.paidPpn),
+      caption: `Total tagihan ${formatRupiah(summary.paidTotalBilled)}`,
+      icon: Landmark,
+      gradient: 'from-violet-500 to-purple-700',
+    });
+  }
 
   return (
     <div className="grid gap-4 lg:grid-cols-3">

@@ -170,6 +170,7 @@ export const qk = {
         sortOrder: string;
       }) => ['partner', 'rental', 'list', p] as const,
       cogsDefaults: ['partner', 'rental', 'cogs-defaults'] as const,
+      taxSettings: ['partner', 'rental', 'tax-settings'] as const,
     },
   },
 } as const;

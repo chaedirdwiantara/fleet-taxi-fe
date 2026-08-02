@@ -35,6 +35,8 @@ export type SeedRental = {
   customerName: string | null;
   customerPhone: string | null;
   paymentStatus: 'Belum Dibayar' | 'Sudah Dibayar';
+  /** VAT rate captured when written; 0 = partner was not PKP. */
+  ppnRateBps: number;
   /** Payment evidence; the backend refuses 'Sudah Dibayar' without at least one. */
   paymentProofs: SeedRentalProof[];
   createdAt: string;
@@ -78,6 +80,7 @@ export const seedRentals: SeedRental[] = [
     customerName: 'Andi Saputra',
     customerPhone: '081234567890',
     paymentStatus: 'Sudah Dibayar',
+    ppnRateBps: 1100,
     paymentProofs: [
       proof(9001, 'bukti-transfer-bca.jpg', 'image/jpeg'),
       proof(9002, 'invoice-rental.pdf', 'application/pdf'),
@@ -104,6 +107,7 @@ export const seedRentals: SeedRental[] = [
     customerName: 'Siti Rahma',
     customerPhone: '081298765432',
     paymentStatus: 'Belum Dibayar',
+    ppnRateBps: 1100,
     paymentProofs: [],
     createdAt: `${yyyy}-${mm}-09T03:00:00.000Z`,
     updatedAt: `${yyyy}-${mm}-09T03:00:00.000Z`,
@@ -127,6 +131,7 @@ export const seedRentals: SeedRental[] = [
     customerName: 'Budi Hartono',
     customerPhone: '081377788899',
     paymentStatus: 'Sudah Dibayar',
+    ppnRateBps: 0,
     paymentProofs: [proof(9003, 'bukti-tf-mandiri.png', 'image/png')],
     createdAt: `${yyyy}-${mm}-01T03:00:00.000Z`,
     updatedAt: `${yyyy}-${mm}-01T03:00:00.000Z`,
