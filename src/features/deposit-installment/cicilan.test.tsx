@@ -50,7 +50,8 @@ describe('CicilanPage', () => {
     expect(screen.getAllByText(/Rp\s?500\.000/).length).toBeGreaterThan(0);
     // seed rule 2 is fully paid → lunas badge
     expect(screen.getAllByText('lunas').length).toBeGreaterThan(0);
-    expect(screen.getByText(/Menampilkan 1–3 dari 3 cicilan/)).toBeInTheDocument();
+    // seed: 3 cicilan biasa + 2 baris COP (COP muncul di kedua menu)
+    expect(screen.getByText(/Menampilkan 1–5 dari 5 cicilan/)).toBeInTheDocument();
   });
 
   it('filters via debounced search', async () => {
@@ -98,7 +99,7 @@ describe('CicilanPage', () => {
     await waitFor(() =>
       expect(screen.getAllByText('Cicilan Deposit Yulius').length).toBeGreaterThan(0),
     );
-    expect(screen.getByText(/dari 4 cicilan/)).toBeInTheDocument();
+    expect(screen.getByText(/dari 6 cicilan/)).toBeInTheDocument();
   });
 
   it('fills Judul from a preset suggestion, then still allows editing it', async () => {
@@ -173,7 +174,7 @@ describe('CicilanPage', () => {
     await userEvent.click(within(confirm).getByRole('button', { name: 'Hapus' }));
 
     await waitFor(() => expect(screen.queryAllByText('Cicilan Deposit Suwanto')).toHaveLength(0));
-    expect(screen.getByText(/dari 2 cicilan/)).toBeInTheDocument();
+    expect(screen.getByText(/dari 4 cicilan/)).toBeInTheDocument();
   });
 
   it('shows the empty state when the filter matches nothing', async () => {

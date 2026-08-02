@@ -2,6 +2,7 @@ import { useEffect, useState, type ComponentType, type ReactNode, type SVGProps 
 import { Link, useLocation } from '@tanstack/react-router';
 import {
   CalendarDays,
+  Car,
   ChevronDown,
   ClipboardCheck,
   ClipboardList,
@@ -78,6 +79,7 @@ const NAV: Record<Audience, NavEntry[]> = {
       children: [
         { to: '/partner/drivers', label: 'Daftar Driver', icon: Users },
         { to: '/partner/cicilan', label: 'Cicilan', icon: Wallet },
+        { to: '/partner/cop', label: 'Car Ownership Program', icon: Car },
       ],
     },
     { to: '/partner/checkpoint', label: 'Checkpoint', icon: ClipboardCheck },
@@ -110,7 +112,11 @@ function NavLink({
       className={cn(LINK_CLASS, indented && 'py-1.5 pl-4')}
     >
       <item.icon className={cn('shrink-0', indented ? 'size-3.5' : 'size-4')} aria-hidden />
-      <span className="truncate">{item.label}</span>
+      {/* title so a label too long for the rail (e.g. "Car Ownership
+          Program") is still readable on hover */}
+      <span className="truncate" title={item.label}>
+        {item.label}
+      </span>
     </Link>
   );
 }

@@ -11,6 +11,9 @@ export type GradientStatDef = {
   sub?: string; // optional caption under the value (bold, e.g. "Bulan ini: …")
   note?: string; // optional softer second caption line
   onClick?: () => void; // renders the card as a button (click-through detail)
+  // Override the value size when the figures run long — a 9-digit rupiah does
+  // not fit the default `sm:text-3xl` in a quarter-width card (COP totals).
+  valueClassName?: string;
 };
 
 export function GradientStat({
@@ -21,6 +24,7 @@ export function GradientStat({
   sub,
   note,
   onClick,
+  valueClassName,
 }: GradientStatDef) {
   const className = cn(
     'relative overflow-hidden rounded-xl bg-gradient-to-br p-5 text-left text-white shadow-sm',
@@ -31,7 +35,16 @@ export function GradientStat({
   const body = (
     <>
       <p className="text-sm font-medium opacity-90">{label}</p>
-      <p className="mt-2 text-2xl font-bold tabular-nums sm:text-3xl">{formatRupiah(value)}</p>
+      {/* break-words is the safety net: wrap rather than clip when a figure
+          outgrows the card, whatever the size override. */}
+      <p
+        className={cn(
+          'mt-2 font-bold break-words tabular-nums',
+          valueClassName ?? 'text-2xl sm:text-3xl',
+        )}
+      >
+        {formatRupiah(value)}
+      </p>
       {sub && <p className="mt-1 text-xs font-semibold tabular-nums">{sub}</p>}
       {note && <p className="mt-0.5 text-xs font-medium opacity-80">{note}</p>}
       <Icon className="absolute -right-2 -bottom-3 size-20 opacity-20" aria-hidden />
