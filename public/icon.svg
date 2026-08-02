@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Fleet Taxi">
+  <title>Fleet Taxi</title>
+  <!--
+    Full-bleed square variant — the raster source for apple-touch-icon.png and the
+    maskable PWA icons. No rounded corners of our own: iOS and Android apply their
+    own mask, and a transparent corner renders as a black square on iOS. The mark sits
+    inside the 80% maskable safe zone (outer diameter 23/32 ≈ 72%).
+  -->
+  <defs>
+    <linearGradient id="brand" x1=".15" y1="0" x2=".85" y2="1">
+      <stop offset="0" stop-color="#E01937" />
+      <stop offset="1" stop-color="#8E0B22" />
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" fill="url(#brand)" />
+  <circle
+    cx="16"
+    cy="16"
+    r="10"
+    fill="none"
+    stroke="#fff"
+    stroke-width="3"
+    stroke-linecap="round"
+    stroke-dasharray="47 15.8"
+    transform="rotate(-70 16 16)"
+  />
+  <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" transform="translate(10 10.24) scale(0.48)" fill="#fff" />
+</svg>

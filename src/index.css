@@ -38,6 +38,14 @@
   --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
   --sidebar-border: oklch(0.929 0.013 255.508);
   --sidebar-ring: oklch(0.546 0.215 262.881);
+
+  /* Brand identity — deliberately outside the blue `primary` ramp. These belong to
+     the Fleet Taxi logo only; UI actions stay blue. Kept clear of the alert-red used
+     by the fleet status legend so a brand mark never reads as a problem state. */
+  --brand: oklch(0.53 0.207 22.3);
+  --brand-foreground: oklch(1 0 0);
+  --brand-gradient-from: oklch(0.604 0.234 22.9);
+  --brand-gradient-to: oklch(0.414 0.159 20.9);
 }
 
 .dark {
@@ -72,6 +80,12 @@
   --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.623 0.188 259.813);
+
+  /* Lifted for contrast against the dark sidebar; same hue family as light mode. */
+  --brand: oklch(0.661 0.191 15.9);
+  --brand-foreground: oklch(1 0 0);
+  --brand-gradient-from: oklch(0.649 0.201 16.7);
+  --brand-gradient-to: oklch(0.46 0.174 20.1);
 }
 
 @theme inline {
@@ -98,6 +112,8 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
