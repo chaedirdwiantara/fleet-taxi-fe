@@ -79,7 +79,7 @@ const NAV: Record<Audience, NavEntry[]> = {
       children: [
         { to: '/partner/drivers', label: 'Daftar Driver', icon: Users },
         { to: '/partner/cicilan', label: 'Cicilan', icon: Wallet },
-        { to: '/partner/cop', label: 'Car Ownership Program', icon: Car },
+        { to: '/partner/cop', label: 'COP', icon: Car },
       ],
     },
     { to: '/partner/checkpoint', label: 'Checkpoint', icon: ClipboardCheck },

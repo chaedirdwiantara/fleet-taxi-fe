@@ -1,7 +1,6 @@
 import type {
   CopListParams,
   CopRow,
-  CopSummary,
   DriverOption,
   InstallmentEntry,
   InstallmentListParams,
@@ -344,21 +343,6 @@ export function queryCop(params: Partial<CopListParams>): {
   return {
     data: rows.slice(start, start + pageSize),
     meta: { page, pageSize, total: rows.length },
-  };
-}
-
-export function copSummary(params: Pick<CopListParams, 'status' | 'search'>): CopSummary {
-  const rows = selectCop(params);
-  return {
-    driverCount: new Set(rows.map((r) => r.driverName)).size,
-    ruleCount: rows.length,
-    berjalanCount: rows.filter((r) => r.status === 'berjalan').length,
-    lunasCount: rows.filter((r) => r.status === 'lunas').length,
-    totalTarget: rows.reduce((s, r) => s + r.totalTarget, 0),
-    totalPaid: rows.reduce((s, r) => s + r.totalPaid, 0),
-    totalRemaining: rows.reduce((s, r) => s + r.remaining, 0),
-    totalGap: rows.reduce((s, r) => s + Math.max(0, r.scheduleGap), 0),
-    totalWithdrawals: rows.reduce((s, r) => s + r.withdrawalCount, 0),
   };
 }
 

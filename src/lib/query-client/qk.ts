@@ -104,8 +104,6 @@ export const qk = {
           page: number;
           pageSize: number;
         }) => ['partner', 'cicilan', 'cop', 'list', p] as const,
-        summary: (p: { status?: string; search?: string }) =>
-          ['partner', 'cicilan', 'cop', 'summary', p] as const,
       },
     },
     fleet: {

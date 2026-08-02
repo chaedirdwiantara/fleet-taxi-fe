@@ -1176,23 +1176,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/partner/portal/deposit-installments/cop/summary": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Car Ownership Program totals across every own COP rule the filter selects */
-        get: operations["DepositInstallmentsController_copSummary"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/partner/portal/deposit-installments": {
         parameters: {
             query?: never;
@@ -3698,29 +3681,6 @@ export interface operations {
             query?: {
                 page?: string;
                 pageSize?: string;
-                status?: "berjalan" | "lunas";
-                /** @description Substring on driver/plate */
-                search?: unknown;
-                sortBy?: "driverName" | "effectiveDate" | "createdAt" | "totalTarget" | "totalPaid" | "remaining" | "scheduleGap" | "withdrawalCount";
-                sortOrder?: "asc" | "desc";
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    DepositInstallmentsController_copSummary: {
-        parameters: {
-            query?: {
                 status?: "berjalan" | "lunas";
                 /** @description Substring on driver/plate */
                 search?: unknown;
