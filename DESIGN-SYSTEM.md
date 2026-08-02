@@ -10,18 +10,23 @@ Token didefinisikan di `src/index.css` (oklch, light + `.dark`). **Selalu pakai 
 
 | Token                                   | Semantik                                                                        |
 | --------------------------------------- | ------------------------------------------------------------------------------- |
-| `primary`                               | Aksi utama (biru) — tombol submit, link aktif, ring fokus                       |
+| `primary`                               | Aksi utama (merah brand) — tombol submit, link aktif, ring fokus                |
 | `destructive`                           | Aksi merusak / error                                                            |
 | `secondary` / `muted` / `accent`        | Surface & teks sekunder (slate)                                                 |
 | `card` / `popover` / `border` / `input` | Surface & garis                                                                 |
 | `sidebar-*`                             | Khusus sidebar navigasi                                                         |
 | `chart-1..5`                            | Seri chart: 1=biru (utama), 2=teal, 3=amber, 4=violet, 5=rose — pakai berurutan |
-| `brand` / `brand-foreground`            | **Hanya logo Fleet Taxi** — merah, di luar ramp `primary`                       |
+| `brand` / `brand-foreground`            | Logo Fleet Taxi — nilainya sama dengan `primary`, tapi token terpisah           |
 
-`brand` sengaja dipisah dari `primary`: UI tetap biru, merah cuma milik logo. Dua token
-turunan `--brand-gradient-from` / `--brand-gradient-to` dipakai eksklusif oleh
-`components/shared/Logo.tsx`. Jangan pakai `brand` untuk tombol, link, atau state —
-merah di produk ini sudah bermakna "bermasalah" di legenda fleet-monitoring.
+**Pakai `primary` untuk UI, `brand` hanya untuk logo.** Nilainya kebetulan sama di light
+mode, tapi jangan disamakan: `--brand-gradient-from|to` dipakai eksklusif oleh
+`components/shared/Logo.tsx`, dan `--brand` versi dark sengaja lebih terang (disetel
+untuk teks di sidebar gelap) sementara `--primary` dark lebih dalam supaya teks putih
+di atas tombol tetap lolos WCAG AA.
+
+`chart-1` **tetap biru** dan tidak ikut berubah: chart menampilkan setoran (nilai
+positif), sedangkan merah di produk ini berarti "bermasalah"; selain itu merah di
+`chart-1` bertabrakan dengan `chart-5` (rose) — ΔE 11,7, di bawah ambang 15.
 
 Pengecualian sah: legenda status fleet-monitoring (`src/features/fleet/lib/thresholds.ts`) memakai kelas palette Tailwind (red/yellow/green/purple/orange/blue/gray) karena meniru legenda spreadsheet bisnis — jangan diganti token.
 

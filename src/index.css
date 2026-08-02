@@ -3,7 +3,7 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* shadcn/ui theme tokens (new-york, blue primary + slate neutrals) — Tailwind v4 CSS-first config */
+/* shadcn/ui theme tokens (new-york, brand-red primary + slate neutrals) — Tailwind v4 CSS-first config */
 :root {
   --radius: 0.625rem;
   --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, sans-serif;
@@ -13,7 +13,7 @@
   --card-foreground: oklch(0.208 0.042 265.755);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.208 0.042 265.755);
-  --primary: oklch(0.546 0.215 262.881);
+  --primary: oklch(0.53 0.207 22.3);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.968 0.007 247.896);
   --secondary-foreground: oklch(0.208 0.042 265.755);
@@ -24,7 +24,7 @@
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.929 0.013 255.508);
   --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.546 0.215 262.881);
+  --ring: oklch(0.53 0.207 22.3);
   --chart-1: oklch(0.546 0.215 262.881);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.769 0.188 70.08);
@@ -32,16 +32,17 @@
   --chart-5: oklch(0.645 0.215 16.439);
   --sidebar: oklch(0.984 0.003 247.858);
   --sidebar-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-primary: oklch(0.546 0.215 262.881);
+  --sidebar-primary: oklch(0.53 0.207 22.3);
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.929 0.013 255.508);
   --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
   --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.546 0.215 262.881);
+  --sidebar-ring: oklch(0.53 0.207 22.3);
 
-  /* Brand identity — deliberately outside the blue `primary` ramp. These belong to
-     the Fleet Taxi logo only; UI actions stay blue. Kept clear of the alert-red used
-     by the fleet status legend so a brand mark never reads as a problem state. */
+  /* Brand identity. `--brand` matches `--primary` by design — the UI now wears the
+     brand colour — but they stay separate tokens because the logo needs values the
+     UI can't use: the gradient pair, and a lighter dark-mode tint tuned for text on
+     the sidebar rather than for white-on-fill buttons. */
   --brand: oklch(0.53 0.207 22.3);
   --brand-foreground: oklch(1 0 0);
   --brand-gradient-from: oklch(0.604 0.234 22.9);
@@ -55,7 +56,7 @@
   --card-foreground: oklch(0.984 0.003 247.858);
   --popover: oklch(0.208 0.042 265.755);
   --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.623 0.188 259.813);
+  --primary: oklch(0.58 0.21 22);
   --primary-foreground: oklch(0.984 0.003 247.858);
   --secondary: oklch(0.279 0.041 260.031);
   --secondary-foreground: oklch(0.984 0.003 247.858);
@@ -66,7 +67,7 @@
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.623 0.188 259.813);
+  --ring: oklch(0.58 0.21 22);
   --chart-1: oklch(0.623 0.188 259.813);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
@@ -74,12 +75,12 @@
   --chart-5: oklch(0.645 0.246 16.439);
   --sidebar: oklch(0.208 0.042 265.755);
   --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.623 0.188 259.813);
+  --sidebar-primary: oklch(0.58 0.21 22);
   --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
   --sidebar-accent: oklch(0.279 0.041 260.031);
   --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.623 0.188 259.813);
+  --sidebar-ring: oklch(0.58 0.21 22);
 
   /* Lifted for contrast against the dark sidebar; same hue family as light mode. */
   --brand: oklch(0.661 0.191 15.9);
