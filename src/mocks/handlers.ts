@@ -1852,6 +1852,22 @@ export const handlers = [
     });
   }),
 
+  http.get('*/partner/portal/rentals/:id/invoice', ({ params }) => {
+    const rental = rentalsState.find((r) => r.id === Number(params.id));
+    if (!rental) return err(404, 'NOT_FOUND', 'Rental tidak ditemukan');
+    if (rental.paymentStatus !== 'Sudah Dibayar') {
+      return err(409, 'CONFLICT', 'Invoice hanya tersedia untuk rental yang sudah dibayar.');
+    }
+    const [year, month] = rental.startDate.split('-');
+    // A tiny but well-formed PDF payload — enough for the blob-download flow.
+    return new HttpResponse(new TextEncoder().encode('%PDF-1.4\n%%EOF\n').buffer as ArrayBuffer, {
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="invoice-${year}-${month}-${String(rental.id).padStart(5, '0')}.pdf"`,
+      },
+    });
+  }),
+
   http.get('*/partner/portal/rentals', ({ request }) => {
     const url = new URL(request.url);
     const month = int(url.searchParams.get('month'), 6);

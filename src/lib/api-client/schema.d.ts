@@ -1107,6 +1107,23 @@ export interface paths {
         patch: operations["PartnerRentalsController_updatePaymentStatus"];
         trace?: never;
     };
+    "/partner/portal/rentals/{id}/invoice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download the PDF invoice of one own PAID rental */
+        get: operations["PartnerRentalsController_invoice"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/partner/portal/deposit-installments/driver-options": {
         parameters: {
             query?: never;
@@ -3529,6 +3546,25 @@ export interface operations {
                 "application/json": components["schemas"]["UpdatePaymentStatusDto"];
             };
         };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PartnerRentalsController_invoice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             200: {
                 headers: {

@@ -1,0 +1,25 @@
+# Cloudflare Pages response headers. Copied verbatim into dist/ by Vite.
+#
+# Why this file exists: Pages answers a request for an asset that has not
+# propagated yet with the SPA fallback — index.html, HTTP 200 — and caches it
+# under the *asset's* policy, which defaults to `public, max-age=14400`. A
+# browser that loads the app during that window keeps HTML as the body of a
+# .js file for four hours and every import() of that chunk fails.
+#
+# No header rule can tell a real asset from the fallback (same path), so the
+# rule below shortens the poisoning window rather than lengthening it. Do NOT
+# add `immutable` or a long max-age here: it would pin a poisoned response for
+# its whole lifetime, including the entry bundle, where the app cannot boot far
+# enough to run the client-side recovery in src/lib/stale-chunk.
+#
+# Filenames are content-hashed, so an hourly revalidation is a 304 — cheap.
+
+/assets/*
+  Cache-Control: public, max-age=3600, must-revalidate
+  X-Content-Type-Options: nosniff
+
+# The document itself must never be cached, or a deploy is invisible until the
+# entry expires. (This matches what Pages already does; pinned here so it
+# survives a project-settings change.)
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate

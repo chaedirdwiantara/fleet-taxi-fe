@@ -1,4 +1,4 @@
-import { Paperclip, Pencil, Trash2 } from 'lucide-react';
+import { FileText, Paperclip, Pencil, Trash2 } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 import {
   Table,
   TableBody,
@@ -29,12 +30,17 @@ export function RentalTable({
   items,
   onEdit,
   onPaymentClick,
+  onInvoice,
+  invoicePendingId,
   onDelete,
   deletePending,
 }: {
   items: RentalItem[];
   onEdit: (item: RentalItem) => void;
   onPaymentClick: (item: RentalItem) => void;
+  /** Invoice shortcut — offered on settled rows only (see `useRentalInvoiceDownload`). */
+  onInvoice: (item: RentalItem) => void;
+  invoicePendingId: number | null;
   onDelete: (id: number) => void;
   deletePending: boolean;
 }) {
@@ -53,7 +59,7 @@ export function RentalTable({
             <TableHead className="text-right">Additional Cost</TableHead>
             <TableHead className="text-right">COGS</TableHead>
             <TableHead className="text-right">Nett Profit</TableHead>
-            <TableHead className="w-20 text-right">Aksi</TableHead>
+            <TableHead className="w-28 text-right">Aksi</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -138,6 +144,26 @@ export function RentalTable({
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end">
+                  {/* Only settled rentals can be billed — the BE refuses the rest. */}
+                  {item.paymentStatus === 'Sudah Dibayar' && (
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={`Unduh invoice ${item.plateNumber}`}
+                      title="Unduh invoice (PDF)"
+                      // Emerald, like the paid badge and nett profit — the red
+                      // tokens are already taken by the destructive delete.
+                      className="text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400"
+                      disabled={invoicePendingId != null}
+                      onClick={() => onInvoice(item)}
+                    >
+                      {invoicePendingId === item.id ? (
+                        <Spinner className="size-4" />
+                      ) : (
+                        <FileText className="size-4" />
+                      )}
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="icon-sm"
