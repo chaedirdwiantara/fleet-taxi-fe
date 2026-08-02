@@ -35,6 +35,10 @@ export function daysInMonth(month: number, year: number): number {
   return new Date(year, month, 0).getDate();
 }
 
+/** Options of the Tipe Kendaraan filter, mirroring the backend's dedupe+sort. */
+const distinctTypes = (types: (string | undefined)[]): string[] =>
+  [...new Set(types.filter((t): t is string => Boolean(t)))].sort((a, b) => a.localeCompare(b));
+
 // Grids are deterministic in (month, year); memoize so the dashboard's
 // summary + performers + grid requests don't each rebuild 200 rows.
 function memoByPeriod<T>(build: (month: number, year: number) => T) {
@@ -331,6 +335,7 @@ export function makeGojekGrid(month: number, year: number, vehicleCount = 200) {
     rawTotalAmount: rawRows.reduce((s, r) => s + r.amount, 0),
     availableRentalPartners: [...RENTAL_PARTNERS].sort(),
     availablePlates: rows.map((r) => ({ plate: r.plateNorm, type: r.vehicleType })),
+    availableVehicleTypes: distinctTypes(rows.map((r) => r.vehicleType)),
   };
 }
 
@@ -370,6 +375,7 @@ export function scopeGojekGrid(
     rawTotalAmount: opts.keepRawRows ? grid.rawTotalAmount : 0,
     availableRentalPartners: [...new Set(rows.map((r) => r.rentalPartner))].sort(),
     availablePlates: rows.map((r) => ({ plate: r.plateNorm, type: r.vehicleType })),
+    availableVehicleTypes: distinctTypes(rows.map((r) => r.vehicleType)),
   };
 }
 
@@ -385,6 +391,7 @@ export function scopeGrabGrid(grid: GrabGridFixture, norms: Set<string>): GrabGr
     },
     availableRentalPartners: [...new Set(rows.map((r) => r.rentalPartner))].sort(),
     availableCities: [...new Set(rows.map((r) => r.city))].sort(),
+    availableVehicleTypes: distinctTypes(rows.map((r) => r.vehicleType)),
   };
 }
 
@@ -695,7 +702,7 @@ export function makeGrabGrid(month: number, year: number, vehicleCount = 120) {
       tiering,
       vehicleType: VEHICLE_TYPES[i % VEHICLE_TYPES.length],
       driverPhone: `08${(1000000000 + i).toString().slice(0, 10)}`,
-      plateHistory: [{ plate: plateNumber, city }],
+      plateHistory: [{ plate: plateNumber, city, type: VEHICLE_TYPES[i % VEHICLE_TYPES.length] }],
       days,
       summary: {
         earning,
@@ -732,6 +739,7 @@ export function makeGrabGrid(month: number, year: number, vehicleCount = 120) {
     },
     availableRentalPartners: [...RENTAL_PARTNERS].sort(),
     availableCities: [...CITIES].sort(),
+    availableVehicleTypes: distinctTypes(rows.map((r) => r.vehicleType)),
   };
 }
 

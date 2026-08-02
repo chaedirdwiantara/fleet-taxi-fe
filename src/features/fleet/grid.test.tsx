@@ -52,6 +52,36 @@ describe('GojekMonitoringTable (faithful legacy pivot)', () => {
     expect(screen.getByText('TOTAL HARI INI')).toBeInTheDocument();
   });
 
+  // Only a PREFIX of the identity block is pinned — through the row's subject.
+  // The attribute columns after it scroll with the day band, which is what buys
+  // the screen width the ~31-day table needs (and makes it usable on a phone).
+  describe('frozen columns', () => {
+    const frozenHeaders = () =>
+      screen
+        .getAllByRole('columnheader')
+        .filter((h) => h.style.left !== '')
+        .map((h) => h.textContent);
+
+    it('pins No + Plate in plate mode, letting Type and Driver scroll', () => {
+      renderTable();
+      expect(frozenHeaders()).toEqual(['No', 'Rental Partner', 'Plate']);
+    });
+
+    it('pins No + Driver in driver mode, letting Plat scroll', () => {
+      const driverGrid = pivotGojekByDriver(makeGojekGrid(6, 2026, 6)) as unknown as FleetGrid;
+      render(<GojekMonitoringTable grid={driverGrid} onCellClick={vi.fn()} mode="driver" />);
+      expect(frozenHeaders()).toEqual(['No', 'Rental Partner', 'Driver']);
+    });
+
+    it('pins nothing beyond the subject on the partner layout either', () => {
+      renderTable({ readOnly: true, onManageException: vi.fn() });
+      expect(frozenHeaders()).toEqual(['No', 'Plate']);
+      // the columns that used to be pinned are still rendered, just scrollable
+      const headers = screen.getAllByRole('columnheader').map((h) => h.textContent);
+      expect(headers).toEqual(expect.arrayContaining(['Type', 'Driver', 'Setoran', 'Aksi']));
+    });
+  });
+
   it('clicking a value cell fires onCellClick(plateNorm, day)', async () => {
     const user = userEvent.setup();
     const { onCellClick } = renderTable();
@@ -205,6 +235,15 @@ describe('GojekMonitoringTable (faithful legacy pivot)', () => {
       expect(screen.getByText('Total Deduction')).toBeInTheDocument();
       expect(screen.getByText('Total Due (Target)')).toBeInTheDocument();
       expect(screen.getByText('Outstanding Total')).toBeInTheDocument();
+    });
+
+    it('labels each plate with its vehicle type ("PLAT - Tipe")', () => {
+      render(<GojekMonitoringTable grid={driverGrid} onCellClick={vi.fn()} mode="driver" />);
+      // A driver row has no single Type column, so the type travels per plate —
+      // otherwise switching to By Driver silently loses the information.
+      const typed = driverGrid.availablePlates.find((p) => p.type);
+      expect(typed).toBeDefined();
+      expect(screen.getAllByTitle(`${typed!.plate} - ${typed!.type}`).length).toBeGreaterThan(0);
     });
 
     it('drops plate-only affordances (Aksi, "Baru")', () => {

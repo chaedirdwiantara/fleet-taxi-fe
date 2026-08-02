@@ -10,6 +10,7 @@ export const Route = createFileRoute('/_partner/partner/')({
         month: currentMonthWIB(),
         year: currentYearWIB(),
         rentalPartner: [],
+        vehicleType: [],
         mode: 'plate',
       },
     });

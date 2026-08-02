@@ -4,6 +4,7 @@ import { CalendarOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { GojekMonitoringTable } from '@/features/fleet/components/GojekMonitoringTable';
 import { FilterBar } from '@/features/fleet/components/FilterBar';
+import { TableFilterBar } from '@/features/fleet/components/TableFilterBar';
 import { CellLegend } from '@/features/fleet/components/CellLegend';
 import { CellModal } from '@/features/fleet/components/CellModal';
 import { ImportPanel } from '@/features/fleet/components/ImportPanel';
@@ -51,7 +52,8 @@ function GojekGridPage() {
     month: search.month,
     year: search.year,
     rentalPartner: search.rentalPartner,
-    plate: search.plate,
+    q: search.q,
+    vehicleType: search.vehicleType,
     mode: search.mode,
   });
 
@@ -113,6 +115,17 @@ function GojekGridPage() {
           rows={grid.data.rawRows ?? []}
           totalAmount={grid.data.rawTotalAmount ?? 0}
           onProcess={setEditingDetailId}
+        />
+      )}
+      {/* Filters that narrow the table sit immediately above it. */}
+      {grid.isSuccess && (
+        <TableFilterBar
+          q={search.q}
+          vehicleType={search.vehicleType}
+          typeOptions={grid.data.availableVehicleTypes ?? []}
+          onChange={patchSearch}
+          resultCount={grid.data.rows.length}
+          resultNoun={search.mode === 'driver' ? 'driver' : 'kendaraan'}
         />
       )}
       {grid.isSuccess && (

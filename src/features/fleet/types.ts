@@ -95,7 +95,12 @@ export type FleetGrid = {
   rawRows?: RawManualRow[];
   rawTotalAmount?: number;
   availableRentalPartners: string[];
+  // Per-plate Type, resolved server-side. Populated in BOTH modes, so the
+  // driver view can label each plate a person drove ("B2449SNC - BYD M6").
   availablePlates: { plate: string; type: string }[];
+  // Options of the Tipe Kendaraan filter. Optional so the grid tolerates a
+  // backend that predates the field (FE-ahead deploy window).
+  availableVehicleTypes?: string[];
 };
 
 // Cell-click breakdown (brief §2.A: display vs counted totals).

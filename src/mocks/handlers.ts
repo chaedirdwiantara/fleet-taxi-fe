@@ -63,6 +63,73 @@ const int = (v: string | null, fallback: number) => {
 const readMode = (url: URL): 'plate' | 'driver' =>
   url.searchParams.get('mode') === 'driver' ? 'driver' : 'plate';
 
+/**
+ * The two TableFilterBar params. The SERVER filters the pivot (kickoff §5), so
+ * the mock has to as well — the FE never filters rows itself.
+ *
+ * `q` is normalized twice, as a plate and as a driver name, and a row matches on
+ * either; `vehicleType` matches when ANY of the row's plates is of a listed type
+ * (in driver mode: "drove such a vehicle"). Both mirror the backend's rules,
+ * including the case-insensitive type comparison.
+ */
+const readGridFilters = (url: URL) => {
+  const raw = url.searchParams.get('q') ?? '';
+  return {
+    plateQuery: raw.toUpperCase().replace(/[^A-Z0-9]/g, ''),
+    nameQuery: raw.trim().replace(/\s+/g, ' ').toUpperCase(),
+    types: new Set(
+      url.searchParams
+        .getAll('vehicleType')
+        .map((t) => t.trim().toLowerCase())
+        .filter(Boolean),
+    ),
+  };
+};
+
+/**
+ * Types behind a Gojek row. A plate row has its own; a driver row has none of
+ * its own, so the per-plate types from `availablePlates` are what the filter
+ * (and the "PLAT - Tipe" label) read — same as the backend.
+ */
+const gojekRowTypes = (
+  grid: { availablePlates: { plate: string; type: string }[] },
+  row: { vehicleType: string; plateHistory?: string[] },
+): string[] => {
+  const byPlate = new Map(grid.availablePlates.map((p) => [p.plate, p.type]));
+  const fromPlates = (row.plateHistory ?? []).map((p) => byPlate.get(p) ?? '').filter(Boolean);
+  return fromPlates.length ? fromPlates : [row.vehicleType].filter(Boolean);
+};
+
+/** Grab carries the Car Model per plate, so a driver row is covered directly. */
+const grabRowTypes = (row: {
+  vehicleType: string;
+  plateHistory?: { type?: string }[];
+}): string[] => {
+  const fromPlates = (row.plateHistory ?? []).map((p) => p.type ?? '').filter(Boolean);
+  return fromPlates.length ? fromPlates : [row.vehicleType].filter(Boolean);
+};
+
+/** Apply those filters to any pivot row, given how to read its plates + types. */
+function applyGridFilters<T extends { driverName: string }>(
+  rows: T[],
+  url: URL,
+  read: { plates: (row: T) => string[]; types: (row: T) => string[] },
+): T[] {
+  const { plateQuery, nameQuery, types } = readGridFilters(url);
+  let out = rows;
+  if (plateQuery || nameQuery) {
+    out = out.filter(
+      (r) =>
+        (plateQuery !== '' && read.plates(r).some((p) => p.includes(plateQuery))) ||
+        (nameQuery !== '' && r.driverName.toUpperCase().includes(nameQuery)),
+    );
+  }
+  if (types.size) {
+    out = out.filter((r) => read.types(r).some((t) => types.has(t.trim().toLowerCase())));
+  }
+  return out;
+}
+
 /** The ?dateFrom&dateTo pair, or undefined for whole-period semantics —
  * incoherent pairs are dropped exactly like the backend's parseDateRange. */
 const readRange = (url: URL): { dateFrom: string; dateTo: string } | undefined => {
@@ -649,15 +716,12 @@ export const handlers = [
     const grid = readMode(url) === 'driver' ? pivotGojekByDriver(scoped) : scoped;
     // The SERVER returns the filtered pivot (kickoff §5) — emulate that here.
     const partners = url.searchParams.getAll('rentalPartner');
-    const plate = url.searchParams
-      .get('plate')
-      ?.toUpperCase()
-      .replace(/[^A-Z0-9]/g, '');
     let rows = grid.rows;
     if (partners.length) rows = rows.filter((r) => partners.includes(r.rentalPartner));
-    // A plate query matches any plate of the row — in driver mode that reads as
-    // "people who drove that plate".
-    if (plate) rows = rows.filter((r) => (r.plateHistory ?? []).some((p) => p.includes(plate)));
+    rows = applyGridFilters(rows, url, {
+      plates: (r) => r.plateHistory ?? [],
+      types: (r) => gojekRowTypes(grid, r),
+    });
     return ok({ ...grid, rows });
   }),
 
@@ -702,15 +766,12 @@ export const handlers = [
     );
     const grid = readMode(url) === 'driver' ? pivotGrabByDriver(base) : base;
     const partners = url.searchParams.getAll('rentalPartner');
-    const plate = url.searchParams
-      .get('plate')
-      ?.toUpperCase()
-      .replace(/[^A-Z0-9]/g, '');
     let rows = grid.rows;
     if (partners.length) rows = rows.filter((r) => partners.includes(r.rentalPartner));
-    if (plate) {
-      rows = rows.filter((r) => (r.plateHistory ?? []).some((p) => p.plate.includes(plate)));
-    }
+    rows = applyGridFilters(rows, url, {
+      plates: (r) => (r.plateHistory ?? []).map((p) => p.plate),
+      types: grabRowTypes,
+    });
     return ok({ ...grid, rows });
   }),
 
@@ -1527,7 +1588,15 @@ export const handlers = [
       int(url.searchParams.get('year'), 2026),
     );
     const scoped = overlayPlateTypes(scopeGojekGrid(grid, registeredNorms()));
-    return ok(readMode(url) === 'driver' ? pivotGojekByDriver(scoped) : scoped);
+    const pivoted = readMode(url) === 'driver' ? pivotGojekByDriver(scoped) : scoped;
+    // The filters narrow the partner's own scope; they can never widen it.
+    return ok({
+      ...pivoted,
+      rows: applyGridFilters(pivoted.rows, url, {
+        plates: (r) => r.plateHistory ?? [],
+        types: (r) => gojekRowTypes(pivoted, r),
+      }),
+    });
   }),
 
   http.get('*/partner/portal/fleet/gojek/summary', ({ request }) => {
@@ -1628,7 +1697,14 @@ export const handlers = [
       int(url.searchParams.get('year'), 2026),
     );
     const scoped = scopeGrabGrid(grid, registeredNorms());
-    return ok(readMode(url) === 'driver' ? pivotGrabByDriver(scoped) : scoped);
+    const pivoted = readMode(url) === 'driver' ? pivotGrabByDriver(scoped) : scoped;
+    return ok({
+      ...pivoted,
+      rows: applyGridFilters(pivoted.rows, url, {
+        plates: (r) => (r.plateHistory ?? []).map((p) => p.plate),
+        types: grabRowTypes,
+      }),
+    });
   }),
 
   // Own Grab dashboard aggregates — the partner twin of the admin summary, so

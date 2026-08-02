@@ -1,7 +1,10 @@
 import { useCallback, useState } from 'react';
 import { createFileRoute, Link } from '@tanstack/react-router';
-import { Info } from 'lucide-react';
+import { Info, SearchX } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/components/shared/EmptyState';
 import { GojekMonitoringTable } from '@/features/fleet/components/GojekMonitoringTable';
+import { TableFilterBar } from '@/features/fleet/components/TableFilterBar';
 import { CellLegend } from '@/features/fleet/components/CellLegend';
 import { CellModal } from '@/features/fleet/components/CellModal';
 import { ExceptionPanel } from '@/features/fleet/components/ExceptionPanel';
@@ -42,7 +45,7 @@ function PartnerGojekPage() {
     setExceptionOpen(true);
   };
 
-  const setPeriod = useCallback(
+  const patchSearch = useCallback(
     (patch: Partial<FleetSearch>) => {
       navigate({ search: (prev) => ({ ...prev, cell: undefined, ...patch }), replace: true });
     },
@@ -56,7 +59,10 @@ function PartnerGojekPage() {
     month: search.month,
     year: search.year,
     mode: search.mode,
+    q: search.q,
+    vehicleType: search.vehicleType,
   });
+  const isFiltered = Boolean(search.q) || search.vehicleType.length > 0;
   // Cards & charts stay plate-based: they describe the fleet, not individuals.
   const summary = usePartnerGojekSummaryQuery({
     month: search.month,
@@ -86,18 +92,18 @@ function PartnerGojekPage() {
           </p>
         </div>
         <div className="flex w-full flex-wrap gap-2 sm:w-auto">
-          <ViewModeToggle mode={search.mode} onChange={(mode) => setPeriod({ mode })} />
+          <ViewModeToggle mode={search.mode} onChange={(mode) => patchSearch({ mode })} />
           <DateRangePicker
             value={range}
-            onChange={(next) => setPeriod({ dateFrom: next?.dateFrom, dateTo: next?.dateTo })}
+            onChange={(next) => patchSearch({ dateFrom: next?.dateFrom, dateTo: next?.dateTo })}
             month={search.month}
             year={search.year}
           />
           <MonthYearPicker
             month={search.month}
             year={search.year}
-            onMonth={(m) => setPeriod({ month: m, dateFrom: undefined, dateTo: undefined })}
-            onYear={(y) => setPeriod({ year: y, dateFrom: undefined, dateTo: undefined })}
+            onMonth={(m) => patchSearch({ month: m, dateFrom: undefined, dateTo: undefined })}
+            onYear={(y) => patchSearch({ year: y, dateFrom: undefined, dateTo: undefined })}
           />
         </div>
       </div>
@@ -139,7 +145,37 @@ function PartnerGojekPage() {
       {grid.isError && (
         <p className="text-sm text-destructive">Gagal memuat grid: {grid.error.message}</p>
       )}
-      {grid.isSuccess && grid.data.rows.length === 0 && (
+      {/* Last control before the table: its effect shows directly below, without
+          scrolling back past the cards and the chart. */}
+      {grid.isSuccess && (
+        <TableFilterBar
+          q={search.q}
+          vehicleType={search.vehicleType}
+          typeOptions={grid.data.availableVehicleTypes ?? []}
+          onChange={patchSearch}
+          resultCount={grid.data.rows.length}
+          resultNoun={search.mode === 'driver' ? 'driver' : 'kendaraan'}
+          hasUnfilteredAggregates
+        />
+      )}
+      {/* An active filter with no match must not read as "no data this month" —
+          it needs a way back, not an invitation to register plates. */}
+      {grid.isSuccess && grid.data.rows.length === 0 && isFiltered && (
+        <EmptyState
+          icon={SearchX}
+          title="Tidak ada baris yang cocok"
+          description="Tidak ada plat atau driver yang cocok dengan pencarian dan tipe kendaraan yang dipilih pada periode ini."
+          action={
+            <Button
+              variant="outline"
+              onClick={() => patchSearch({ q: undefined, vehicleType: [] })}
+            >
+              Bersihkan filter
+            </Button>
+          }
+        />
+      )}
+      {grid.isSuccess && grid.data.rows.length === 0 && !isFiltered && (
         <div className="flex items-start gap-2 rounded-lg border border-dashed bg-muted/40 px-4 py-6 text-sm text-muted-foreground">
           <Info className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
           <span>

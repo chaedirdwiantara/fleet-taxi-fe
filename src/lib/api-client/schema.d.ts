@@ -2099,6 +2099,10 @@ export interface operations {
                 year: number;
                 plate?: string;
                 mode?: "plate" | "driver";
+                /** @description Free-text search over the row identity: matches a normalized plate substring OR a driver-name substring. In mode=driver a plate match reads as "drove that plate". */
+                q?: string;
+                /** @description Vehicle Type ("Tipe Kendaraan"), repeatable. A row is kept when ANY of its plates is of a listed type. Compared case-insensitively against the same resolved Type the grid displays; the selectable values are availableVehicleTypes. */
+                vehicleType?: string[];
                 rentalPartner?: string[];
             };
             header?: never;
@@ -2317,6 +2321,10 @@ export interface operations {
                 year: number;
                 plate?: string;
                 mode?: "plate" | "driver";
+                /** @description Free-text search over the row identity: matches a normalized plate substring OR a driver-name substring. In mode=driver a plate match reads as "drove that plate". */
+                q?: string;
+                /** @description Vehicle Type ("Tipe Kendaraan"), repeatable. A row is kept when ANY of its plates is of a listed type. Compared case-insensitively against the same resolved Type the grid displays; the selectable values are availableVehicleTypes. */
+                vehicleType?: string[];
                 rentalPartner?: string[];
             };
             header?: never;
@@ -2643,6 +2651,10 @@ export interface operations {
                 month: number;
                 year: number;
                 mode?: "plate" | "driver";
+                /** @description Free-text search over the row identity: matches a normalized plate substring OR a driver-name substring. In mode=driver a plate match reads as "drove that plate". */
+                q?: string;
+                /** @description Vehicle Type ("Tipe Kendaraan"), repeatable. A row is kept when ANY of its plates is of a listed type. Compared case-insensitively against the same resolved Type the grid displays; the selectable values are availableVehicleTypes. */
+                vehicleType?: string[];
             };
             header?: never;
             path?: never;
@@ -2771,6 +2783,10 @@ export interface operations {
                 month: number;
                 year: number;
                 mode?: "plate" | "driver";
+                /** @description Free-text search over the row identity: matches a normalized plate substring OR a driver-name substring. In mode=driver a plate match reads as "drove that plate". */
+                q?: string;
+                /** @description Vehicle Type ("Tipe Kendaraan"), repeatable. A row is kept when ANY of its plates is of a listed type. Compared case-insensitively against the same resolved Type the grid displays; the selectable values are availableVehicleTypes. */
+                vehicleType?: string[];
             };
             header?: never;
             path?: never;

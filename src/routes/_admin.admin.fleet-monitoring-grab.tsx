@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { createFileRoute } from '@tanstack/react-router';
 import { Car, Gift, Wallet } from 'lucide-react';
 import { FilterBar } from '@/features/fleet/components/FilterBar';
+import { TableFilterBar } from '@/features/fleet/components/TableFilterBar';
 import { ImportPanel } from '@/features/fleet/components/ImportPanel';
 import { ImportHistoryDialog } from '@/features/fleet/components/ImportHistoryDialog';
 import { TargetEditor } from '@/features/fleet/components/TargetEditor';
@@ -33,7 +34,8 @@ function GrabGridPage() {
     month: search.month,
     year: search.year,
     rentalPartner: search.rentalPartner,
-    plate: search.plate,
+    q: search.q,
+    vehicleType: search.vehicleType,
     mode: search.mode,
   });
 
@@ -92,6 +94,18 @@ function GrabGridPage() {
       {grid.isPending && <p className="text-sm text-muted-foreground">Memuat grid…</p>}
       {grid.isError && (
         <p className="text-sm text-destructive">Gagal memuat grid: {grid.error.message}</p>
+      )}
+      {/* Filters that narrow the table sit immediately above it. */}
+      {grid.isSuccess && (
+        <TableFilterBar
+          q={search.q}
+          vehicleType={search.vehicleType}
+          typeOptions={grid.data.availableVehicleTypes ?? []}
+          onChange={patchSearch}
+          resultCount={grid.data.rows.length}
+          resultNoun={search.mode === 'driver' ? 'driver' : 'baris'}
+          // this surface's cards read grid.totals, so they DO follow the filter
+        />
       )}
       {grid.isSuccess && (
         <div className={grid.isFetching ? 'opacity-60 transition-opacity' : undefined}>
