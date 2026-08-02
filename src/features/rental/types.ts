@@ -53,6 +53,13 @@ export type RentalItem = {
   cogsTotal: number;
   nettProfit: number;
   omset: number;
+  /** VAT rate captured when the row was written; 0 = not taxed. */
+  ppnRateBps: number;
+  /** DPP — gross + additionalCost, the base PPN is charged on. */
+  ppnBase: number;
+  ppnAmount: number;
+  /** What the customer pays: ppnBase + ppnAmount. */
+  totalBilled: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -65,6 +72,20 @@ export type RentalSummary = {
   paidCogs: number;
   paidAdditionalCost: number;
   paidNettProfit: number;
+  /** VAT owed to the state on paid rows — reported apart from revenue. */
+  paidPpn: number;
+  paidTotalBilled: number;
+  unpaidPpn: number;
+};
+
+/** Per-partner VAT posture; only a PKP may charge PPN. */
+export type RentalTaxSettings = {
+  isPkp: boolean;
+  npwp: string | null;
+  /** Rate new rentals get — 0 while not PKP. */
+  ppnRateBps: number;
+  /** Statutory rate, so the UI never hardcodes 11%. */
+  statutoryRateBps: number;
 };
 
 export type RentalNettByType = {

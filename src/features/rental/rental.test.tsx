@@ -113,6 +113,43 @@ describe('RentalMonitoringPage', () => {
     expect(screen.getByText('Andi Saputra')).toBeInTheDocument();
   });
 
+  it('shows PPN apart from revenue, and only on rows that carry it', async () => {
+    renderPage();
+    await screen.findByText('B 1000 XYZ');
+
+    // Seeded PKP rows carry 11%; B 2000 GRB predates PKP (rate 0).
+    // B 1000 XYZ: 4 hari x 900.000 + 100.000 = DPP 3.700.000 -> PPN 407.000
+    expect(screen.getByText('inc. PPN Rp 407.000')).toBeInTheDocument();
+    expect(screen.getByText('Rp 4.107.000')).toBeInTheDocument();
+
+    // The untaxed row shows its total with no PPN caption.
+    const untaxedRow = screen.getByText('B 2000 GRB').closest('tr')!;
+    expect(within(untaxedRow).queryByText(/inc\. PPN/)).not.toBeInTheDocument();
+
+    // VAT is reported on its own card, never folded into the revenue figures.
+    expect(screen.getByText('PPN Terutang')).toBeInTheDocument();
+  });
+
+  it('turns PPN off for future rentals via the settings dialog', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText('B 1000 XYZ');
+
+    await user.click(screen.getByRole('button', { name: /Atur PPN/i }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByLabelText('Partner berstatus PKP')).toBeChecked();
+    expect(
+      within(dialog).getByText(/tidak menulis ulang invoice yang sudah terbit/i),
+    ).toBeInTheDocument();
+
+    await user.click(within(dialog).getByLabelText('Partner berstatus PKP'));
+    await user.click(within(dialog).getByRole('button', { name: 'Simpan' }));
+
+    // Existing rows keep the rate they were billed at — nothing is rewritten.
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(screen.getByText('inc. PPN Rp 407.000')).toBeInTheDocument();
+  });
+
   it('offers the invoice shortcut on settled rentals only, and downloads the PDF', async () => {
     const user = userEvent.setup();
     // jsdom implements neither object URLs nor anchor navigation.

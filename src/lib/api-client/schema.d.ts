@@ -952,6 +952,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/partner/portal/rentals/tax-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The partner's PKP status, NPWP, and the PPN rate new rentals get */
+        get: operations["PartnerRentalsController_getTaxSettings"];
+        /** Turn PPN on/off for future rentals and set the NPWP */
+        put: operations["PartnerRentalsController_updateTaxSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/partner/portal/rentals/export": {
         parameters: {
             query?: never;
@@ -1650,6 +1668,18 @@ export interface components {
              * @example 335833
              */
             cogsPerDay: number;
+        };
+        UpdateTaxSettingsDto: {
+            /**
+             * @description Pengusaha Kena Pajak — true enables PPN on new rental transactions
+             * @example true
+             */
+            isPkp: boolean;
+            /**
+             * @description NPWP printed on invoices; digits/dots/dashes, empty clears it
+             * @example 01.234.567.8-901.000
+             */
+            npwp?: string;
         };
         PresignRentalProofDto: {
             /**
@@ -3338,6 +3368,44 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["UpsertCogsDefaultDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PartnerRentalsController_getTaxSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PartnerRentalsController_updateTaxSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateTaxSettingsDto"];
             };
         };
         responses: {
