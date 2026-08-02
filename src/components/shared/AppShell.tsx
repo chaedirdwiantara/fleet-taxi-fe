@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useState, type ComponentType, type ReactNode, type SVGProps } from 'react';
 import { Link, useLocation } from '@tanstack/react-router';
 import {
   CalendarDays,
@@ -15,6 +15,7 @@ import {
   Users,
   Wallet,
 } from 'lucide-react';
+import { GojekIcon, GrabIcon } from '@/components/shared/BrandIcons';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { ThemeToggle } from '@/components/shared/ThemeToggle';
@@ -23,11 +24,14 @@ import type { SessionUser } from '@/features/auth/hooks';
 
 export type Audience = 'admin' | 'partner';
 
+// Any 24×24 currentColor icon — a lucide glyph or one of our brand marks.
+type NavIcon = ComponentType<SVGProps<SVGSVGElement>>;
+
 // `requireRole` hides an item unless the session user holds that role
 // (UX only — the route + backend still enforce access).
-type NavLeaf = { to: string; label: string; icon: typeof Table2; requireRole?: string };
+type NavLeaf = { to: string; label: string; icon: NavIcon; requireRole?: string };
 // A collapsible group of leaves under one label (e.g. "Driver").
-type NavGroup = { label: string; icon: typeof Table2; children: NavLeaf[]; requireRole?: string };
+type NavGroup = { label: string; icon: NavIcon; children: NavLeaf[]; requireRole?: string };
 type NavEntry = NavLeaf | NavGroup;
 
 const isGroup = (entry: NavEntry): entry is NavGroup => 'children' in entry;
@@ -37,7 +41,7 @@ const NAV: Record<Audience, NavEntry[]> = {
     { to: '/admin', label: 'Dashboard', icon: LayoutDashboard },
     {
       label: 'Gojek',
-      icon: Table2,
+      icon: GojekIcon,
       children: [
         { to: '/admin/gojek/dashboard', label: 'Gojek Dashboard', icon: LayoutDashboard },
         { to: '/admin/fleet-monitoring', label: 'Gojek Monitoring', icon: Table2 },
@@ -45,7 +49,7 @@ const NAV: Record<Audience, NavEntry[]> = {
     },
     {
       label: 'Grab',
-      icon: Car,
+      icon: GrabIcon,
       children: [
         { to: '/admin/grab/dashboard', label: 'Grab Dashboard', icon: LayoutDashboard },
         { to: '/admin/fleet-monitoring-grab', label: 'Grab Monitoring', icon: Table2 },
@@ -63,8 +67,8 @@ const NAV: Record<Audience, NavEntry[]> = {
     // The combined view comes first: it is the "how did my fleet do" overview,
     // and the per-platform screens below are the drill-downs.
     { to: '/partner/all-fleet-monitoring', label: 'All Fleet Monitoring', icon: LayoutGrid },
-    { to: '/partner/fleet-monitoring', label: 'Gojek', icon: Table2 },
-    { to: '/partner/fleet-monitoring-grab', label: 'Grab', icon: Car },
+    { to: '/partner/fleet-monitoring', label: 'Gojek', icon: GojekIcon },
+    { to: '/partner/fleet-monitoring-grab', label: 'Grab', icon: GrabIcon },
     {
       label: 'Driver',
       icon: Users,
