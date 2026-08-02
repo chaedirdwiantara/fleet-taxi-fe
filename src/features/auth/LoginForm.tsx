@@ -2,6 +2,8 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from '@tanstack/react-router';
+import { Handshake, ShieldCheck } from 'lucide-react';
+import { LogoMark } from '@/components/shared/Logo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -24,10 +26,18 @@ const loginSchema = z.object({
 type LoginValues = z.infer<typeof loginSchema>;
 
 const COPY = {
-  admin: { title: 'Admin Console', desc: 'Masuk sebagai admin fleet-taxi.id', home: '/admin' },
+  admin: {
+    title: 'Admin Console',
+    desc: 'Kelola seluruh armada, impor, dan rekonsiliasi setoran.',
+    badge: 'Admin',
+    icon: ShieldCheck,
+    home: '/admin',
+  },
   partner: {
     title: 'Portal Partner',
-    desc: 'Masuk sebagai partner fleet-taxi.id',
+    desc: 'Pantau setoran untuk plat yang Anda daftarkan.',
+    badge: 'Partner',
+    icon: Handshake,
     home: '/partner',
   },
 } as const;
@@ -43,6 +53,7 @@ export function LoginForm({
 }) {
   const router = useRouter();
   const copy = COPY[audience];
+  const AudienceIcon = copy.icon;
   // hooks called unconditionally; pick by audience
   const adminLogin = useAdminLogin();
   const partnerLogin = usePartnerLogin();
@@ -68,9 +79,23 @@ export function LoginForm({
 
   return (
     <Card className="w-full max-w-sm">
-      <CardHeader>
-        <CardTitle className="text-xl">{copy.title}</CardTitle>
-        <CardDescription>{copy.desc}</CardDescription>
+      <CardHeader className="gap-4">
+        {/* One brand, two doors: the mark stays identical across audiences — what
+            differs is the badge below it, so nobody mistakes this for two products. */}
+        <div className="flex flex-col items-center gap-2.5">
+          <LogoMark className="size-12" />
+          <span className="text-base font-semibold tracking-tight">
+            Fleet<span className="text-brand"> Taxi</span>
+          </span>
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            <AudienceIcon className="size-3.5" aria-hidden />
+            {copy.badge}
+          </span>
+        </div>
+        <div className="space-y-1 text-center">
+          <CardTitle className="text-xl">{copy.title}</CardTitle>
+          <CardDescription>{copy.desc}</CardDescription>
+        </div>
       </CardHeader>
       <CardContent>
         <Form {...form}>
