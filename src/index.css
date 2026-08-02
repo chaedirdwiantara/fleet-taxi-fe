@@ -134,6 +134,17 @@
   * {
     @apply border-border outline-ring/50;
   }
+  /* Browser-painted UI (the `<input type="date">` calendar indicator and its
+     picker popup, spin buttons, default scrollbars) ignores our tokens —
+     `color-scheme` is the only hook that tells the browser which palette to
+     paint them with. Without the dark value the calendar icon renders
+     near-black on our dark surfaces and is effectively invisible. */
+  :root {
+    color-scheme: light;
+  }
+  .dark {
+    color-scheme: dark;
+  }
   body {
     @apply bg-background text-foreground;
   }
