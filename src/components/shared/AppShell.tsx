@@ -2,7 +2,6 @@ import { useState, type ComponentType, type ReactNode, type SVGProps } from 'rea
 import { Link, useLocation } from '@tanstack/react-router';
 import {
   CalendarDays,
-  Car,
   ChevronDown,
   ClipboardCheck,
   ClipboardList,
@@ -16,6 +15,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import { GojekIcon, GrabIcon } from '@/components/shared/BrandIcons';
+import { Logo } from '@/components/shared/Logo';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { ThemeToggle } from '@/components/shared/ThemeToggle';
@@ -179,8 +179,7 @@ function SidebarContent({
   return (
     <div className="flex h-full flex-col">
       <div className="flex h-14 items-center gap-2 border-b px-4">
-        <Car className="size-5 text-primary" aria-hidden />
-        <span className="text-sm font-semibold tracking-tight">fleet-taxi.id</span>
+        <Logo />
         <span className="ml-auto rounded bg-muted px-1.5 py-0.5 text-xs tracking-wide text-muted-foreground uppercase">
           {audience}
         </span>
