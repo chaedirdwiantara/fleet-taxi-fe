@@ -11,6 +11,7 @@ const TYPES = ['BYD ATTO 1', 'BYD M6', 'WULING CLOUD'];
 function renderBar(overrides?: Partial<Parameters<typeof TableFilterBar>[0]>) {
   const onChange = vi.fn();
   const props = {
+    mode: 'plate' as const,
     q: undefined,
     vehicleType: [],
     typeOptions: TYPES,
@@ -22,6 +23,18 @@ function renderBar(overrides?: Partial<Parameters<typeof TableFilterBar>[0]>) {
 }
 
 describe('TableFilterBar', () => {
+  // The reading mode lives here rather than in the page header: like the two
+  // filters it only reshapes the table, so it belongs next to it.
+  it('carries the By Plat / By Driver toggle and patches mode', async () => {
+    const user = userEvent.setup();
+    const { onChange } = renderBar();
+
+    const byDriver = screen.getByRole('radio', { name: 'By Driver' });
+    expect(screen.getByRole('radio', { name: 'By Plat' })).toHaveAttribute('aria-checked', 'true');
+    await user.click(byDriver);
+    expect(onChange).toHaveBeenCalledWith({ mode: 'driver' });
+  });
+
   it('debounces typing into a single q patch', async () => {
     const user = userEvent.setup();
     const { onChange } = renderBar();

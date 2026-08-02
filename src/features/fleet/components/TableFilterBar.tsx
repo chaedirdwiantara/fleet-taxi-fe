@@ -3,22 +3,25 @@ import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SearchInput } from '@/components/shared/SearchInput';
 import { MultiSelectFilter } from './MultiSelectFilter';
-import type { FleetSearch } from '../searchSchema';
+import { ViewModeToggle } from './ViewModeToggle';
+import type { FleetSearch, MonitoringMode } from '../searchSchema';
 
-// Filters that narrow the monitoring TABLE, deliberately rendered as the last
-// thing before the pivot: on the partner screens a chart and four summary cards
-// sit above, and a control placed up there would change a table the reader
+// Every control that shapes the monitoring TABLE and nothing else: the reading
+// mode (By Plat / By Driver) plus the two filters. Deliberately rendered as the
+// last thing before the pivot — on the partner screens four summary cards and a
+// chart sit above, and a control placed up there would change a table the reader
 // cannot see. Here the result appears directly underneath.
 //
-// Both filters are applied server-side (?q= / ?vehicleType=): the backend
-// re-derives the rows, TOTAL HARI INI and the Summary block from the filtered
-// set, so nothing on screen can disagree. Summary cards and charts come from the
-// summary endpoint and stay whole-fleet — said in the note below, because a
-// reader who filters to one driver would otherwise read the cards as his.
+// All three are applied server-side (?mode= / ?q= / ?vehicleType=): the backend
+// re-derives the rows, TOTAL HARI INI and the Summary block, so nothing on
+// screen can disagree. Summary cards and charts come from the summary endpoint,
+// which is plate-based and unfiltered — said in the note below, because a reader
+// who filters to one driver would otherwise read the cards as his.
 
 export const TABLE_FILTER_DEBOUNCE_MS = 350;
 
 type Props = {
+  mode: MonitoringMode;
   q: string | undefined;
   vehicleType: string[];
   /** From the payload's `availableVehicleTypes` — every Type present this period. */
@@ -33,6 +36,7 @@ type Props = {
 };
 
 export function TableFilterBar({
+  mode,
   q,
   vehicleType,
   typeOptions,
@@ -62,13 +66,15 @@ export function TableFilterBar({
 
   return (
     <div className="space-y-1.5">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+        {/* First: it decides WHAT a row is, which the two filters then narrow. */}
+        <ViewModeToggle mode={mode} onChange={(next) => onChange({ mode: next })} />
         <SearchInput
           value={draft}
           onChange={setDraft}
           placeholder="Cari plat atau driver…"
           label="Cari plat atau driver"
-          className="w-full sm:w-72"
+          className="w-full sm:w-64"
         />
         <MultiSelectFilter
           label="Tipe Kendaraan"

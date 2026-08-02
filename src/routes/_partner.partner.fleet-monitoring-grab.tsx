@@ -6,7 +6,6 @@ import { EmptyState } from '@/components/shared/EmptyState';
 import { GradientStatRow } from '@/features/fleet/components/GradientStat';
 import { TableFilterBar } from '@/features/fleet/components/TableFilterBar';
 import { MonthYearPicker } from '@/features/fleet/components/MonthYearPicker';
-import { ViewModeToggle } from '@/features/fleet/components/ViewModeToggle';
 import { DateRangePicker } from '@/components/shared/DateRangePicker';
 import { GrabMonitoringTable } from '@/features/grab/GrabMonitoringTable';
 import { GrabCellModal } from '@/features/grab/GrabCellModal';
@@ -64,7 +63,6 @@ function PartnerGrabPage() {
           </p>
         </div>
         <div className="flex w-full flex-wrap gap-2 sm:w-auto">
-          <ViewModeToggle mode={search.mode} onChange={(mode) => patchSearch({ mode })} />
           <DateRangePicker
             value={range}
             onChange={(next) => patchSearch({ dateFrom: next?.dateFrom, dateTo: next?.dateTo })}
@@ -133,6 +131,7 @@ function PartnerGrabPage() {
           scrolling back past the summary cards. */}
       {grid.isSuccess && (
         <TableFilterBar
+          mode={search.mode}
           q={search.q}
           vehicleType={search.vehicleType}
           typeOptions={grid.data.availableVehicleTypes ?? []}
