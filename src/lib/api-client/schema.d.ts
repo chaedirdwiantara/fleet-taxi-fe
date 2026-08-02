@@ -969,6 +969,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/partner/portal/rentals/proofs/presign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create a pending payment-proof row and get an upload URL (S3 presigned PUT in prod) */
+        post: operations["PartnerRentalsController_presignProof"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/rentals/proofs/{proofId}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm a payment-proof upload finished (marks it uploaded) */
+        post: operations["PartnerRentalsController_confirmProof"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/rentals/proofs/{proofId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete one payment proof (refused if it is the last one of a paid rental) */
+        delete: operations["PartnerRentalsController_removeProof"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/rentals/proofs/{proofId}/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Upload sink for presigned payment proofs (dev; prod presigns S3) */
+        put: operations["PartnerRentalsController_uploadProof"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/rentals/proofs/{proofId}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stream one payment proof (dev; prod responses carry presigned S3 GET URLs) */
+        get: operations["PartnerRentalsController_proofFile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/partner/portal/rentals": {
         parameters: {
             query?: never;
@@ -1515,6 +1600,23 @@ export interface components {
              */
             cogsPerDay: number;
         };
+        PresignRentalProofDto: {
+            /**
+             * @example image/jpeg
+             * @enum {string}
+             */
+            contentType: "image/jpeg" | "image/png" | "application/pdf";
+            /**
+             * @description Bytes, max 10485760
+             * @example 350000
+             */
+            sizeBytes: number;
+            /**
+             * @description Original file name (display only)
+             * @example bukti-transfer.jpg
+             */
+            fileName: string;
+        };
         CreateRentalDto: {
             /**
              * @description Nomor plat (as entered)
@@ -1573,6 +1675,14 @@ export interface components {
              * @enum {string}
              */
             paymentStatus?: "Belum Dibayar" | "Sudah Dibayar";
+            /**
+             * @description Confirmed proof ids to attach to this rental. Required when paymentStatus is Sudah Dibayar.
+             * @example [
+             *       12,
+             *       13
+             *     ]
+             */
+            paymentProofIds?: number[];
         };
         UpdatePaymentStatusDto: {
             /**
@@ -1580,6 +1690,14 @@ export interface components {
              * @enum {string}
              */
             paymentStatus: "Belum Dibayar" | "Sudah Dibayar";
+            /**
+             * @description Confirmed proof ids to attach. Required (together with any already-attached proof) when setting Sudah Dibayar.
+             * @example [
+             *       12,
+             *       13
+             *     ]
+             */
+            paymentProofIds?: number[];
         };
         CreateDepositInstallmentDto: {
             /** @example Cicilan Deposit Driver Halim */
@@ -3197,6 +3315,103 @@ export interface operations {
             };
             header?: never;
             path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PartnerRentalsController_presignProof: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PresignRentalProofDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PartnerRentalsController_confirmProof: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                proofId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PartnerRentalsController_removeProof: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                proofId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PartnerRentalsController_uploadProof: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                proofId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PartnerRentalsController_proofFile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                proofId: number;
+            };
             cookie?: never;
         };
         requestBody?: never;

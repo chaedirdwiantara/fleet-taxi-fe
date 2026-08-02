@@ -26,7 +26,12 @@ import {
   type MockCheckpoint,
   type MockCheckpointMedia,
 } from './fixtures/partner';
-import { seedRentals, seedCogsDefaults, type SeedRental } from './fixtures/rental';
+import {
+  seedRentals,
+  seedCogsDefaults,
+  type SeedRental,
+  type SeedRentalProof,
+} from './fixtures/rental';
 import { seedDrivers, type SeedDriver, type SeedDriverDocument } from './fixtures/driver';
 import {
   createInstallment,
@@ -395,15 +400,63 @@ const checkpointSummary = (c: MockCheckpoint) => ({
 // ---- Mock rental-monitoring state (partner portal) ---------------------------
 // The mock plays the backend's role here: it derives days/gross/cogs/nett/
 // omset and the paid/unpaid summary — the FE only displays those numbers.
-let rentalsState: SeedRental[] = seedRentals.map((r) => ({ ...r }));
+let rentalsState: SeedRental[] = structuredClone(seedRentals);
 let nextRentalId = 100;
 let cogsDefaultsState = seedCogsDefaults.map((c) => ({ ...c }));
 
+// Payment evidence lives outside the rentals until it is attached, exactly
+// like the backend's nullable rental_id — that is what lets the add form
+// upload before the rental row exists.
+const MAX_PROOFS = 5;
+let nextProofId = 5000;
+/** proofId → proof, for rows not yet attached to a rental. */
+let draftProofs = new Map<number, SeedRentalProof>();
+
 /** Reset rentals + COGS presets to the seed (call between tests). */
 export const resetPartnerRentals = () => {
-  rentalsState = seedRentals.map((r) => ({ ...r }));
+  rentalsState = structuredClone(seedRentals);
   nextRentalId = 100;
+  nextProofId = 5000;
+  draftProofs = new Map();
   cogsDefaultsState = seedCogsDefaults.map((c) => ({ ...c }));
+};
+
+/**
+ * Mirrors the backend rule: resolve the submitted ids (drafts or already
+ * attached to THIS rental) and refuse a paid status with no evidence.
+ * Returns the proofs to store, or an error envelope.
+ */
+const resolveProofs = (
+  rental: SeedRental | null,
+  ids: number[] | undefined,
+  paymentStatus: SeedRental['paymentStatus'],
+): { proofs: SeedRentalProof[] } | { error: Response } => {
+  const existing = rental?.paymentProofs ?? [];
+  const resolved = [...existing];
+
+  for (const id of ids ?? []) {
+    if (resolved.some((p) => p.id === id)) continue;
+    const draft = draftProofs.get(id);
+    if (!draft) return { error: err(404, 'NOT_FOUND', 'Bukti pembayaran tidak ditemukan') };
+    resolved.push(draft);
+  }
+
+  if (resolved.length > MAX_PROOFS) {
+    return {
+      error: err(422, 'VALIDATION_ERROR', `Maksimal ${MAX_PROOFS} bukti pembayaran per transaksi.`),
+    };
+  }
+  if (paymentStatus === 'Sudah Dibayar' && resolved.length === 0) {
+    return {
+      error: err(
+        422,
+        'VALIDATION_ERROR',
+        'Bukti pembayaran wajib diunggah (1–5 file) untuk menandai transaksi Sudah Dibayar.',
+      ),
+    };
+  }
+  for (const p of resolved) draftProofs.delete(p.id);
+  return { proofs: resolved };
 };
 
 const DAY_MS = 86_400_000;
@@ -429,9 +482,10 @@ const presentRental = (r: SeedRental, period?: { month: number; year: number }) 
 };
 
 type RentalUpsertBody = Partial<
-  Omit<SeedRental, 'id' | 'pricePerDay' | 'createdAt' | 'updatedAt'> & {
+  Omit<SeedRental, 'id' | 'pricePerDay' | 'createdAt' | 'updatedAt' | 'paymentProofs'> & {
     price: number;
     priceUnit: 'hari' | 'bulan';
+    paymentProofIds: number[];
   }
 >;
 
@@ -469,6 +523,7 @@ const rentalFromBody = (
     customerName: body.customerName ?? null,
     customerPhone: body.customerPhone ?? null,
     paymentStatus: body.paymentStatus ?? 'Belum Dibayar',
+    paymentProofs: [], // filled by the caller after resolveProofs()
     createdAt,
     updatedAt: new Date().toISOString(),
   };
@@ -1871,6 +1926,75 @@ export const handlers = [
     return ok({ summary, nettByType: [...byType.values()], regions, items });
   }),
 
+  // Payment evidence: presign → dev PUT sink → confirm, then attached to a
+  // rental by id. Declared BEFORE the :id routes, mirroring the backend's
+  // route order (the static 'proofs' segment must not be read as an id).
+  http.post('*/partner/portal/rentals/proofs/presign', async ({ request }) => {
+    const body = (await request.json()) as {
+      contentType?: string;
+      sizeBytes?: number;
+      fileName?: string;
+    };
+    if (!body.contentType || !body.fileName || !body.sizeBytes) {
+      return err(422, 'VALIDATION_ERROR', 'contentType, sizeBytes, dan fileName wajib diisi');
+    }
+    const proofId = nextProofId++;
+    draftProofs.set(proofId, {
+      id: proofId,
+      fileName: body.fileName,
+      contentType: body.contentType,
+      sizeBytes: body.sizeBytes,
+      status: 'pending',
+      uploadedByName: 'Partner Bhisa',
+      uploadedByEmail: 'partner@bhisa.example',
+      uploadedAt: new Date().toISOString(),
+    });
+    return HttpResponse.json(
+      {
+        success: true,
+        data: {
+          proofId,
+          uploadUrl: `/partner/portal/rentals/proofs/${proofId}/upload`,
+          method: 'PUT',
+          headers: { 'Content-Type': body.contentType },
+        },
+      },
+      { status: 201 },
+    );
+  }),
+
+  http.put('*/partner/portal/rentals/proofs/:proofId/upload', ({ params }) => {
+    if (!draftProofs.has(Number(params.proofId))) {
+      return err(404, 'NOT_FOUND', 'Bukti pembayaran tidak ditemukan');
+    }
+    return ok({ stored: true });
+  }),
+
+  http.post('*/partner/portal/rentals/proofs/:proofId/confirm', ({ params }) => {
+    const proof = draftProofs.get(Number(params.proofId));
+    if (!proof) return err(404, 'NOT_FOUND', 'Bukti pembayaran tidak ditemukan');
+    proof.status = 'uploaded';
+    proof.url = `/partner/portal/rentals/proofs/${proof.id}/file`;
+    return HttpResponse.json({ success: true, data: proof }, { status: 201 });
+  }),
+
+  http.delete('*/partner/portal/rentals/proofs/:proofId', ({ params }) => {
+    const proofId = Number(params.proofId);
+    if (draftProofs.delete(proofId)) return ok({ deleted: true });
+
+    const rental = rentalsState.find((r) => r.paymentProofs.some((p) => p.id === proofId));
+    if (!rental) return err(404, 'NOT_FOUND', 'Bukti pembayaran tidak ditemukan');
+    if (rental.paymentStatus === 'Sudah Dibayar' && rental.paymentProofs.length === 1) {
+      return err(
+        422,
+        'VALIDATION_ERROR',
+        'Bukti terakhir tidak bisa dihapus selama transaksi berstatus Sudah Dibayar. Ubah status ke Belum Dibayar terlebih dahulu.',
+      );
+    }
+    rental.paymentProofs = rental.paymentProofs.filter((p) => p.id !== proofId);
+    return ok({ deleted: true });
+  }),
+
   http.post('*/partner/portal/rentals', async ({ request }) => {
     const body = (await request.json()) as RentalUpsertBody;
     const created = rentalFromBody(body, nextRentalId, new Date().toISOString());
@@ -1881,6 +2005,10 @@ export const handlers = [
         'plateNumber, startDate, endDate, price, dan cogsPerDay wajib diisi',
       );
     }
+    const resolved = resolveProofs(null, body.paymentProofIds, created.paymentStatus);
+    if ('error' in resolved) return resolved.error;
+    created.paymentProofs = resolved.proofs;
+
     nextRentalId += 1;
     rentalsState.push(created);
     return HttpResponse.json({ success: true, data: presentRental(created) }, { status: 201 });
@@ -1889,11 +2017,18 @@ export const handlers = [
   http.patch('*/partner/portal/rentals/:id/payment-status', async ({ params, request }) => {
     const rental = rentalsState.find((r) => String(r.id) === params.id);
     if (!rental) return err(404, 'NOT_FOUND', 'Data rental tidak ditemukan');
-    const body = (await request.json()) as { paymentStatus?: SeedRental['paymentStatus'] };
+    const body = (await request.json()) as {
+      paymentStatus?: SeedRental['paymentStatus'];
+      paymentProofIds?: number[];
+    };
     if (body.paymentStatus !== 'Belum Dibayar' && body.paymentStatus !== 'Sudah Dibayar') {
       return err(422, 'VALIDATION_ERROR', 'paymentStatus tidak valid');
     }
+    const resolved = resolveProofs(rental, body.paymentProofIds, body.paymentStatus);
+    if ('error' in resolved) return resolved.error;
+
     rental.paymentStatus = body.paymentStatus;
+    rental.paymentProofs = resolved.proofs; // kept on revert — evidence is history
     rental.updatedAt = new Date().toISOString();
     return ok(presentRental(rental));
   }),
@@ -1910,6 +2045,10 @@ export const handlers = [
         'plateNumber, startDate, endDate, price, dan cogsPerDay wajib diisi',
       );
     }
+    const resolved = resolveProofs(rentalsState[idx], body.paymentProofIds, updated.paymentStatus);
+    if ('error' in resolved) return resolved.error;
+    updated.paymentProofs = resolved.proofs;
+
     rentalsState[idx] = updated;
     return ok(presentRental(updated));
   }),
