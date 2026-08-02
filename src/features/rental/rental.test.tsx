@@ -113,6 +113,37 @@ describe('RentalMonitoringPage', () => {
     expect(screen.getByText('Andi Saputra')).toBeInTheDocument();
   });
 
+  it('offers the invoice shortcut on settled rentals only, and downloads the PDF', async () => {
+    const user = userEvent.setup();
+    // jsdom implements neither object URLs nor anchor navigation.
+    const createObjectURL = vi.fn(() => 'blob:invoice');
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal('URL', Object.assign(URL, { createObjectURL, revokeObjectURL }));
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(function (this: HTMLAnchorElement) {});
+
+    renderPage();
+    await screen.findByText('B 1000 XYZ');
+
+    // seeds: B 1000 XYZ + B 2000 GRB are paid, B 1001 XYZ is not
+    expect(screen.getByRole('button', { name: 'Unduh invoice B 1000 XYZ' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Unduh invoice B 2000 GRB' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Unduh invoice B 1001 XYZ' }),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Unduh invoice B 1000 XYZ' }));
+
+    await waitFor(() => expect(click).toHaveBeenCalled());
+    const anchor = click.mock.instances[0] as HTMLAnchorElement;
+    expect(anchor.download).toMatch(/^invoice-\d{4}-\d{2}-00001\.pdf$/);
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:invoice');
+
+    click.mockRestore();
+    vi.unstubAllGlobals();
+  });
+
   it('creates a rental via the dialog (COGS auto-picked from the plate type) and refreshes the list', async () => {
     const user = userEvent.setup();
     renderPage();

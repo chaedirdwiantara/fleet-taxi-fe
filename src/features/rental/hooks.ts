@@ -216,10 +216,38 @@ export function useUpsertCogsDefault() {
   });
 }
 
-// ---- Excel export ------------------------------------------------------------
-// Binary download — NOT via the typed client: we need the raw Response to
-// read the blob + Content-Disposition filename. Cookie session rides along
-// with credentials:'include' (same as the api client).
+// ---- binary downloads ---------------------------------------------------------
+// NOT via the typed client: we need the raw Response to read the blob + the
+// Content-Disposition filename. Cookie session rides along with
+// credentials:'include' (same as the api client).
+
+/**
+ * GETs `path` and hands the body to the browser as a file download. The
+ * server-sent filename wins; `fallbackName` only covers a missing header.
+ */
+async function downloadFile(
+  path: string,
+  fallbackName: string,
+  errorCode: string,
+  errorMessage: (status: number) => string,
+): Promise<void> {
+  const res = await fetch(`${env.VITE_API_BASE_URL}${path}`, { credentials: 'include' });
+  if (!res.ok) {
+    throw new ApiErrorException({ code: errorCode, message: errorMessage(res.status) });
+  }
+
+  const disposition = res.headers.get('Content-Disposition') ?? '';
+  const filename = /filename="?([^";]+)"?/i.exec(disposition)?.[1] ?? fallbackName;
+
+  const url = URL.createObjectURL(await res.blob());
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
 
 export async function downloadRentalExport(params: RentalListParams): Promise<void> {
   const qs = new URLSearchParams();
@@ -230,28 +258,28 @@ export async function downloadRentalExport(params: RentalListParams): Promise<vo
   qs.set('sortBy', params.sortBy);
   qs.set('sortOrder', params.sortOrder);
 
-  const res = await fetch(`${env.VITE_API_BASE_URL}/partner/portal/rentals/export?${qs}`, {
-    credentials: 'include',
+  const mm = String(params.month).padStart(2, '0');
+  await downloadFile(
+    `/partner/portal/rentals/export?${qs}`,
+    `rental-monitoring-${params.year}-${mm}.xlsx`,
+    'EXPORT_FAILED',
+    (status) => `Export gagal (HTTP ${status})`,
+  );
+}
+
+/**
+ * Per-transaction invoice PDF. The backend only bills settled rentals, so the
+ * shortcut is offered on 'Sudah Dibayar' rows only; `variables` on the
+ * returned mutation identifies the row that is currently generating.
+ */
+export function useRentalInvoiceDownload() {
+  return useMutation({
+    mutationFn: (item: Pick<RentalItem, 'id' | 'plateNumber'>) =>
+      downloadFile(
+        `/partner/portal/rentals/${item.id}/invoice`,
+        `invoice-${item.plateNumber.replace(/[^a-zA-Z0-9]+/g, '-').toLowerCase()}.pdf`,
+        'INVOICE_FAILED',
+        (status) => `Invoice gagal dibuat (HTTP ${status})`,
+      ),
   });
-  if (!res.ok) {
-    throw new ApiErrorException({
-      code: 'EXPORT_FAILED',
-      message: `Export gagal (HTTP ${res.status})`,
-    });
-  }
-
-  const disposition = res.headers.get('Content-Disposition') ?? '';
-  const match = /filename="?([^";]+)"?/i.exec(disposition);
-  const filename =
-    match?.[1] ?? `rental-monitoring-${params.year}-${String(params.month).padStart(2, '0')}.xlsx`;
-
-  const blob = await res.blob();
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement('a');
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  URL.revokeObjectURL(url);
 }

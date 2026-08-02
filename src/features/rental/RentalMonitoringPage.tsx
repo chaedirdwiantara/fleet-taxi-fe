@@ -16,7 +16,12 @@ import { RentalFilterBar } from './components/RentalFilterBar';
 import { RentalFormDialog } from './components/RentalFormDialog';
 import { RentalSummarySection } from './components/RentalSummarySection';
 import { RentalTable } from './components/RentalTable';
-import { downloadRentalExport, useDeleteRental, useRentalsQuery } from './hooks';
+import {
+  downloadRentalExport,
+  useDeleteRental,
+  useRentalInvoiceDownload,
+  useRentalsQuery,
+} from './hooks';
 import type { RentalSearch } from './searchSchema';
 import type { RentalItem, RentalListParams } from './types';
 
@@ -40,6 +45,7 @@ export function RentalMonitoringPage({
   };
   const rentals = useRentalsQuery(params);
   const remove = useDeleteRental();
+  const invoice = useRentalInvoiceDownload();
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<RentalItem | null>(null);
@@ -166,6 +172,8 @@ export function RentalMonitoringPage({
                   items={rentals.data.items}
                   onEdit={setEditing}
                   onPaymentClick={setPaymentItem}
+                  onInvoice={(item) => invoice.mutate(item)}
+                  invoicePendingId={invoice.isPending ? (invoice.variables?.id ?? null) : null}
                   onDelete={(id) => remove.mutate(id)}
                   deletePending={remove.isPending}
                 />
@@ -173,6 +181,11 @@ export function RentalMonitoringPage({
               {remove.isError && (
                 <p className="mt-2 text-sm text-destructive" role="alert">
                   {remove.error.message}
+                </p>
+              )}
+              {invoice.isError && (
+                <p className="mt-2 text-sm text-destructive" role="alert">
+                  {invoice.error.message}
                 </p>
               )}
             </CardContent>
