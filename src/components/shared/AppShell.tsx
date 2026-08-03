@@ -58,6 +58,14 @@ const NAV: Record<Audience, NavEntry[]> = {
         { to: '/admin/fleet-monitoring-grab', label: 'Grab Monitoring', icon: Table2 },
       ],
     },
+    // The console's own plate registry — it decides which vehicles the grids
+    // above can show, so it sits right under them (super_admin cluster).
+    {
+      to: '/admin/plate-registration',
+      label: 'Plate Registration',
+      icon: ClipboardList,
+      requireRole: 'super_admin',
+    },
     { to: '/admin/logs', label: 'Log', icon: ScrollText, requireRole: 'super_admin' },
     {
       to: '/admin/user-management',

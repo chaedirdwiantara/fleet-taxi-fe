@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Copy, KeyRound, Loader2, Pencil, Plus, ShieldAlert, Trash2 } from 'lucide-react';
+import { Copy, KeyRound, Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
+import { AccessDenied } from '@/components/shared/AccessDenied';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -62,7 +63,7 @@ export function UserManagementPage() {
   const isSuperAdmin = (session?.roles ?? []).includes('super_admin');
   const [tab, setTab] = useState<Tab>('admin');
 
-  if (!isSuperAdmin) return <AccessDenied />;
+  if (!isSuperAdmin) return <AccessDenied what="Halaman manajemen akun" />;
 
   return (
     <div className="space-y-4">
@@ -103,27 +104,6 @@ export function UserManagementPage() {
       </div>
 
       {tab === 'admin' ? <UserAdminTab /> : <UserPartnerTab />}
-    </div>
-  );
-}
-
-function AccessDenied() {
-  return (
-    <div className="flex min-h-[60svh] items-center justify-center">
-      <Card className="max-w-md">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <ShieldAlert className="size-5 text-destructive" aria-hidden />
-            Akses ditolak
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Halaman manajemen akun hanya tersedia untuk <strong>super admin</strong>. Hubungi
-            administrator jika Anda memerlukan akses.
-          </p>
-        </CardContent>
-      </Card>
     </div>
   );
 }

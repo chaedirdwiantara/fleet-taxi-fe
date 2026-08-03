@@ -16,6 +16,9 @@ export const qk = {
   admin: {
     users: (type: 'admin' | 'partner') => ['admin', 'users', type] as const,
     partners: ['admin', 'partners'] as const,
+    // Plate Registration — the console's own plate registry (super_admin).
+    // Mutating it changes the admin fleet scope, so it invalidates qk.fleet.all.
+    plates: ['admin', 'plates'] as const,
     // Activity log (super_admin only) — audit trail across both audiences.
     activityLogs: (p: {
       page: number;

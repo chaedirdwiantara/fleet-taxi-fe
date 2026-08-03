@@ -45,6 +45,18 @@ export const seedPartnerPlates = [
   { id: 3, plateNumber: 'B 2000 GRB', plateNumberNorm: 'B2000GRB', vehicleType: 'Reguler - Xenia' },
 ];
 
+// The admin console's own registry ("Plate Registration"). Deliberately a plate
+// NO partner registered: it is what makes the admin grid show a vehicle the
+// partner scope can never reach — and it must stay out of the partner's view.
+export const seedAdminPlates = [
+  {
+    id: 1,
+    plateNumber: 'B 1003 XYZ',
+    plateNumberNorm: 'B1003XYZ',
+    vehicleType: 'Premium - Admin Entry',
+  },
+];
+
 // ---- Checkpoint (dokumentasi serah terima) -----------------------------------
 
 export const CHECKPOINT_POINT_KEYS = [
