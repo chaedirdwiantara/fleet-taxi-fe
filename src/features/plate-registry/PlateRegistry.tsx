@@ -33,6 +33,7 @@ export function PlateRegistry<TRow extends PlateRow>({
   /** Shown under "Belum ada plat terdaftar". */
   emptyDescription: string;
   controller: PlateRegistryController<TRow>;
+  /** Admin registry only: adds the Nama Partner field and the Partner column. */
   showPartnerColumn?: boolean;
   /** Explains what the Partner column means; rendered under the table. */
   partnerColumnNote?: string;
@@ -55,6 +56,7 @@ export function PlateRegistry<TRow extends PlateRow>({
           <PlateForm
             mode="create"
             idPrefix="add-plate"
+            showPartnerField={showPartnerColumn}
             pending={register.isPending}
             error={register.error}
             onSubmit={(input, done) => register.mutate(input, { onSuccess: done })}
@@ -123,9 +125,11 @@ export function PlateRegistry<TRow extends PlateRow>({
               key={editing.id}
               mode="edit"
               idPrefix="edit-plate"
+              showPartnerField={showPartnerColumn}
               defaultValues={{
                 plateNumber: editing.plateNumber,
                 vehicleType: editing.vehicleType ?? '',
+                partnerName: editing.partnerName ?? '',
               }}
               pending={update.isPending}
               error={update.error}

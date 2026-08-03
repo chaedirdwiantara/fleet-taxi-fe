@@ -32,7 +32,7 @@ export function AdminPlateRegistrationPage() {
       emptyDescription="Tambahkan plat pertama di atas agar datanya muncul di Gojek Monitoring."
       controller={{ list, register, update, remove }}
       showPartnerColumn
-      partnerColumnNote="Kolom Partner menunjukkan partner yang mendaftarkan plat yang sama di portalnya; “—” berarti belum ada partner yang mendaftarkannya."
+      partnerColumnNote="Kolom Partner memakai Nama Partner yang Anda isi. Bila dikosongkan, yang tampil adalah partner yang mendaftarkan plat yang sama di portalnya (badge bergaris); “—” berarti belum ada keduanya."
     />
   );
 }

@@ -329,6 +329,8 @@ type MockPlate = {
   plateNumber: string;
   plateNumberNorm: string;
   vehicleType: string | null;
+  /** Admin registry only: the free-text partner label the admin typed. */
+  partnerName?: string | null;
 };
 const normPlate = (s: string) => s.toUpperCase().replace(/[^A-Z0-9]/g, '');
 let platesState: MockPlate[] = seedPartnerPlates.map((p) => ({ ...p }));
@@ -345,9 +347,12 @@ const adminScopeNorms = () =>
   new Set([...platesState, ...adminPlatesState].map((p) => p.plateNumberNorm));
 // The admin registry lists which partner registered the same plate (one mock
 // partner here); `null` when nobody claimed it.
-const withPartnerName = (plate: MockPlate) => ({
+type AdminPlateBody = { plateNumber?: string; vehicleType?: string; partnerName?: string };
+const presentAdminPlate = (plate: MockPlate) => ({
   ...plate,
-  partnerName: platesState.some((p) => p.plateNumberNorm === plate.plateNumberNorm)
+  partnerName: plate.partnerName ?? null,
+  // resolved live, never stored — matches AdminPlatesService
+  registeredPartnerName: platesState.some((p) => p.plateNumberNorm === plate.plateNumberNorm)
     ? partnerMe.partner.name
     : null,
 });
@@ -1360,22 +1365,23 @@ export const handlers = [
   }),
 
   // ---- Admin console — Plate Registration (own registry) -------------------
-  // super_admin-gated like the rest of /admin/users; `partnerName` is resolved
-  // from the partner registrations, exactly like the backend does.
+  // super_admin-gated like the rest of /admin/users. `partnerName` is stored as
+  // typed; `registeredPartnerName` is resolved from the partner registrations on
+  // every read, exactly like the backend does.
   http.get('*/admin/plates', () => {
     const denied = requireSuperAdmin();
     if (denied) return denied;
     return ok(
       [...adminPlatesState]
         .sort((a, b) => a.plateNumberNorm.localeCompare(b.plateNumberNorm))
-        .map(withPartnerName),
+        .map(presentAdminPlate),
     );
   }),
 
   http.post('*/admin/plates', async ({ request }) => {
     const denied = requireSuperAdmin();
     if (denied) return denied;
-    const body = (await request.json()) as { plateNumber?: string; vehicleType?: string };
+    const body = (await request.json()) as AdminPlateBody;
     const norm = normPlate(body.plateNumber ?? '');
     if (!norm) return err(400, 'VALIDATION_ERROR', 'Nomor plat tidak valid');
     if (adminPlatesState.some((p) => p.plateNumberNorm === norm)) {
@@ -1386,9 +1392,10 @@ export const handlers = [
       plateNumber: (body.plateNumber ?? '').trim(),
       plateNumberNorm: norm,
       vehicleType: body.vehicleType?.trim() || null,
+      partnerName: body.partnerName?.trim() || null,
     };
     adminPlatesState.push(created);
-    return HttpResponse.json({ success: true, data: withPartnerName(created) }, { status: 201 });
+    return HttpResponse.json({ success: true, data: presentAdminPlate(created) }, { status: 201 });
   }),
 
   http.put('*/admin/plates/:id', async ({ params, request }) => {
@@ -1396,7 +1403,7 @@ export const handlers = [
     if (denied) return denied;
     const plate = adminPlatesState.find((p) => String(p.id) === params.id);
     if (!plate) return err(404, 'NOT_FOUND', 'Plat tidak ditemukan');
-    const body = (await request.json()) as { plateNumber?: string; vehicleType?: string };
+    const body = (await request.json()) as AdminPlateBody;
     const norm = normPlate(body.plateNumber ?? '');
     if (!norm) return err(400, 'VALIDATION_ERROR', 'Nomor plat tidak valid');
     if (
@@ -1408,7 +1415,8 @@ export const handlers = [
     plate.plateNumber = (body.plateNumber ?? '').trim();
     plate.plateNumberNorm = norm;
     plate.vehicleType = body.vehicleType?.trim() || null;
-    return ok(withPartnerName(plate));
+    plate.partnerName = body.partnerName?.trim() || null;
+    return ok(presentAdminPlate(plate));
   }),
 
   http.delete('*/admin/plates/:id', ({ params }) => {

@@ -2,8 +2,8 @@ import type { UseMutationResult, UseQueryResult } from '@tanstack/react-query';
 
 // One plate-registration screen serves two audiences: the partner portal
 // ("Daftarkan Plat", its own plates) and the admin console ("Plate
-// Registration", the console's own registry). Same two fields, same CRUD — the
-// difference is which endpoint the controller below talks to.
+// Registration", the console's own registry). Same CRUD — what differs is the
+// endpoint behind the controller and the admin-only partner field.
 
 /** A registered plate as either registry returns it. */
 export type PlateRow = {
@@ -11,14 +11,17 @@ export type PlateRow = {
   plateNumber: string; // as entered, e.g. "B 1793 SCP"
   plateNumberNorm: string; // normalized [A-Z0-9]
   vehicleType: string | null; // "Type", free text (e.g. "Premium - BYD M6")
+  /** Admin registry only: the partner name the admin typed in. */
+  partnerName?: string | null;
   /**
    * Admin registry only: the active partner that registered the same plate in
-   * its own portal, `null` when nobody claimed it. Absent on the partner side.
+   * its own portal, `null` when nobody claimed it. Server-derived on every read
+   * — shown only as a fallback where `partnerName` is empty.
    */
-  partnerName?: string | null;
+  registeredPartnerName?: string | null;
 };
 
-export type PlateInput = { plateNumber: string; vehicleType?: string };
+export type PlateInput = { plateNumber: string; vehicleType?: string; partnerName?: string };
 
 /**
  * The data side of the screen, injected by the audience's page. Keeps
