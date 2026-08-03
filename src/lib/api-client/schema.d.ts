@@ -194,6 +194,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/plates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List admin-registered plates, with the partner that claimed each (super_admin only) */
+        get: operations["AdminPlatesController_list"];
+        put?: never;
+        /** Register a plate (nomor + Type) for the admin console */
+        post: operations["AdminPlatesController_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/plates/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Edit one admin-registered plate (nomor + Type) */
+        put: operations["AdminPlatesController_update"];
+        post?: never;
+        /** Remove one admin-registered plate */
+        delete: operations["AdminPlatesController_remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/fleet/{platform}/imports": {
         parameters: {
             query?: never;
@@ -1484,6 +1520,18 @@ export interface components {
              */
             rateLimit?: number;
         };
+        AdminPlateDto: {
+            /**
+             * @description Nomor plat (as entered)
+             * @example B 1793 SCP
+             */
+            plateNumber: string;
+            /**
+             * @description Type (jenis kendaraan)
+             * @example Premium - BYD M6
+             */
+            vehicleType?: string;
+        };
         EditDriverDto: {
             /** @description fleet_import_details.id (manual-row / single-detail edit) */
             detailId?: number;
@@ -2178,6 +2226,86 @@ export interface operations {
         };
         responses: {
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminPlatesController_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminPlatesController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminPlateDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminPlatesController_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminPlateDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminPlatesController_remove: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };

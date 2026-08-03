@@ -19,6 +19,7 @@ import {
   partnerMe,
   adminMe,
   superAdminMe,
+  seedAdminPlates,
   seedPartnerPlates,
   seedCheckpoints,
   makeCheckpointPoints,
@@ -332,14 +333,35 @@ type MockPlate = {
 const normPlate = (s: string) => s.toUpperCase().replace(/[^A-Z0-9]/g, '');
 let platesState: MockPlate[] = seedPartnerPlates.map((p) => ({ ...p }));
 let nextPlateId = 100;
+// PARTNER scope — its own registrations only. Never widened by the admin
+// registry below; that isolation is the whole point of the two tables.
 const registeredNorms = () => new Set(platesState.map((p) => p.plateNumberNorm));
-// Overlay the Type a partner entered in Daftarkan Plat onto scoped grid rows
-// (matches the backend PortalFleetService overlay).
+
+// ---- Mock admin-plate registration state (Plate Registration) ----------------
+let adminPlatesState: MockPlate[] = seedAdminPlates.map((p) => ({ ...p }));
+let nextAdminPlateId = 200;
+/** ADMIN scope — every partner's registrations PLUS the console's own registry. */
+const adminScopeNorms = () =>
+  new Set([...platesState, ...adminPlatesState].map((p) => p.plateNumberNorm));
+// The admin registry lists which partner registered the same plate (one mock
+// partner here); `null` when nobody claimed it.
+const withPartnerName = (plate: MockPlate) => ({
+  ...plate,
+  partnerName: platesState.some((p) => p.plateNumberNorm === plate.plateNumberNorm)
+    ? partnerMe.partner.name
+    : null,
+});
+
+// Overlay the Type entered at registration onto scoped grid rows (matches the
+// backend overlay). `includeAdmin` mirrors unionScope: admin entries win, and
+// they exist on the admin surfaces only.
 const overlayPlateTypes = <T extends { rows: { plateNorm: string; vehicleType: string }[] }>(
   grid: T,
+  { includeAdmin = false }: { includeAdmin?: boolean } = {},
 ): T => {
+  const source = includeAdmin ? [...platesState, ...adminPlatesState] : platesState;
   const byNorm = new Map(
-    platesState.filter((p) => p.vehicleType).map((p) => [p.plateNumberNorm, p.vehicleType!]),
+    source.filter((p) => p.vehicleType).map((p) => [p.plateNumberNorm, p.vehicleType!]),
   );
   for (const row of grid.rows) {
     if (!row.vehicleType && byNorm.has(row.plateNorm)) row.vehicleType = byNorm.get(row.plateNorm)!;
@@ -351,6 +373,12 @@ const overlayPlateTypes = <T extends { rows: { plateNorm: string; vehicleType: s
 export const resetPartnerPlates = () => {
   platesState = seedPartnerPlates.map((p) => ({ ...p }));
   nextPlateId = 100;
+};
+
+/** Reset the admin registry to the seed (call between tests for isolation). */
+export const resetAdminPlates = () => {
+  adminPlatesState = seedAdminPlates.map((p) => ({ ...p }));
+  nextAdminPlateId = 200;
 };
 
 // ---- Mock checkpoint state (dokumentasi serah terima) -------------------------
@@ -790,8 +818,9 @@ const requireSuperAdmin = () => {
 
 export const handlers = [
   // ---- Admin fleet — grids -------------------------------------------------
-  // The admin Gojek surface mirrors the partner registrations (Daftarkan Plat):
-  // only plates registered by at least one partner appear, and every aggregate
+  // The admin Gojek surface is scoped to the union of every partner's
+  // registration (Daftarkan Plat) and the console's own registry (Plate
+  // Registration): a plate nobody registered never appears, and every aggregate
   // derives from those rows — matches the backend AdminFleetService.
   http.get('*/admin/fleet/gojek/grid', ({ request }) => {
     const url = new URL(request.url);
@@ -799,7 +828,8 @@ export const handlers = [
     const year = int(url.searchParams.get('year'), 2026);
     const scoped = overlayPlateTypes(
       // keepRawRows: the "Data Mentah Tanpa Plat" queue is admin-only
-      scopeGojekGrid(makeGojekGrid(month, year), registeredNorms(), { keepRawRows: true }),
+      scopeGojekGrid(makeGojekGrid(month, year), adminScopeNorms(), { keepRawRows: true }),
+      { includeAdmin: true },
     );
     const grid = readMode(url) === 'driver' ? pivotGojekByDriver(scoped) : scoped;
     // The SERVER returns the filtered pivot (kickoff §5) — emulate that here.
@@ -820,11 +850,11 @@ export const handlers = [
     const url = new URL(request.url);
     const month = int(url.searchParams.get('month'), 6);
     const year = int(url.searchParams.get('year'), 2026);
-    const grid = scopeGojekGrid(makeGojekGrid(month, year), registeredNorms());
+    const grid = scopeGojekGrid(makeGojekGrid(month, year), adminScopeNorms());
     const partners = url.searchParams.getAll('rentalPartner');
     // Re-scope (not just filter rows) so dailyTotals/tableTotals recompute.
     const scopeFor = (m: number, y: number) => {
-      const base = scopeGojekGrid(makeGojekGrid(m, y), registeredNorms());
+      const base = scopeGojekGrid(makeGojekGrid(m, y), adminScopeNorms());
       if (!partners.length) return base;
       return scopeGojekGrid(
         base,
@@ -913,14 +943,14 @@ export const handlers = [
     const month = int(url.searchParams.get('month'), 6);
     const year = int(url.searchParams.get('year'), 2026);
     const byDriver = readMode(url) === 'driver';
-    // Same scoping as the grid: a plate no partner registered has no admin cell.
+    // Same scoping as the grid: a plate nobody registered has no admin cell.
     // Driver rows are keyed `drv:<NAME>`, so the scope applies to the grid.
-    if (!byDriver && !registeredNorms().has(plate)) {
+    if (!byDriver && !adminScopeNorms().has(plate)) {
       return err(404, 'NOT_FOUND', 'No transactions for that vehicle/day');
     }
     // Return the SAME breakdown the pivot cell was built from (brief §2.A).
     const base = makeGojekGrid(month, year);
-    const grid = byDriver ? pivotGojekByDriver(scopeGojekGrid(base, registeredNorms())) : base;
+    const grid = byDriver ? pivotGojekByDriver(scopeGojekGrid(base, adminScopeNorms())) : base;
     const row = grid.rows.find((r) => r.plateNorm === plate);
     const detail = row?.days[day]?.detail;
     if (detail) return ok(detail);
@@ -1102,8 +1132,12 @@ export const handlers = [
     if (body.password === 'wrong') {
       return err(401, 'INVALID_CREDENTIALS', 'Email atau password salah');
     }
-    setSessionUser(adminMe); // admin login only ever yields an admin session
-    return ok(adminMe);
+    // Admin login only ever yields an admin session. Signing in with the mock
+    // super admin's address gives the super_admin one, so the super_admin-only
+    // screens (Plate Registration, Manajemen Akun, Log) are reachable in dev.
+    const user = body.email.toLowerCase() === superAdminMe.email ? superAdminMe : adminMe;
+    setSessionUser(user);
+    return ok(user);
   }),
 
   http.post('*/admin/auth/logout', () => {
@@ -1323,6 +1357,67 @@ export const handlers = [
       { success: true, data: { id: nextManagedUserId++, keyPrefix: rawKey.slice(0, 12), rawKey } },
       { status: 201 },
     );
+  }),
+
+  // ---- Admin console — Plate Registration (own registry) -------------------
+  // super_admin-gated like the rest of /admin/users; `partnerName` is resolved
+  // from the partner registrations, exactly like the backend does.
+  http.get('*/admin/plates', () => {
+    const denied = requireSuperAdmin();
+    if (denied) return denied;
+    return ok(
+      [...adminPlatesState]
+        .sort((a, b) => a.plateNumberNorm.localeCompare(b.plateNumberNorm))
+        .map(withPartnerName),
+    );
+  }),
+
+  http.post('*/admin/plates', async ({ request }) => {
+    const denied = requireSuperAdmin();
+    if (denied) return denied;
+    const body = (await request.json()) as { plateNumber?: string; vehicleType?: string };
+    const norm = normPlate(body.plateNumber ?? '');
+    if (!norm) return err(400, 'VALIDATION_ERROR', 'Nomor plat tidak valid');
+    if (adminPlatesState.some((p) => p.plateNumberNorm === norm)) {
+      return err(409, 'CONFLICT', 'Plat sudah terdaftar');
+    }
+    const created: MockPlate = {
+      id: nextAdminPlateId++,
+      plateNumber: (body.plateNumber ?? '').trim(),
+      plateNumberNorm: norm,
+      vehicleType: body.vehicleType?.trim() || null,
+    };
+    adminPlatesState.push(created);
+    return HttpResponse.json({ success: true, data: withPartnerName(created) }, { status: 201 });
+  }),
+
+  http.put('*/admin/plates/:id', async ({ params, request }) => {
+    const denied = requireSuperAdmin();
+    if (denied) return denied;
+    const plate = adminPlatesState.find((p) => String(p.id) === params.id);
+    if (!plate) return err(404, 'NOT_FOUND', 'Plat tidak ditemukan');
+    const body = (await request.json()) as { plateNumber?: string; vehicleType?: string };
+    const norm = normPlate(body.plateNumber ?? '');
+    if (!norm) return err(400, 'VALIDATION_ERROR', 'Nomor plat tidak valid');
+    if (
+      norm !== plate.plateNumberNorm &&
+      adminPlatesState.some((p) => p.plateNumberNorm === norm)
+    ) {
+      return err(409, 'CONFLICT', 'Plat sudah terdaftar');
+    }
+    plate.plateNumber = (body.plateNumber ?? '').trim();
+    plate.plateNumberNorm = norm;
+    plate.vehicleType = body.vehicleType?.trim() || null;
+    return ok(withPartnerName(plate));
+  }),
+
+  http.delete('*/admin/plates/:id', ({ params }) => {
+    const denied = requireSuperAdmin();
+    if (denied) return denied;
+    const idx = adminPlatesState.findIndex((p) => String(p.id) === params.id);
+    if (idx === -1) return err(404, 'NOT_FOUND', 'Plat tidak ditemukan');
+    adminPlatesState.splice(idx, 1);
+    return ok({ deleted: true });
   }),
 
   // ---- Partner portal — Daftarkan Plat (registered plates) -----------------
