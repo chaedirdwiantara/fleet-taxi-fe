@@ -16,14 +16,13 @@ import { cn } from '@/lib/utils';
 import { plateSchema, toPlateInput, type PlateValues } from '../plateSchema';
 import type { PlateInput } from '../types';
 
-const EMPTY: PlateValues = { plateNumber: '', vehicleType: '' };
+const EMPTY: PlateValues = { plateNumber: '', vehicleType: '', partnerName: '' };
 
 /**
- * The two-field plate form, shared by the "Tambah Plat" card (`create`, fields
- * side by side from `sm` up) and the Edit dialog (`edit`, always stacked).
- * `onSubmit` receives a `done` callback to run once the server accepted the
- * write — the form uses it to clear itself; closing the dialog stays the
- * caller's business.
+ * The plate form, shared by the "Tambah Plat" card (`create`, fields side by
+ * side from `sm` up) and the Edit dialog (`edit`, always stacked). `onSubmit`
+ * receives a `done` callback to run once the server accepted the write — the
+ * form uses it to clear itself; closing the dialog stays the caller's business.
  */
 export function PlateForm({
   mode,
@@ -31,6 +30,7 @@ export function PlateForm({
   pending,
   error,
   idPrefix,
+  showPartnerField = false,
   onSubmit,
   onCancel,
 }: {
@@ -40,6 +40,8 @@ export function PlateForm({
   error: Error | null;
   /** Namespaces the input ids so both forms can be mounted at once. */
   idPrefix: string;
+  /** Admin registry only — the partner portal has no partner to name. */
+  showPartnerField?: boolean;
   onSubmit: (input: PlateInput, done: () => void) => void;
   onCancel?: () => void;
 }) {
@@ -50,7 +52,7 @@ export function PlateForm({
   });
 
   const submit = form.handleSubmit((values) =>
-    onSubmit(toPlateInput(values), () => form.reset(isCreate ? EMPTY : values)),
+    onSubmit(toPlateInput(values, showPartnerField), () => form.reset(isCreate ? EMPTY : values)),
   );
 
   return (
@@ -59,7 +61,11 @@ export function PlateForm({
         <div
           className={cn(
             'grid gap-3',
-            isCreate && 'sm:grid-cols-[1fr_1fr_auto] sm:items-start sm:gap-4',
+            isCreate && 'sm:items-start sm:gap-4',
+            isCreate &&
+              (showPartnerField
+                ? 'sm:grid-cols-[1fr_1fr_1fr_auto]'
+                : 'sm:grid-cols-[1fr_1fr_auto]'),
           )}
         >
           <FormField
@@ -101,6 +107,28 @@ export function PlateForm({
               </FormItem>
             )}
           />
+
+          {showPartnerField && (
+            <FormField
+              control={form.control}
+              name="partnerName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel htmlFor={`${idPrefix}-partner`}>Nama Partner (opsional)</FormLabel>
+                  <FormControl>
+                    <Input
+                      id={`${idPrefix}-partner`}
+                      placeholder="Bhisa Shuttle"
+                      autoComplete="off"
+                      maxLength={100}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
 
           {/* aligns the button with the inputs, past the invisible label row */}
           {isCreate && (

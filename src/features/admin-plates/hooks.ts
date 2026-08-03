@@ -34,7 +34,11 @@ function useInvalidatePlates() {
 export function useRegisterAdminPlate() {
   const invalidate = useInvalidatePlates();
   return useMutation({
-    mutationFn: async (body: { plateNumber: string; vehicleType?: string }) => {
+    mutationFn: async (body: {
+      plateNumber: string;
+      vehicleType?: string;
+      partnerName?: string;
+    }) => {
       const { data, error } = await api.POST('/admin/plates', { body });
       if (error) throwEnvelope(error);
       return unwrap(data) as AdminPlate;
@@ -46,10 +50,19 @@ export function useRegisterAdminPlate() {
 export function useUpdateAdminPlate() {
   const invalidate = useInvalidatePlates();
   return useMutation({
-    mutationFn: async (input: { id: number; plateNumber: string; vehicleType?: string }) => {
+    mutationFn: async (input: {
+      id: number;
+      plateNumber: string;
+      vehicleType?: string;
+      partnerName?: string;
+    }) => {
       const { data, error } = await api.PUT('/admin/plates/{id}', {
         params: { path: { id: input.id } },
-        body: { plateNumber: input.plateNumber, vehicleType: input.vehicleType },
+        body: {
+          plateNumber: input.plateNumber,
+          vehicleType: input.vehicleType,
+          partnerName: input.partnerName,
+        },
       });
       if (error) throwEnvelope(error);
       return unwrap(data) as AdminPlate;

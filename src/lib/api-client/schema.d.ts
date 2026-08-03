@@ -1531,6 +1531,11 @@ export interface components {
              * @example Premium - BYD M6
              */
             vehicleType?: string;
+            /**
+             * @description Nama partner, teks bebas. Kosongkan untuk memakai partner yang mendaftarkan plat yang sama di portalnya.
+             * @example Bhisa Shuttle
+             */
+            partnerName?: string;
         };
         EditDriverDto: {
             /** @description fleet_import_details.id (manual-row / single-detail edit) */

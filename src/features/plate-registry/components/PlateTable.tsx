@@ -69,15 +69,7 @@ export function PlateTable({
               <TableCell className="text-muted-foreground">{i + 1}</TableCell>
               <TableCell className="font-medium whitespace-nowrap">{plate.plateNumber}</TableCell>
               <TableCell className="text-muted-foreground">{plate.vehicleType || '-'}</TableCell>
-              {showPartner && (
-                <TableCell className="whitespace-nowrap">
-                  {plate.partnerName ? (
-                    <Badge variant="secondary">{plate.partnerName}</Badge>
-                  ) : (
-                    <span className="text-muted-foreground">—</span>
-                  )}
-                </TableCell>
-              )}
+              {showPartner && <PartnerCell plate={plate} />}
               <TableCell className={cn('text-right', showPartner && STICKY_ACTION)}>
                 <Button
                   variant="ghost"
@@ -125,5 +117,29 @@ export function PlateTable({
         </TableBody>
       </Table>
     </div>
+  );
+}
+
+/**
+ * The admin-only Partner column. The name the admin typed wins; when it is
+ * empty we still show the partner that registered the same plate in its own
+ * portal, in an outline badge so the two sources never read as the same claim.
+ */
+function PartnerCell({ plate }: { plate: PlateRow }) {
+  const typed = plate.partnerName?.trim();
+  const registered = plate.registeredPartnerName?.trim();
+
+  return (
+    <TableCell className="whitespace-nowrap">
+      {typed ? (
+        <Badge variant="secondary">{typed}</Badge>
+      ) : registered ? (
+        <Badge variant="outline" title="Dari registrasi partner di portalnya">
+          {registered}
+        </Badge>
+      ) : (
+        <span className="text-muted-foreground">—</span>
+      )}
+    </TableCell>
   );
 }
