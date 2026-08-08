@@ -29,9 +29,23 @@ describe('audienceOfPath', () => {
   });
 });
 
+// The head tags AudienceTheme drives; index.html ships them, jsdom does not.
+const iconLink = () =>
+  document.querySelector<HTMLLinkElement>('link[rel="icon"][type="image/svg+xml"]')!;
+const themeMeta = (scheme: 'light' | 'dark') =>
+  document.querySelector<HTMLMetaElement>(
+    `meta[name="theme-color"][media="(prefers-color-scheme: ${scheme})"]`,
+  )!;
+
 describe('AudienceTheme', () => {
   beforeEach(() => {
     delete document.documentElement.dataset.audience;
+    document.head.innerHTML = `
+      <link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml" />
+      <link rel="icon" href="/favicon.ico?v=2" sizes="32x32" />
+      <meta name="theme-color" content="#E01937" media="(prefers-color-scheme: light)" />
+      <meta name="theme-color" content="#A3132C" media="(prefers-color-scheme: dark)" />
+    `;
   });
 
   it('tags <html> so portalled surfaces inherit the accent too', () => {
@@ -46,5 +60,35 @@ describe('AudienceTheme', () => {
     pathname.current = '/admin/gojek/dashboard';
     rerender(<AudienceTheme />);
     expect(document.documentElement.dataset.audience).toBe('admin');
+  });
+
+  it('flies the blue mark in the tab while in the portal', () => {
+    renderAt('/partner/login');
+    expect(iconLink().getAttribute('href')).toBe('/favicon-partner.svg?v=1');
+    expect(themeMeta('light').content).toBe('#3082F6');
+    expect(themeMeta('dark').content).toBe('#3052B3');
+  });
+
+  it('restores the brand red mark on the admin console', () => {
+    const { rerender } = renderAt('/partner/login');
+    expect(iconLink().getAttribute('href')).toBe('/favicon-partner.svg?v=1');
+
+    pathname.current = '/admin';
+    rerender(<AudienceTheme />);
+    expect(iconLink().getAttribute('href')).toBe('/favicon.svg?v=2');
+    expect(themeMeta('light').content).toBe('#E01937');
+    expect(themeMeta('dark').content).toBe('#A3132C');
+  });
+
+  it('leaves the .ico fallback alone — only the SVG icon is per-audience', () => {
+    renderAt('/partner');
+    const ico = document.querySelector<HTMLLinkElement>('link[rel="icon"][sizes="32x32"]')!;
+    expect(ico.getAttribute('href')).toBe('/favicon.ico?v=2');
+  });
+
+  it('does not throw when the head tags are missing (tests, embeds)', () => {
+    document.head.innerHTML = '';
+    expect(() => renderAt('/partner')).not.toThrow();
+    expect(document.documentElement.dataset.audience).toBe('partner');
   });
 });
