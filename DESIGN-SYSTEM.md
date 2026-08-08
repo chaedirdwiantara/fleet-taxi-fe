@@ -29,6 +29,14 @@ Konsekuensinya untuk kode baru: **tetap pakai kelas token saja** (`bg-primary`,
 komponen yang sama harus benar di dua konsol. `destructive` sengaja tetap merah di
 keduanya — artinya "merusak", bukan "brand".
 
+Komponen yang sama juga menukar **chrome browser**-nya: ikon tab
+(`public/favicon.svg` merah ↔ `public/favicon-partner.svg` biru) dan `theme-color`
+(warna bar alamat di mobile). Hex di `CHROME` pada `AudienceTheme.tsx` adalah bentuk
+hex dari `--brand-gradient-from|to` — kalau token birunya diubah, ubah juga hex-nya
+dan SVG-nya, lalu **naikkan `?v=`**: Chrome menyimpan favicon di database sendiri
+berdasarkan URL, mengabaikan `Cache-Control`, dan bertahan melewati hard reload.
+Bentuk mark-nya tidak pernah diubah — hanya gradiennya.
+
 **Pakai `primary` untuk UI, `brand` hanya untuk logo.** Nilainya kebetulan sama di light
 mode, tapi jangan disamakan: `--brand-gradient-from|to` dipakai eksklusif oleh
 `components/shared/Logo.tsx`, dan `--brand` versi dark sengaja lebih terang (disetel
