@@ -8,10 +8,10 @@ paths — TanStack Router does client-side routing).
 
 - Backend deployed and reachable over **HTTPS** at `VITE_API_BASE_URL`
   (default `https://api.fleet-taxi.id`). See `../../BE/docs/RUNBOOK.md`.
-- Backend **CORS** allowlist includes the app origin (e.g. `https://app.fleet-taxi.id`)
+- Backend **CORS** allowlist includes the app origin (`https://fleet-taxi.id`)
   with `credentials: true`.
 - Session cookie issued with `Domain=.fleet-taxi.id`, `SameSite=None`, `Secure`
-  so it flows cross-subdomain (app.* → api.*). (Already configured in the BE.)
+  so it flows cross-subdomain (apex → api.*). (Already configured in the BE.)
 
 ## 1. Configure env
 
@@ -79,18 +79,20 @@ get the "Something went wrong!" boundary with
 while the file itself serves fine to a fresh client.
 
 Cause: Cloudflare Pages answers a request for a not-yet-propagated asset with the
-**SPA fallback** — `index.html`, **HTTP 200**, `cache-control: public,
-max-age=14400`. Check it yourself:
+**SPA fallback** — `index.html`, **HTTP 200** — cached under the *asset's*
+policy. Check it yourself:
 
 ```bash
 curl -sI https://fleet-taxi.id/assets/does-not-exist.js
 ```
 
-`content-type: text/html` with a four-hour `max-age` means any browser that
-loaded the app during the propagation window is holding HTML as the body of a
-`.js` file for the next four hours. Every `import()` of that chunk fails until
-the entry expires or the user hard-reloads. (`/` itself is fine —
-`max-age=0, must-revalidate`.) The same trap once hit `/favicon.ico`.
+`content-type: text/html` on a `.js` path means any browser that loaded the app
+during the propagation window is holding HTML as the body of that chunk until the
+response's `max-age` runs out. Every `import()` of it fails until then, or until
+the user hard-reloads. (`/` itself is fine — `max-age=0, must-revalidate`.) The
+same trap once hit `/favicon.ico`. How long the damage lasts is exactly what the
+`max-age` cap below controls, so read the TTL that comes back — not just the
+content type.
 
 Two mitigations are in the repo; neither is optional:
 
@@ -103,6 +105,36 @@ Two mitigations are in the repo; neither is optional:
   to `immutable` / a long max-age: no header rule can distinguish a real asset
   from the fallback, so a long TTL would pin a poisoned response — including the
   entry bundle, where the app never boots far enough to self-heal.
+
+### The `_headers` cap only works if the zone respects it
+
+`public/_headers` is applied by **Pages**. On the custom domain the **zone**
+sits in front of that and can rewrite `max-age` on the way out: if Caching →
+Configuration → **Browser Cache TTL** is set to a fixed duration, that value wins
+and the one-hour cap above silently becomes whatever the zone says — the long TTL
+the cap exists to prevent. A Cache Rule targeting `/assets/*` can do the same.
+
+Verify on both hosts after a deploy; **both must report `max-age=3600`**:
+
+```bash
+curl -sI https://<deployment>.fleet-taxi-web.pages.dev/assets/<hashed>.js
+```
+
+```bash
+curl -sI https://fleet-taxi.id/assets/<hashed>.js
+```
+
+Observed on 2026-08-08 (deploy `048e7b8`): the Pages URL returned
+`max-age=3600`, the custom domain `max-age=14400` — a four-hour poisoning window
+instead of one. The tell that the rule *is* matching and only the TTL is
+overridden: `X-Content-Type-Options: nosniff`, from the same `/assets/*` block,
+survives on the custom domain, and so does `must-revalidate`; only `max-age`
+changes. `/index.html` at `max-age=0` is left alone, so the root document looks
+healthy while every chunk does not.
+
+Fix it on the zone, not in the repo: set **Browser Cache TTL** to **Respect
+Existing Headers**, or add a Cache Rule for `/assets/*` that does the same.
+Requires Cloudflare dashboard access to the `fleet-taxi.id` zone.
 
 ## Notes
 

@@ -1,6 +1,6 @@
 # fleet-taxi-dashboard-web (FE)
 
-React 19 SPA · Vite 8 · TanStack Router/Query/Table/Virtual · Tailwind 4 (CSS-first) · shadcn/ui · MSW · pnpm. Two audiences in one app: admin console and partner portal. Prod: static build on Cloudflare Pages at `app.fleet-taxi.id`, API at `api.fleet-taxi.id`.
+React 19 SPA · Vite 8 · TanStack Router/Query/Table/Virtual · Tailwind 4 (CSS-first) · shadcn/ui · MSW · pnpm. Two audiences in one app: admin console and partner portal. Prod: static build on Cloudflare Pages at `fleet-taxi.id` (apex — there is no `app.` host), API at `api.fleet-taxi.id`.
 
 **PROJECT-BRIEF.md is the canonical contract**; `frontend-kickoff.md` is historical. `docs/DEPLOY.md` covers hosting (SPA fallback is the one hard requirement).
 
