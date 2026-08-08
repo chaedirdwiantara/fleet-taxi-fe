@@ -14,6 +14,10 @@ export type GradientStatDef = {
   // Override the value size when the figures run long — a 9-digit rupiah does
   // not fit the default `sm:text-3xl` in a quarter-width card (COP totals).
   valueClassName?: string;
+  // Most cards carry money, so rupiah is the default. Set this for a card whose
+  // value is NOT money (a day count, a vehicle count) — "Rp 9" for nine rented
+  // days would simply be wrong.
+  formatValue?: (value: number) => string;
 };
 
 export function GradientStat({
@@ -25,6 +29,7 @@ export function GradientStat({
   note,
   onClick,
   valueClassName,
+  formatValue = formatRupiah,
 }: GradientStatDef) {
   const className = cn(
     'relative overflow-hidden rounded-xl bg-gradient-to-br p-5 text-left text-white shadow-sm',
@@ -43,7 +48,7 @@ export function GradientStat({
           valueClassName ?? 'text-2xl sm:text-3xl',
         )}
       >
-        {formatRupiah(value)}
+        {formatValue(value)}
       </p>
       {sub && <p className="mt-1 text-xs font-semibold tabular-nums">{sub}</p>}
       {note && <p className="mt-0.5 text-xs font-medium opacity-80">{note}</p>}

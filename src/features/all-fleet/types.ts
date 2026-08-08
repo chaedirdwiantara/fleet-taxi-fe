@@ -1,10 +1,19 @@
 // Client model for All Fleet Monitoring — DISPLAY ONLY. Every rupiah figure and
 // every per-source split is backend-computed (partner-portal/all-fleet-matrix.ts);
 // the client never sums, prorates, or re-derives money.
+import type { DayFacts } from '@/features/fleet/lib/thresholds';
 import type { MonitoringMode } from '@/features/fleet/searchSchema';
 
 export const ALL_FLEET_SOURCES = ['gojek', 'grab', 'rental'] as const;
 export type AllFleetSource = (typeof ALL_FLEET_SOURCES)[number];
+
+/**
+ * Gojek's verdict on the day, exactly as Gojek Monitoring receives it, plus that
+ * day's target. Feeding it to the same `cellTone()` is what lets this grid wear
+ * the same status legend without owning a second copy of the rules.
+ * PRESENTATION ONLY — the money of the cell is `gojek`/`total` below.
+ */
+export type AllFleetGojekDay = DayFacts & { dailyTarget: number };
 
 export type AllFleetDayCell = {
   gojek: number;
@@ -13,6 +22,8 @@ export type AllFleetDayCell = {
   total: number;
   /** Subject is present in that day's data but earned Rp 0 — distinct from "no data". */
   isZero: boolean;
+  /** Absent on Grab/Rental-only days: they have no daily target to be judged on. */
+  gojekDay?: AllFleetGojekDay;
 };
 
 /** Mirror subject of the row: drivers of a plate, or plates of a driver. */

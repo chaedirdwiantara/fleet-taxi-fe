@@ -89,6 +89,43 @@
   --brand-gradient-to: oklch(0.46 0.174 20.1);
 }
 
+/* ── Audience accent ────────────────────────────────────────────────────────
+   The partner portal wears Royal Blue where the admin console wears brand red,
+   so a reader never has to check the URL to know which console they are in.
+   Same token names, different hue — every component keeps using `bg-primary`,
+   `text-primary`, `--brand-gradient-*` and simply follows.
+
+   Scoped by an attribute on <html> (set by components/shared/AudienceTheme),
+   NOT by a wrapper element: Radix renders dialogs, sheets, popovers and
+   dropdowns into <body>, outside any layout wrapper, and they must inherit the
+   accent too. Declared after :root/.dark so the later rule wins on equal
+   specificity; `.dark[data-audience='partner']` outranks `.dark` outright.
+
+   `--destructive` deliberately stays red in BOTH audiences — it means "this
+   breaks something", which is a different statement from "this is the brand". */
+[data-audience='partner'] {
+  --primary: oklch(0.546 0.215 262.881);
+  --ring: oklch(0.546 0.215 262.881);
+  --sidebar-primary: oklch(0.546 0.215 262.881);
+  --sidebar-ring: oklch(0.546 0.215 262.881);
+
+  --brand: oklch(0.546 0.215 262.881);
+  --brand-gradient-from: oklch(0.62 0.19 258);
+  --brand-gradient-to: oklch(0.43 0.17 267);
+}
+
+.dark[data-audience='partner'] {
+  --primary: oklch(0.623 0.188 259.813);
+  --ring: oklch(0.623 0.188 259.813);
+  --sidebar-primary: oklch(0.623 0.188 259.813);
+  --sidebar-ring: oklch(0.623 0.188 259.813);
+
+  /* Lifted for contrast against the dark sidebar, exactly as the red is. */
+  --brand: oklch(0.7 0.15 256);
+  --brand-gradient-from: oklch(0.655 0.175 257);
+  --brand-gradient-to: oklch(0.47 0.16 266);
+}
+
 @theme inline {
   --font-sans: var(--font-sans);
   --radius-sm: calc(var(--radius) - 4px);

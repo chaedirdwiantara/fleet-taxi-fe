@@ -12,6 +12,7 @@ import {
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
+  Receipt,
   ScrollText,
   Table2,
   Users,
@@ -80,7 +81,17 @@ const NAV: Record<Audience, NavEntry[]> = {
     { to: '/partner/all-fleet-monitoring', label: 'All Fleet Monitoring', icon: LayoutGrid },
     { to: '/partner/fleet-monitoring', label: 'Gojek', icon: GojekIcon },
     { to: '/partner/fleet-monitoring-grab', label: 'Grab', icon: GrabIcon },
-    { to: '/partner/rental-monitoring', label: 'Rental Monitoring', icon: CalendarDays },
+    // Rental has two readings of the same transactions: the ledger you edit
+    // (Management) and the plate × day pivot you watch (Monitoring), so it gets
+    // a group of its own rather than one ambiguous entry.
+    {
+      label: 'Rental',
+      icon: CalendarDays,
+      children: [
+        { to: '/partner/rental/management', label: 'Rental Management', icon: Receipt },
+        { to: '/partner/rental/monitoring', label: 'Monitoring', icon: Table2 },
+      ],
+    },
     {
       label: 'Driver',
       icon: Users,
@@ -261,16 +272,26 @@ export function AppShell({ audience, user, onLogout, logoutPending, children }: 
   return (
     <div className="flex min-h-svh">
       {/* Collapses to zero width rather than unmounting, so the width can animate.
-          `inert` keeps the hidden links out of the tab order and off screen readers. */}
+          `inert` keeps the hidden links out of the tab order and off screen readers.
+
+          The ASIDE ITSELF is the sticky element — do not move `sticky` back onto
+          an inner div. `overflow-hidden` (needed for the width animation) makes
+          this element a scroll container, and a sticky DESCENDANT would then
+          stick to a box that never scrolls, i.e. not at all; the account block
+          and the Keluar button would scroll away with the page. An element's own
+          overflow does not affect its own stickiness, and no ancestor here
+          scrolls, so pinning the aside works. `self-start` + `h-svh` opt out of
+          the flex `stretch`, which would otherwise make the aside as tall as the
+          page and leave it no room to stick. */}
       <aside
         id="sidebar-utama"
         inert={!desktopOpen}
         className={cn(
-          'hidden shrink-0 overflow-hidden bg-sidebar text-sidebar-foreground transition-[width] duration-200 ease-out motion-reduce:transition-none md:block',
+          'hidden shrink-0 self-start overflow-hidden bg-sidebar text-sidebar-foreground transition-[width] duration-200 ease-out motion-reduce:transition-none md:sticky md:top-0 md:block md:h-svh',
           desktopOpen ? 'border-r md:w-60' : 'md:w-0',
         )}
       >
-        <div className="sticky top-0 h-svh w-60">
+        <div className="h-full w-60">
           <SidebarContent {...sidebarProps} />
         </div>
       </aside>

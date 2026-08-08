@@ -71,6 +71,37 @@ export function toneClass(tone: CellTone): string {
   return TONE_CLASSES[tone];
 }
 
+// The same legend expressed as INK instead of fill, for a grid whose background
+// is already saying something else (All Fleet Monitoring paints the background
+// per income source). Same hues as TONE_CLASSES, darkened/lightened so the
+// figure stays legible on the pale source tints in both themes.
+const TONE_TEXT_CLASSES: Record<CellTone, string> = {
+  empty: 'text-slate-400 dark:text-slate-600',
+  zero: 'text-red-700 dark:text-red-300',
+  below: 'text-amber-700 dark:text-amber-300',
+  target: 'text-green-700 dark:text-green-300',
+  manual: 'text-purple-700 dark:text-purple-300',
+  mixed: 'text-orange-700 dark:text-orange-300',
+  bebas: 'text-blue-700 dark:text-blue-300',
+  nonop: 'text-slate-600 dark:text-slate-400',
+};
+
+export function toneTextClass(tone: CellTone): string {
+  return TONE_TEXT_CLASSES[tone];
+}
+
+/** Human label of a tone, for tooltips and screen readers. */
+export const TONE_LABEL: Record<CellTone, string> = {
+  empty: 'Tidak ada di data',
+  zero: 'Ada di data, Rp 0',
+  below: 'Kurang dari target',
+  target: 'Sesuai target',
+  manual: 'Manual Payment',
+  mixed: 'Gabungan (Deduction + Manual)',
+  bebas: 'Bebas Setoran',
+  nonop: 'Tidak Beroperasi',
+};
+
 // Is this tone clickable to open the transaction breakdown modal?
 // (Legacy: only value/manual/mixed cells carry the breakdown-btn class.)
 export function toneClickable(tone: CellTone): boolean {

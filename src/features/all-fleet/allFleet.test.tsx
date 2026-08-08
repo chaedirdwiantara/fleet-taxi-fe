@@ -125,13 +125,53 @@ describe('All Fleet Monitoring', () => {
     expect(within(dialog).getByText('Total hari ini')).toBeInTheDocument();
   });
 
-  it('explains the color legend and the click affordance', async () => {
+  it('explains both color channels and the click affordance', async () => {
     renderPage();
     await screen.findByText('Pemasukan per Sumber');
 
-    expect(screen.getByText('Legenda:')).toBeInTheDocument();
+    // background = source
+    expect(screen.getByText('Latar = sumber:')).toBeInTheDocument();
     expect(screen.getByText('Gabungan')).toBeInTheDocument();
     expect(screen.getByText('(lebih dari satu sumber)')).toBeInTheDocument();
+    // figure = the Gojek status legend, verbatim
+    expect(screen.getByText('Warna angka = status setoran:')).toBeInTheDocument();
+    expect(screen.getByText('Sesuai target')).toBeInTheDocument();
+    expect(screen.getByText('Kurang dari target')).toBeInTheDocument();
+    expect(screen.getByText('Bebas Setoran')).toBeInTheDocument();
     expect(screen.getByText(/Klik sel untuk rincian/)).toBeInTheDocument();
+  });
+
+  it('colors the figure by the Gojek verdict, not just by the source', async () => {
+    renderPage();
+    await screen.findByText('Pemasukan per Sumber');
+
+    // Gojek-only days: same green wash, so any difference between them is the
+    // status channel talking.
+    const gojekCells = screen
+      .getAllByRole('button', { name: /tanggal \d+/ })
+      .filter((c) => c.className.includes('bg-green-500'));
+    const onTarget = gojekCells.filter((c) => c.className.includes('text-green-700'));
+    const belowTarget = gojekCells.filter((c) => c.className.includes('text-amber-700'));
+
+    expect(onTarget.length).toBeGreaterThan(0);
+    expect(belowTarget.length).toBeGreaterThan(0);
+    // the verdict is spelled out too, for anyone who cannot read the colour
+    expect(belowTarget[0].getAttribute('aria-label')).toMatch(/Kurang dari target$/);
+    expect(onTarget[0].getAttribute('aria-label')).toMatch(/Sesuai target$/);
+  });
+
+  it('surfaces a bebas-setoran day that carries no money at all', async () => {
+    renderPage();
+    await screen.findByText('Pemasukan per Sumber');
+
+    const bebas = matrix()
+      .getAllByRole('button', { name: /tanggal \d+/ })
+      .filter((c) => c.textContent === 'Rental');
+
+    expect(bebas.length).toBeGreaterThan(0);
+    // Gojek's own wash, wearing the bebas-setoran ink
+    expect(bebas[0].className).toContain('bg-green-500');
+    expect(bebas[0].className).toContain('text-blue-700');
+    expect(bebas[0].getAttribute('title')).toMatch(/Bebas Setoran/);
   });
 });

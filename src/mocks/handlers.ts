@@ -14,6 +14,7 @@ import {
   importBatches,
 } from './fixtures/fleet';
 import { makeAllFleetCell, makeAllFleetGrid } from './fixtures/allFleet';
+import { makeRentalGrid } from './fixtures/rentalGrid';
 import { makeActivityLogs } from './fixtures/activityLog';
 import {
   partnerMe,
@@ -49,6 +50,7 @@ import type {
   InstallmentStatus,
   InstallmentUpsertInput,
 } from '@/features/deposit-installment/types';
+import { currentMonthWIB, currentYearWIB } from '@/lib/datetime';
 
 // Single mock layer for dev (VITE_USE_MSW=true) and tests (frontend-kickoff.md §9).
 // All responses use the standard envelope from PROJECT-BRIEF.md §6.
@@ -1769,6 +1771,20 @@ export const handlers = [
     const cell = makeAllFleetCell(grid, key, day);
     if (!cell) return err(404, 'NOT_FOUND', 'No transactions for that subject/day');
     return ok(cell);
+  }),
+
+  // Rental Monitoring pivot: the partner's own bookings spread over the month,
+  // seeded with every registered plate so idle vehicles still get a row.
+  http.get('*/partner/portal/fleet/rental/grid', ({ request }) => {
+    const url = new URL(request.url);
+    return ok(
+      makeRentalGrid(
+        int(url.searchParams.get('month'), currentMonthWIB()),
+        int(url.searchParams.get('year'), currentYearWIB()),
+        rentalsState,
+        platesState,
+      ),
+    );
   }),
 
   // ---- Partner portal — read-only fleet (scoped to registered plates) ------

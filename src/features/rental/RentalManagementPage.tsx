@@ -26,10 +26,12 @@ import {
 import type { RentalSearch } from './searchSchema';
 import type { RentalItem, RentalListParams } from './types';
 
-// Rental Monitoring — the partner's own rental transactions for a WIB month.
+// Rental Management — the ledger of the partner's own rental transactions for a
+// WIB month: create, edit, settle, invoice, export. Its calendar twin (which
+// plate earned on which day) is RentalDailyGridPage, under Rental → Monitoring.
 // Filter state lives in the URL (via the route's validateSearch); this page
 // only receives it + a patch callback so it stays testable without a router.
-export function RentalMonitoringPage({
+export function RentalManagementPage({
   search,
   onPatch,
 }: {
@@ -84,7 +86,7 @@ export function RentalMonitoringPage({
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-lg font-semibold">Rental Monitoring</h2>
+        <h2 className="text-lg font-semibold">Rental Management</h2>
         <p className="text-sm text-muted-foreground">
           Transaksi rental unit Anda per bulan — omset, COGS, dan nett profit dihitung otomatis.
         </p>

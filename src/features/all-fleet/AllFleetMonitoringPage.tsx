@@ -114,10 +114,10 @@ export function AllFleetMonitoringPage({
         <EmptyState
           icon={Table2}
           title="Belum ada pemasukan pada periode ini"
-          description="Data muncul otomatis setelah admin mengimpor Gojek/Grab untuk plat yang Anda daftarkan, atau setelah Anda mencatat transaksi di Rental Monitoring."
+          description="Data muncul otomatis setelah admin mengimpor Gojek/Grab untuk plat yang Anda daftarkan, atau setelah Anda mencatat transaksi di Rental Management."
           action={
             <Link
-              to="/partner/rental-monitoring"
+              to="/partner/rental/management"
               // The target owns required filter params; the schema's own defaults
               // are the honest "no filters" value.
               search={rentalSearchSchema.parse({ month: search.month, year: search.year })}
@@ -138,10 +138,13 @@ export function AllFleetMonitoringPage({
       )}
 
       <p className="text-xs text-muted-foreground">
-        Warna latar sel menunjukkan sumber pemasukan hari itu. Basisnya sama dengan tiap halaman
-        sumbernya — Gojek memakai setoran yang dihitung, Grab memakai total earning collected, dan
-        Rental memakai omset (harga sewa + biaya tambahan). Baris <b>TOTAL</b> selalu sama untuk
-        kedua mode.
+        Warna <b>latar</b> sel menunjukkan sumber pemasukan hari itu; warna <b>angkanya</b>{' '}
+        menunjukkan status setoran Gojek pada hari itu, memakai legenda yang sama persis dengan
+        halaman Gojek. Basis nominalnya juga sama dengan tiap halaman sumbernya — Gojek memakai
+        setoran yang dihitung, Grab memakai total earning collected, dan Rental memakai omset (harga
+        sewa + biaya tambahan). Karena itu Manual Payment yang <i>tidak masuk setoran</i> tampil{' '}
+        <b>0</b> berwarna ungu: nominalnya ada, tapi memang tidak dihitung ke setoran — angka
+        persisnya ada di rincian sel. Baris <b>TOTAL</b> selalu sama untuk kedua mode.
       </p>
 
       {cell && (
