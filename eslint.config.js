@@ -32,6 +32,9 @@ export default tseslint.config(
         'warn',
         { allowConstantExport: true, allowExportNames: ['Route'] },
       ],
+      // `const { omitMe, ...rest } = obj` is how we drop keys — the named
+      // siblings are the point of the destructure, not dead bindings
+      '@typescript-eslint/no-unused-vars': ['error', { ignoreRestSiblings: true }],
     },
   },
   eslintConfigPrettier,
