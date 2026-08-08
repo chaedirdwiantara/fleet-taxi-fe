@@ -160,7 +160,7 @@ export const qk = {
       /** Roster slice behind a name picker (server-side search term). */
       picker: (q: string) => ['partner', 'driver', 'picker', q] as const,
     },
-    // Rental Monitoring (own rental transactions + COGS presets).
+    // Rental (own rental transactions + COGS presets).
     rental: {
       list: (p: {
         month: number;
@@ -170,6 +170,10 @@ export const qk = {
         sortBy: string;
         sortOrder: string;
       }) => ['partner', 'rental', 'list', p] as const,
+      // Rental Monitoring pivot — under the same `['partner','rental']` prefix
+      // as the ledger on purpose: every rental mutation already invalidates
+      // that namespace, so the calendar can never show a stale booking.
+      grid: (p: { month: number; year: number }) => ['partner', 'rental', 'grid', p] as const,
       cogsDefaults: ['partner', 'rental', 'cogs-defaults'] as const,
       taxSettings: ['partner', 'rental', 'tax-settings'] as const,
     },

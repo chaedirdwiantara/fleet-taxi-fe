@@ -8,15 +8,26 @@ Standar visual & komponen untuk seluruh UI (admin console + partner portal). Sem
 
 Token didefinisikan di `src/index.css` (oklch, light + `.dark`). **Selalu pakai kelas token** — jangan hex/oklch inline.
 
-| Token                                   | Semantik                                                                        |
-| --------------------------------------- | ------------------------------------------------------------------------------- |
-| `primary`                               | Aksi utama (merah brand) — tombol submit, link aktif, ring fokus                |
-| `destructive`                           | Aksi merusak / error                                                            |
-| `secondary` / `muted` / `accent`        | Surface & teks sekunder (slate)                                                 |
-| `card` / `popover` / `border` / `input` | Surface & garis                                                                 |
-| `sidebar-*`                             | Khusus sidebar navigasi                                                         |
-| `chart-1..5`                            | Seri chart: 1=biru (utama), 2=teal, 3=amber, 4=violet, 5=rose — pakai berurutan |
-| `brand` / `brand-foreground`            | Logo Fleet Taxi — nilainya sama dengan `primary`, tapi token terpisah           |
+| Token                                   | Semantik                                                                                                                                   |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `primary`                               | Aksi utama — tombol submit, link aktif, ring fokus. Merah brand di `/admin`, Royal Blue di `/partner` (lihat "Aksen per audiens" di bawah) |
+| `destructive`                           | Aksi merusak / error                                                                                                                       |
+| `secondary` / `muted` / `accent`        | Surface & teks sekunder (slate)                                                                                                            |
+| `card` / `popover` / `border` / `input` | Surface & garis                                                                                                                            |
+| `sidebar-*`                             | Khusus sidebar navigasi                                                                                                                    |
+| `chart-1..5`                            | Seri chart: 1=biru (utama), 2=teal, 3=amber, 4=violet, 5=rose — pakai berurutan                                                            |
+| `brand` / `brand-foreground`            | Logo Fleet Taxi — nilainya sama dengan `primary`, tapi token terpisah                                                                      |
+
+**Aksen per audiens.** `primary`, `ring`, `sidebar-primary`, `sidebar-ring` dan `brand`
+punya nilai berbeda di kedua konsol: **merah brand di `/admin`, Royal Blue di `/partner`**.
+Override-nya ada di `src/index.css` pada blok `[data-audience='partner']` (+ varian
+`.dark[...]`), dan atribut `data-audience` ditulis ke `<html>` oleh
+`components/shared/AudienceTheme.tsx` — bukan ke elemen wrapper, supaya portal Radix
+(Dialog/Sheet/Popover/Dropdown) yang dirender ke `<body>` ikut mewarisi.
+Konsekuensinya untuk kode baru: **tetap pakai kelas token saja** (`bg-primary`,
+`text-primary`, `ring-ring`); jangan pernah menulis merah atau biru langsung, karena
+komponen yang sama harus benar di dua konsol. `destructive` sengaja tetap merah di
+keduanya — artinya "merusak", bukan "brand".
 
 **Pakai `primary` untuk UI, `brand` hanya untuk logo.** Nilainya kebetulan sama di light
 mode, tapi jangan disamakan: `--brand-gradient-from|to` dipakai eksklusif oleh

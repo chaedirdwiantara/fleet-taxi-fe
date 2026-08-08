@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { cellTone, toneClass, toneClickable, type CellTone, type DayFacts } from './thresholds';
+import {
+  cellTone,
+  toneClass,
+  toneClickable,
+  toneTextClass,
+  TONE_LABEL,
+  type CellTone,
+  type DayFacts,
+} from './thresholds';
 
 const TARGET = 488_000;
 const facts = (f: Partial<DayFacts>): DayFacts => ({ displayAmount: 0, countedAmount: 0, ...f });
@@ -99,6 +107,27 @@ describe('toneClass / toneClickable', () => {
     ];
     tones.forEach((t) => expect(toneClass(t)).toBeTruthy());
     expect(new Set(tones.map(toneClass)).size).toBe(tones.length);
+  });
+
+  it('has an ink variant of every tone, distinct and dark-mode aware', () => {
+    // All Fleet Monitoring paints the background per income source and puts THIS
+    // legend on the figure instead, so the two must stay one-to-one.
+    const tones: CellTone[] = [
+      'empty',
+      'zero',
+      'below',
+      'target',
+      'manual',
+      'mixed',
+      'bebas',
+      'nonop',
+    ];
+    tones.forEach((t) => {
+      expect(toneTextClass(t)).toMatch(/^text-/);
+      expect(toneTextClass(t)).toContain('dark:text-');
+      expect(TONE_LABEL[t]).toBeTruthy();
+    });
+    expect(new Set(tones.map(toneTextClass)).size).toBe(tones.length);
   });
 
   it('only value/manual/mixed cells are clickable (open breakdown)', () => {

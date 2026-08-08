@@ -8,12 +8,30 @@ import type { SeedRental } from './rental';
 
 type SourceKey = 'gojek' | 'grab' | 'rental';
 
+/** The Gojek grid's own per-day facts, exactly as its fixture emits them. */
+type GojekDayFacts = {
+  displayAmount: number;
+  countedAmount: number;
+  isManualPayment?: boolean;
+  hasDisplayOnlyManualPayment?: boolean;
+  isMixed?: boolean;
+  exception?: { isBebasSetoran: boolean; keterangan: string | null } | null;
+};
+
+/**
+ * Mirror of the backend's AllFleetGojekDay: the same facts plus the day's target,
+ * which lives on the ROW in the Gojek grid and has to travel with the cell here.
+ * Presentation only — never summed.
+ */
+export type MockGojekDay = GojekDayFacts & { dailyTarget: number };
+
 export type MockAllFleetCell = {
   gojek: number;
   grab: number;
   rental: number;
   total: number;
   isZero: boolean;
+  gojekDay?: MockGojekDay;
 };
 export type MockAllFleetRow = {
   key: string;
@@ -34,7 +52,9 @@ type GojekLike = {
     vehicleType: string;
     driverHistory: string[];
     plateHistory?: string[];
-    days: Record<number, { countedAmount: number } | undefined>;
+    dailyTarget: number;
+    dailyDue?: Record<number, number | undefined>;
+    days: Record<number, GojekDayFacts | undefined>;
   }[];
 };
 type GrabLike = {
@@ -160,12 +180,30 @@ export function makeAllFleetGrid(
     for (const [dayKey, cell] of Object.entries(gojekRow.days)) {
       const day = Number(dayKey);
       if (day > dim || !cell) continue;
+      // A day the import never mentioned (exception only) is NOT "in the data,
+      // Rp 0" — the backend derives zeroDays from dailyCountedData, which such a
+      // day never enters.
+      const importedNothing = !!cell.exception && cell.displayAmount === 0;
       if (cell.countedAmount === 0) {
-        (row.days[day] ??= emptyCell()).isZero = true;
-        continue;
+        (row.days[day] ??= emptyCell()).isZero = !importedNothing;
+      } else {
+        addDay(row, 'gojek', day, cell.countedAmount);
+        activeDays.push(day);
       }
-      addDay(row, 'gojek', day, cell.countedAmount);
-      activeDays.push(day);
+      // Gojek's verdict rides along on every day it reported — including the
+      // moneyless ones (bebas setoran, display-only Manual Payment), which is
+      // what makes them visible here at all. Never summed; see the backend's
+      // attachGojekDays.
+      const { isManualPayment, hasDisplayOnlyManualPayment, isMixed, exception } = cell;
+      row.days[day]!.gojekDay = {
+        displayAmount: cell.displayAmount,
+        countedAmount: cell.countedAmount,
+        dailyTarget: gojekRow.dailyDue?.[day] ?? gojekRow.dailyTarget,
+        ...(isManualPayment ? { isManualPayment } : {}),
+        ...(hasDisplayOnlyManualPayment ? { hasDisplayOnlyManualPayment } : {}),
+        ...(isMixed ? { isMixed } : {}),
+        exception: exception ?? null,
+      };
     }
     const history = byDriver
       ? (gojekRow.plateHistory ?? [])

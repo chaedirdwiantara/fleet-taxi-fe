@@ -7,6 +7,7 @@ import { qk } from '@/lib/query-client';
 import type {
   CogsDefault,
   PaymentStatus,
+  RentalGrid,
   RentalItem,
   RentalListData,
   RentalListParams,
@@ -46,6 +47,21 @@ export function useRentalsQuery(params: RentalListParams) {
       });
       if (error) throwEnvelope(error);
       return unwrap(data) as RentalListData;
+    },
+  });
+}
+
+/** Rental Monitoring pivot: the same month's bookings, spread over the calendar. */
+export function useRentalGridQuery(params: { month: number; year: number }) {
+  return useQuery({
+    queryKey: qk.partner.rental.grid(params),
+    placeholderData: keepPreviousData,
+    queryFn: async (): Promise<RentalGrid> => {
+      const { data, error } = await api.GET('/partner/portal/fleet/rental/grid', {
+        params: { query: params },
+      });
+      if (error) throwEnvelope(error);
+      return unwrap(data) as RentalGrid;
     },
   });
 }

@@ -14,12 +14,22 @@ import {
   type AllFleetGrid,
   type AllFleetRow,
 } from '../types';
-import { SOURCE_META, activeSources, cellTone, isClickable, toneClass } from '../lib/sourceTone';
+import {
+  SOURCE_META,
+  activeSources,
+  cellTone,
+  gojekStatusLabel,
+  isClickable,
+  numberToneClass,
+  toneClass,
+} from '../lib/sourceTone';
 
 // Subject × day matrix of the partner's whole fleet income. Same sticky-pivot
 // mechanics as the Gojek and Grab grids (frozen identity columns, two-row header,
-// sticky TOTAL row), with one difference: a cell can carry more than one income
-// source, so its background says WHICH source and the cell lists the split.
+// sticky TOTAL row), with one difference: a cell carries TWO readings at once —
+// its background says which income SOURCE the day came from, and the colour of
+// the figure says what Gojek Monitoring says about that day (sesuai target,
+// kurang dari target, Manual Payment, bebas setoran…).
 //
 // Column identity mirrors the mode: No · Plat · Driver (plate view) or
 // No · Driver · Plat (driver view) — the second column is always the mirror
@@ -54,20 +64,35 @@ function identityFor(mode: MonitoringMode): IdentityCol[] {
       ];
 }
 
+/**
+ * What the figure in a day cell reads, following Gojek Monitoring's own rules
+ * for the days Gojek reported on:
+ *  • an exception with nothing collected shows its reason ("Rental" / the note);
+ *  • a day that IS in the data but collected nothing shows an explicit "0";
+ *  • a day with no data at all shows the "·" placeholder.
+ */
+function dayLabel(cell: AllFleetDayCell | undefined): string {
+  if (!cell) return '·';
+  if (cell.total !== 0) return nf(cell.total);
+  const exception = cell.gojekDay?.exception;
+  if (exception && (cell.gojekDay?.displayAmount ?? 0) === 0) {
+    return exception.isBebasSetoran ? 'Rental' : (exception.keterangan ?? '').slice(0, 6) || '—';
+  }
+  return cell.isZero || cell.gojekDay ? '0' : '·';
+}
+
 /** Day cell: the total, plus the per-source split when more than one source hit. */
 function DayCellContent({ cell }: { cell: AllFleetDayCell | undefined }) {
   const active = activeSources(cell);
-  if (!cell || (active.length === 0 && !cell.isZero)) {
-    return <span aria-hidden>·</span>;
-  }
-  if (active.length === 0) return <>0</>;
+  const label = dayLabel(cell);
+  if (label === '·') return <span aria-hidden>·</span>;
   return (
     <>
-      <span className="block">{nf(cell.total)}</span>
+      <span className="block">{label}</span>
       {active.length > 1 &&
         active.map((source) => (
-          <span key={source} className="block text-xs font-normal opacity-90">
-            {SOURCE_META[source].short} {nf(cell[source])}
+          <span key={source} className={cn('block text-xs font-normal', SOURCE_META[source].text)}>
+            {SOURCE_META[source].short} {nf(cell![source])}
           </span>
         ))}
     </>
@@ -107,24 +132,35 @@ export function AllFleetTable({
       const cell = row.days[day];
       const tone = cellTone(cell);
       const clickable = options.clickable && isClickable(cell);
+      // Both readings of the cell, spelled out: where the money came from, and
+      // Gojek's verdict on the day. The tooltip is the only place a colour-blind
+      // (or simply unsure) reader can confirm what the ink colour means.
+      const status = gojekStatusLabel(cell);
+      const sourceLines = activeSources(cell).map(
+        (source) => `${SOURCE_META[source].label}: ${rp(cell![source])}`,
+      );
+      const description = [
+        ...sourceLines,
+        status && `Status Gojek: ${status}`,
+        cell?.gojekDay?.exception?.keterangan,
+      ]
+        .filter(Boolean)
+        .join(' · ');
       return (
         <td
           key={day}
           role={clickable ? 'button' : undefined}
           tabIndex={clickable ? 0 : undefined}
           aria-label={
-            clickable ? `${row.label} tanggal ${day}: ${rp(cell?.total ?? 0)}` : undefined
-          }
-          title={
-            cell
-              ? activeSources(cell)
-                  .map((source) => `${SOURCE_META[source].label}: ${rp(cell[source])}`)
-                  .join(' · ') || 'Ada di data, Rp 0'
+            clickable
+              ? `${row.label} tanggal ${day}: ${rp(cell?.total ?? 0)}${status ? ` — ${status}` : ''}`
               : undefined
           }
+          title={cell ? description || 'Ada di data, Rp 0' : undefined}
           className={cn(
-            'border-r border-b px-1 py-1 text-right tabular-nums',
+            'border-r border-b px-1 py-1 text-right font-semibold tabular-nums',
             toneClass(tone),
+            numberToneClass(cell),
             clickable && 'cursor-pointer hover:brightness-95',
           )}
           style={{ width: DAY_W }}

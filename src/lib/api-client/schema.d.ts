@@ -780,6 +780,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/partner/portal/fleet/rental/grid": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Own Rental 31-day pivot — omset per plate per day, with payment status */
+        get: operations["PortalFleetController_rentalGrid"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/partner/portal/checkpoints": {
         parameters: {
             query?: never;
@@ -3149,6 +3166,26 @@ export interface operations {
                 compositeKey: string;
                 mode?: "plate" | "driver";
                 day?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalFleetController_rentalGrid: {
+        parameters: {
+            query: {
+                month: number;
+                year: number;
             };
             header?: never;
             path?: never;

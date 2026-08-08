@@ -141,3 +141,61 @@ export type CogsDefault = {
   label: string;
   cogsPerDay: number;
 };
+
+// ---- Rental Monitoring pivot (plate × day) ----------------------------------
+// The same transactions as the list above, read as a calendar: which car earned
+// on which day, and whether that money has been collected. Every figure is
+// backend-spread (partner-rentals/rental-grid.ts); the FE only formats.
+
+export type RentalGridTotals = {
+  omset: number;
+  cogs: number;
+  nett: number;
+  /** Calendar days of the month the plate was under a booking. */
+  rentedDays: number;
+};
+
+export type RentalGridDayCell = {
+  amount: number;
+  paymentStatus: PaymentStatus;
+  /** The booking this day belongs to — the key to its row in `bookings`. */
+  rentalId: number;
+};
+
+/** One booking's contribution to the month, for the cell drill-down. */
+export type RentalGridBooking = {
+  id: number;
+  customerName: string | null;
+  /** Range clipped to the selected month — what the row's cells cover. */
+  displayStartDate: string;
+  displayEndDate: string;
+  days: number;
+  omset: number;
+  cogsTotal: number;
+  nettProfit: number;
+  paymentStatus: PaymentStatus;
+  rentalType: RentalType | null;
+};
+
+export type RentalGridRow = {
+  plateNorm: string;
+  plateNumber: string;
+  vehicleType: string | null;
+  region: string | null;
+  /** Sparse: only days covered by a booking appear. */
+  days: Record<number, RentalGridDayCell | undefined>;
+  bookings: RentalGridBooking[];
+  totals: RentalGridTotals;
+};
+
+export type RentalGrid = {
+  month: number;
+  year: number;
+  daysInMonth: number;
+  rows: RentalGridRow[];
+  dailyTotals: Record<number, number | undefined>;
+  totals: RentalGridTotals;
+  /** Rows in the table, and how many were rented at least one day. */
+  plateCount: number;
+  activeCount: number;
+};

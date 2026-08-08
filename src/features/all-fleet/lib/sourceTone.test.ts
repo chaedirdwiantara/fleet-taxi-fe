@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { activeSources, cellTone, isClickable, toneClass } from './sourceTone';
-import type { AllFleetDayCell } from '../types';
+import {
+  activeSources,
+  cellTone,
+  gojekStatus,
+  gojekStatusLabel,
+  isClickable,
+  numberToneClass,
+  toneClass,
+} from './sourceTone';
+import type { AllFleetDayCell, AllFleetGojekDay } from '../types';
 
 const cell = (overrides: Partial<AllFleetDayCell> = {}): AllFleetDayCell => ({
   gojek: 0,
@@ -8,6 +16,14 @@ const cell = (overrides: Partial<AllFleetDayCell> = {}): AllFleetDayCell => ({
   rental: 0,
   total: 0,
   isZero: false,
+  ...overrides,
+});
+
+const gojekDay = (overrides: Partial<AllFleetGojekDay> = {}): AllFleetGojekDay => ({
+  displayAmount: 400_000,
+  countedAmount: 400_000,
+  dailyTarget: 388_000,
+  exception: null,
   ...overrides,
 });
 
@@ -50,14 +66,135 @@ describe('cellTone', () => {
   });
 });
 
-describe('toneClass', () => {
-  it('keeps the spreadsheet colors in both themes, like the Gojek grid', () => {
+describe('toneClass — the background says WHICH SOURCE', () => {
+  it('keeps each source on its own hue, in both themes', () => {
     expect(toneClass({ kind: 'single', source: 'gojek' })).toContain('bg-green-500');
+    expect(toneClass({ kind: 'single', source: 'grab' })).toContain('bg-orange-500');
+    expect(toneClass({ kind: 'single', source: 'rental' })).toContain('bg-blue-500');
     expect(toneClass({ kind: 'mixed' })).toContain('bg-teal-500');
-    // filled tones carry their own contrast, so they need no dark override…
-    expect(toneClass({ kind: 'zero' })).toBe('bg-pink-200 text-slate-900');
-    // …while the surface-colored "no data" cell follows the theme
+    expect(toneClass({ kind: 'zero' })).toContain('bg-pink-500');
     expect(toneClass({ kind: 'empty' })).toContain('dark:bg-slate-900');
+  });
+
+  it('is a wash, not a solid fill — a coloured figure has to stay legible on it', () => {
+    for (const source of ['gojek', 'grab', 'rental'] as const) {
+      expect(toneClass({ kind: 'single', source })).toMatch(/\/\d+/);
+    }
+  });
+});
+
+describe('numberToneClass — the figure says WHAT STATUS', () => {
+  it('wears the Gojek verdict when Gojek reported on the day', () => {
+    expect(numberToneClass(cell({ gojek: 400_000, total: 400_000, gojekDay: gojekDay() }))).toBe(
+      'text-green-700 dark:text-green-300',
+    );
+    expect(
+      numberToneClass(
+        cell({
+          gojek: 200_000,
+          total: 200_000,
+          gojekDay: gojekDay({ displayAmount: 200_000, countedAmount: 200_000 }),
+        }),
+      ),
+    ).toBe('text-amber-700 dark:text-amber-300');
+  });
+
+  it('falls back to the source colour where there is no target to judge', () => {
+    expect(numberToneClass(cell({ grab: 400_000, total: 400_000 }))).toBe(
+      'text-orange-700 dark:text-orange-400',
+    );
+    expect(numberToneClass(cell({ rental: 400_000, total: 400_000 }))).toBe(
+      'text-blue-700 dark:text-blue-400',
+    );
+  });
+
+  it('reads a mixed-source day through Gojek, since only Gojek carries a target', () => {
+    const mixed = cell({
+      gojek: 200_000,
+      grab: 100_000,
+      total: 300_000,
+      gojekDay: gojekDay({ displayAmount: 200_000, countedAmount: 200_000 }),
+    });
+    expect(toneClass(cellTone(mixed))).toContain('bg-teal-500');
+    expect(numberToneClass(mixed)).toBe('text-amber-700 dark:text-amber-300');
+  });
+
+  it('leaves a purely Rental figure alone on a day Gojek merely flagged', () => {
+    // The car did not operate on Gojek because it was out on rental: the money
+    // on screen is rental omset, so Gojek's "tidak beroperasi" must not colour
+    // it. The flag stays available in the tooltip.
+    const rentedOut = cell({
+      rental: 1_000_000,
+      total: 1_000_000,
+      gojekDay: gojekDay({
+        displayAmount: 0,
+        countedAmount: 0,
+        exception: { isBebasSetoran: false, keterangan: 'DISEWA' },
+      }),
+    });
+    expect(numberToneClass(rentedOut)).toBe('text-blue-700 dark:text-blue-400');
+    expect(gojekStatusLabel(rentedOut)).toBe('Tidak Beroperasi');
+  });
+
+  it('still judges a moneyless Gojek day — there is no other earner to defer to', () => {
+    const bebas = cell({
+      gojekDay: gojekDay({
+        displayAmount: 0,
+        countedAmount: 0,
+        exception: { isBebasSetoran: true, keterangan: 'RENTAL' },
+      }),
+    });
+    expect(numberToneClass(bebas)).toBe('text-blue-700 dark:text-blue-300');
+  });
+});
+
+describe('gojekStatus', () => {
+  it('reproduces the Gojek grid verdicts exactly', () => {
+    expect(gojekStatus(cell({ gojekDay: gojekDay() }))).toBe('target');
+    expect(gojekStatus(cell({ gojekDay: gojekDay({ countedAmount: 100_000 }) }))).toBe('below');
+    expect(gojekStatus(cell({ gojekDay: gojekDay({ displayAmount: 0, countedAmount: 0 }) }))).toBe(
+      'zero',
+    );
+    expect(
+      gojekStatus(
+        cell({ gojekDay: gojekDay({ countedAmount: 0, hasDisplayOnlyManualPayment: true }) }),
+      ),
+    ).toBe('manual');
+    expect(
+      gojekStatus(
+        cell({
+          gojekDay: gojekDay({
+            displayAmount: 0,
+            countedAmount: 0,
+            exception: { isBebasSetoran: true, keterangan: 'RENTAL' },
+          }),
+        }),
+      ),
+    ).toBe('bebas');
+  });
+
+  it('says nothing about a Grab- or Rental-only day', () => {
+    expect(gojekStatus(cell({ grab: 1, total: 1 }))).toBeNull();
+    expect(gojekStatusLabel(cell({ grab: 1, total: 1 }))).toBeNull();
+  });
+
+  it('names the verdict for the tooltip', () => {
+    expect(gojekStatusLabel(cell({ gojekDay: gojekDay({ countedAmount: 1 }) }))).toBe(
+      'Kurang dari target',
+    );
+  });
+});
+
+describe('cellTone — moneyless Gojek days keep their identity', () => {
+  it('claims a bebas-setoran day for Gojek instead of calling it empty', () => {
+    const bebas = cell({
+      gojekDay: gojekDay({
+        displayAmount: 0,
+        countedAmount: 0,
+        exception: { isBebasSetoran: true, keterangan: 'RENTAL' },
+      }),
+    });
+    expect(cellTone(bebas)).toEqual({ kind: 'single', source: 'gojek' });
   });
 });
 
@@ -65,6 +202,12 @@ describe('isClickable', () => {
   it('opens on any day with data — including a Rp 0 one', () => {
     expect(isClickable(cell({ gojek: 1, total: 1 }))).toBe(true);
     expect(isClickable(cell({ isZero: true }))).toBe(true);
+  });
+
+  it('opens a moneyless day Gojek had something to say about', () => {
+    expect(isClickable(cell({ gojekDay: gojekDay({ displayAmount: 0, countedAmount: 0 }) }))).toBe(
+      true,
+    );
   });
 
   it('stays inert on a day with no data', () => {

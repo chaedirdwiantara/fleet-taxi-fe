@@ -3,7 +3,7 @@ import { render, screen, waitFor, fireEvent, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState, type ReactNode } from 'react';
-import { RentalMonitoringPage } from './RentalMonitoringPage';
+import { RentalManagementPage } from './RentalManagementPage';
 import { rentalSearchSchema, type RentalSearch } from './searchSchema';
 import { matchCogsKey } from './cogsMatcher';
 import { resetPartnerPlates, resetPartnerRentals } from '@/mocks/handlers';
@@ -33,7 +33,7 @@ const wrapperFor =
 function Harness() {
   const [search, setSearch] = useState<RentalSearch>(() => rentalSearchSchema.parse({}));
   return (
-    <RentalMonitoringPage
+    <RentalManagementPage
       search={search}
       onPatch={(patch) => setSearch((prev) => ({ ...prev, ...patch }))}
     />
@@ -88,7 +88,7 @@ describe('matchCogsKey — vehicle type → COGS preset key', () => {
   });
 });
 
-describe('RentalMonitoringPage', () => {
+describe('RentalManagementPage', () => {
   it('renders summary cards, nett per tipe, and the rental table from fixtures', async () => {
     renderPage();
 
