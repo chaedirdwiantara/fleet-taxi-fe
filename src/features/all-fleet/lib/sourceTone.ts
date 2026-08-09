@@ -63,11 +63,38 @@ export const SOURCE_META: Record<AllFleetSource, SourceMeta> = {
   },
 };
 
-/** More than one source on the same day, and "in the data but Rp 0". */
-export const MIXED_SWATCH = 'bg-teal-500';
+/**
+ * More than one source on the same day, and "in the data but Rp 0".
+ *
+ * "Gabungan" is deliberately the ONE achromatic tone here, for two reasons that
+ * both bite in practice:
+ *
+ *  - it has to stay apart from four coloured neighbours at once (green, orange,
+ *    blue, pink) as a pale wash. Teal did not: measured on the dark grid it sat
+ *    ΔE 13.5 from Gojek green — under the threshold of 15 DESIGN-SYSTEM.md uses
+ *    — and readers said so. Grey moves that to 25.7, with the nearest neighbour
+ *    of any pair now 17.4 (Rental). Every remaining hue collides with something:
+ *    violet reads as Rental, fuchsia reads as Kosong;
+ *  - it is the only cell whose FIGURE takes the whole status palette — green,
+ *    amber, red, purple, blue — so its background must not tint any of them.
+ *    Grey has no hue to fight with.
+ *
+ * It also says the right thing: no single source owns this day.
+ *
+ * Its closest neighbour is now the EMPTY cell rather than a coloured one, which
+ * is the harmless direction to err: an empty cell carries no figure at all, and
+ * a Gabungan cell always renders its per-source split lines underneath the
+ * total. That structural cue, not the wash, is the primary signal — the colour
+ * only has to stop the eye from filing the cell under a single source.
+ */
+export const MIXED_SWATCH = 'bg-slate-500';
 export const ZERO_SWATCH = 'bg-pink-300';
-const MIXED_FILL = 'bg-teal-500/18 dark:bg-teal-500/28';
-const MIXED_TEXT = 'text-teal-800 dark:text-teal-300';
+// Light keeps the neighbours' /15 so the figure loses no contrast (4.16:1,
+// level with Rental's 4.22:1); dark can afford more and takes it.
+const MIXED_FILL = 'bg-slate-500/15 dark:bg-slate-400/25';
+// Grab + Rental with no Gojek: nothing to judge, so the total stays neutral and
+// the per-source split lines below it carry the colour.
+const MIXED_TEXT = 'text-slate-800 dark:text-slate-100';
 
 export type CellTone =
   | { kind: 'empty' } //  no data that day
