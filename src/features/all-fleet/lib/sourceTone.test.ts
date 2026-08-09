@@ -71,7 +71,7 @@ describe('toneClass — the background says WHICH SOURCE', () => {
     expect(toneClass({ kind: 'single', source: 'gojek' })).toContain('bg-green-500');
     expect(toneClass({ kind: 'single', source: 'grab' })).toContain('bg-orange-500');
     expect(toneClass({ kind: 'single', source: 'rental' })).toContain('bg-blue-500');
-    expect(toneClass({ kind: 'mixed' })).toContain('bg-teal-500');
+    expect(toneClass({ kind: 'mixed' })).toContain('bg-slate-500');
     expect(toneClass({ kind: 'zero' })).toContain('bg-pink-500');
     expect(toneClass({ kind: 'empty' })).toContain('dark:bg-slate-900');
   });
@@ -80,6 +80,20 @@ describe('toneClass — the background says WHICH SOURCE', () => {
     for (const source of ['gojek', 'grab', 'rental'] as const) {
       expect(toneClass({ kind: 'single', source })).toMatch(/\/\d+/);
     }
+  });
+
+  it('keeps Gabungan achromatic — every coloured neighbour has a hue to clash with', () => {
+    const mixed = toneClass({ kind: 'mixed' });
+    // Teal used to sit right next to Gojek green here and the two were near
+    // indistinguishable as washes; grey is the one tone with no hue to confuse.
+    for (const hue of ['green', 'orange', 'blue', 'pink', 'teal', 'violet', 'fuchsia']) {
+      expect(mixed).not.toContain(`-${hue}-`);
+    }
+    expect(mixed).toMatch(/slate|gray|zinc|neutral|stone/);
+  });
+
+  it('does not let Gabungan read as an empty cell', () => {
+    expect(toneClass({ kind: 'mixed' })).not.toBe(toneClass({ kind: 'empty' }));
   });
 });
 
@@ -115,7 +129,7 @@ describe('numberToneClass — the figure says WHAT STATUS', () => {
       total: 300_000,
       gojekDay: gojekDay({ displayAmount: 200_000, countedAmount: 200_000 }),
     });
-    expect(toneClass(cellTone(mixed))).toContain('bg-teal-500');
+    expect(toneClass(cellTone(mixed))).toContain('bg-slate-500');
     expect(numberToneClass(mixed)).toBe('text-amber-700 dark:text-amber-300');
   });
 
