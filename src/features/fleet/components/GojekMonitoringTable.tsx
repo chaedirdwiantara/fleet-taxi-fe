@@ -3,7 +3,7 @@ import { CalendarClock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { cellTone, toneClass, toneClickable } from '../lib/thresholds';
-import { formatDateID, monthYearLabelID } from '@/lib/datetime';
+import { formatDateID, monthRangeShortID, monthYearLabelID } from '@/lib/datetime';
 import { formatNumberID, formatRupiah } from '@/lib/money';
 import type { MonitoringMode } from '../searchSchema';
 import type { FleetGrid, FleetRow } from '../types';
@@ -77,6 +77,20 @@ const SUMMARY: IdentityCol[] = [
   { id: 'outstanding', label: 'Outstanding Total', width: 132 },
 ];
 
+// Both Outstanding columns are all-history figures whose rule is easy to
+// misread, so the header states it: a processed manual payment settles the
+// obligation even when it is marked "Tidak Masuk Setoran" (that flag only
+// decides whether the money counts as omset).
+const SUMMARY_TITLES: Record<string, string> = {
+  outstandingMonth:
+    'Perubahan saldo pada bulan yang dilihat saja: Σ target − Σ pelunasan (deduction + manual ' +
+    'payment yang sudah diproses) bulan berjalan. Positif = nambah kurang setor, negatif = lebih setor.',
+  outstanding:
+    'Saldo berjalan seluruh riwayat s/d bulan ini: Σ target setoran − Σ pelunasan (deduction + ' +
+    'manual payment yang sudah diproses, termasuk yang ditandai Tidak Masuk Setoran). ' +
+    'Positif = masih kurang setor, negatif = lebih setor.',
+};
+
 const HEAD_BG = 'bg-primary text-primary-foreground';
 const SUMMARY_BG = 'bg-green-600 text-white';
 const nf = formatNumberID;
@@ -109,9 +123,30 @@ function billedSpan(row: FleetRow): { caption: string | null; title: string | un
   };
 }
 
+// Caption under Outstanding Total: the span of months that actually moved the
+// balance, prefixed with the contributor count when more than one person (or
+// plate) is behind it — the two facts that explain a figure the reader did not
+// expect. A settled row states nothing; there is nothing to explain.
+function outstandingCaption(
+  breakdown: FleetRow['outstandingBreakdown'],
+  outstanding: number,
+  byDriver: boolean,
+): string | null {
+  if (!breakdown || outstanding === 0) return null;
+  const { rangeFrom, rangeTo, contributorCount } = breakdown;
+  if (!rangeFrom || !rangeTo) return null;
+  const span = monthRangeShortID(rangeFrom, rangeTo);
+  return contributorCount > 1
+    ? `${contributorCount} ${byDriver ? 'plat' : 'driver'} · ${span}`
+    : span;
+}
+
 type Props = {
   grid: FleetGrid;
   onCellClick: (plateNorm: string, day: number) => void;
+  // Opens "Rincian Outstanding" for a row. Omitted on surfaces that do not
+  // render the modal (the partner grid), which also leaves their cells inert.
+  onOutstandingClick?: (plateNorm: string) => void;
   // Partner-portal row action: Kelola Jadwal for the row's plate. The Aksi
   // column renders only in the partner layout (readOnly) when this is set.
   onManageException?: (plateNorm: string) => void;
@@ -129,6 +164,7 @@ type Props = {
 export function GojekMonitoringTable({
   grid,
   onCellClick,
+  onOutstandingClick,
   onManageException,
   readOnly = false,
   mode = 'plate',
@@ -245,6 +281,7 @@ export function GojekMonitoringTable({
             {SUMMARY.map((c, i) => (
               <th
                 key={c.id}
+                title={SUMMARY_TITLES[c.id]}
                 className={cn(
                   'sticky top-8 z-20 border-r border-b px-1 py-1 text-center font-medium',
                   SUMMARY_BG,
@@ -270,6 +307,12 @@ export function GojekMonitoringTable({
             const cellSubject = byDriver
               ? row.driverName || 'Tanpa nama driver'
               : row.plateRaw || 'Tanpa Plat';
+            // Openable as soon as the backend ships the audit trail — a Rp 0 or
+            // negative balance is exactly the kind that needs proving.
+            const breakdown = row.outstandingBreakdown;
+            const openOutstanding =
+              onOutstandingClick && breakdown ? () => onOutstandingClick(row.plateNorm) : undefined;
+            const outstandingSpan = outstandingCaption(breakdown, outstanding, byDriver);
             return (
               <tr key={row.plateNorm} className="group">
                 {/* Identity cells are emitted in `identity` order, so the header
@@ -566,7 +609,33 @@ export function GojekMonitoringTable({
                 >
                   {outstandingMonth > 0 ? `+${nf(outstandingMonth)}` : nf(outstandingMonth)}
                 </td>
+                {/* The one figure on the row that spans its whole history, so
+                    it is also the one that cannot be verified where it stands —
+                    every cell opens the drivers/months that built it. */}
                 <td
+                  role={openOutstanding ? 'button' : undefined}
+                  tabIndex={openOutstanding ? 0 : undefined}
+                  aria-label={
+                    openOutstanding
+                      ? `Rincian outstanding ${cellSubject}: ${rp(outstanding)}`
+                      : undefined
+                  }
+                  title={
+                    openOutstanding
+                      ? 'Klik untuk melihat rincian: siapa & bulan mana yang membentuk saldo ini'
+                      : undefined
+                  }
+                  onClick={openOutstanding}
+                  onKeyDown={
+                    openOutstanding
+                      ? (e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            openOutstanding();
+                          }
+                        }
+                      : undefined
+                  }
                   className={cn(
                     'border-r border-b px-2 py-1 text-right font-semibold tabular-nums',
                     outstanding > 0
@@ -574,9 +643,16 @@ export function GojekMonitoringTable({
                       : outstanding < 0
                         ? 'bg-green-400 text-slate-900'
                         : 'bg-white dark:bg-slate-950',
+                    // one hover rule that reads on the tinted and the plain fill,
+                    // in both themes
+                    openOutstanding &&
+                      'cursor-pointer transition hover:brightness-95 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none dark:hover:brightness-125',
                   )}
                 >
                   {rp(outstanding)}
+                  {outstandingSpan && (
+                    <span className="block text-xs font-normal opacity-80">{outstandingSpan}</span>
+                  )}
                 </td>
               </tr>
             );

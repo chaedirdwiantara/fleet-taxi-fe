@@ -42,6 +42,9 @@ export const fleetSearchSchema = z.object({
   vehicleType: z.array(z.string()).catch([]),
   // "<plateNorm|compositeKey>:<day>" → deep-linkable day-breakdown modal
   cell: z.string().optional().catch(undefined),
+  // Row key → deep-linkable "Rincian Outstanding" modal. Same reasoning as
+  // `cell`: it identifies a row of the grid, so it belongs in the URL.
+  outstanding: z.string().optional().catch(undefined),
   // Row subject of the pivot: one row per plate (default) or per driver. It
   // lives in the URL — not in component state — because the server returns
   // genuinely different rows and the link should stay shareable.

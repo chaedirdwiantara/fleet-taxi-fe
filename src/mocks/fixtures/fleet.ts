@@ -35,6 +35,78 @@ export function daysInMonth(month: number, year: number): number {
   return new Date(year, month, 0).getDate();
 }
 
+/**
+ * "Rincian Outstanding" for one row: the audit trail the backend derives from
+ * the very same rows as the balance. Built here from the balance's own two
+ * pieces — the carry-over from earlier months and this month's delta — so
+ * `total` equals `summary.outstanding` exactly like the real thing.
+ */
+function buildOutstandingBreakdown(args: {
+  month: number;
+  year: number;
+  due: number;
+  paid: number;
+  carryOver: number;
+  drivers: string[];
+}) {
+  const { month, year, due, paid, carryOver, drivers } = args;
+  const ym = (m: number, y: number) => `${y}-${String(m).padStart(2, '0')}`;
+  const prevMonth = month === 1 ? 12 : month - 1;
+  const prevYear = month === 1 ? year - 1 : year;
+  const lastDayPrev = daysInMonth(prevMonth, prevYear);
+
+  // Earlier months are represented by one settled-except-for-the-carry-over
+  // month, attributed to the driver who held the vehicle before.
+  const earlier =
+    carryOver === 0
+      ? []
+      : [
+          {
+            ym: ym(prevMonth, prevYear),
+            due,
+            paid: due - carryOver,
+            delta: carryOver,
+            from: `${ym(prevMonth, prevYear)}-01`,
+            to: `${ym(prevMonth, prevYear)}-${String(lastDayPrev).padStart(2, '0')}`,
+            label: drivers[1] ?? drivers[0],
+          },
+        ];
+  const current = {
+    ym: ym(month, year),
+    due,
+    paid,
+    delta: due - paid,
+    from: `${ym(month, year)}-01`,
+    to: `${ym(month, year)}-${String(daysInMonth(month, year)).padStart(2, '0')}`,
+    label: drivers[0],
+  };
+  const slices = [...earlier, current];
+
+  let balance = 0;
+  const months = slices.map((s) => {
+    balance += s.delta;
+    return { ym: s.ym, due: s.due, paid: s.paid, delta: s.delta, balance };
+  });
+  const parts = slices.map((s) => ({
+    label: s.label,
+    due: s.due,
+    paid: s.paid,
+    delta: s.delta,
+    from: s.from,
+    to: s.to,
+  }));
+  const moving = months.filter((m) => m.delta !== 0);
+
+  return {
+    parts,
+    months,
+    total: balance,
+    contributorCount: parts.filter((p) => p.delta !== 0).length,
+    rangeFrom: moving[0]?.ym ?? null,
+    rangeTo: moving[moving.length - 1]?.ym ?? null,
+  };
+}
+
 /** Options of the Tipe Kendaraan filter, mirroring the backend's dedupe+sort. */
 const distinctTypes = (types: (string | undefined)[]): string[] =>
   [...new Set(types.filter((t): t is string => Boolean(t)))].sort((a, b) => a.localeCompare(b));
@@ -275,6 +347,14 @@ function buildGojekRow(i: number, month: number, year: number, dim: number) {
       outstanding,
       outstandingMonth,
     },
+    outstandingBreakdown: buildOutstandingBreakdown({
+      month,
+      year,
+      due: calculatedTarget,
+      paid: totalDeduction,
+      carryOver,
+      drivers: [DRIVERS[i % DRIVERS.length], DRIVERS[(i + 3) % DRIVERS.length]],
+    }),
     driverHistory: [DRIVERS[i % DRIVERS.length], DRIVERS[(i + 3) % DRIVERS.length]],
     // Mirror of driverHistory — its own plate in the plate view (the backend
     // fills every plate the person drove when grouping per driver).
@@ -557,8 +637,67 @@ export function makeRangeSummary(
 // totals that do not change with the grouping.
 
 /** Merge plate rows into one row per driver (mirrors `?mode=driver`). */
+/**
+ * Driver-mode breakdown: the same slices regrouped so each contributor is a
+ * PLATE, mirroring the backend — which always keys the breakdown on the
+ * opposite identity of the row. Rebuilt from the source rows rather than merged
+ * field by field, so `total` still equals the merged `summary.outstanding`.
+ */
+function driverOutstandingBreakdown(sources: GojekGridFixture['rows']) {
+  const parts = sources
+    .flatMap((r) => {
+      const months = r.outstandingBreakdown?.months ?? [];
+      if (months.length === 0) return [];
+      const due = months.reduce((s, m) => s + m.due, 0);
+      const paid = months.reduce((s, m) => s + m.paid, 0);
+      const spans = r.outstandingBreakdown!.parts;
+      return [
+        {
+          label: r.plateNorm,
+          due,
+          paid,
+          delta: due - paid,
+          from: spans[0]?.from ?? `${months[0].ym}-01`,
+          to: spans[spans.length - 1]?.to ?? `${months[months.length - 1].ym}-01`,
+        },
+      ];
+    })
+    .sort((a, b) => a.from.localeCompare(b.from));
+
+  const byYm = new Map<string, { due: number; paid: number }>();
+  for (const r of sources) {
+    for (const m of r.outstandingBreakdown?.months ?? []) {
+      const acc = byYm.get(m.ym) ?? { due: 0, paid: 0 };
+      acc.due += m.due;
+      acc.paid += m.paid;
+      byYm.set(m.ym, acc);
+    }
+  }
+  let balance = 0;
+  const months = [...byYm.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([ym, sums]) => {
+      const delta = sums.due - sums.paid;
+      balance += delta;
+      return { ym, due: sums.due, paid: sums.paid, delta, balance };
+    });
+  const moving = months.filter((m) => m.delta !== 0);
+
+  return {
+    parts,
+    months,
+    total: balance,
+    contributorCount: parts.filter((p) => p.delta !== 0).length,
+    rangeFrom: moving[0]?.ym ?? null,
+    rangeTo: moving[moving.length - 1]?.ym ?? null,
+  };
+}
+
 export function pivotGojekByDriver(grid: GojekGridFixture): GojekGridFixture {
   const byDriver = new Map<string, GojekGridFixture['rows'][number]>();
+  // Sources per driver, so the outstanding breakdown can be rebuilt per plate
+  // once every contributing row is known.
+  const sourcesByDriver = new Map<string, GojekGridFixture['rows']>();
   // Bebas-setoran / non-operational markers describe a VEHICLE's state, so the
   // backend omits them when the rows are people. Dropping them here keeps the
   // mock from promising a cell color the real endpoint never sends.
@@ -571,6 +710,9 @@ export function pivotGojekByDriver(grid: GojekGridFixture): GojekGridFixture {
     const name = row.driverName.trim().toUpperCase();
     const key = `drv:${name}`;
     const existing = byDriver.get(key);
+    const sources = sourcesByDriver.get(key);
+    if (sources) sources.push(row);
+    else sourcesByDriver.set(key, [row]);
     if (!existing) {
       byDriver.set(key, {
         ...row,
@@ -616,6 +758,10 @@ export function pivotGojekByDriver(grid: GojekGridFixture): GojekGridFixture {
       outstandingMonth: existing.summary.outstandingMonth + row.summary.outstandingMonth,
     };
     existing.isExited = existing.isExited && row.isExited;
+  }
+
+  for (const [key, row] of byDriver) {
+    row.outstandingBreakdown = driverOutstandingBreakdown(sourcesByDriver.get(key) ?? []);
   }
 
   const rows = [...byDriver.values()].sort((a, b) => a.driverName.localeCompare(b.driverName));
