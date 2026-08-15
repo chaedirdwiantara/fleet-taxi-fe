@@ -8,6 +8,7 @@ import { TableFilterBar } from '@/features/fleet/components/TableFilterBar';
 import { CellLegend } from '@/features/fleet/components/CellLegend';
 import { CellModal } from '@/features/fleet/components/CellModal';
 import { ExceptionPanel } from '@/features/fleet/components/ExceptionPanel';
+import { OutstandingModal } from '@/features/fleet/components/OutstandingModal';
 import { SummaryCards } from '@/features/fleet/components/SummaryCards';
 import { FleetChartsPanel } from '@/features/fleet/components/FleetChartsPanel';
 import { MonthYearPicker } from '@/features/fleet/components/MonthYearPicker';
@@ -46,7 +47,12 @@ function PartnerGojekPage() {
 
   const patchSearch = useCallback(
     (patch: Partial<FleetSearch>) => {
-      navigate({ search: (prev) => ({ ...prev, cell: undefined, ...patch }), replace: true });
+      // period/filter changes close any open row modal — its plate/day no longer
+      // belongs to the new period
+      navigate({
+        search: (prev) => ({ ...prev, cell: undefined, outstanding: undefined, ...patch }),
+        replace: true,
+      });
     },
     [navigate],
   );
@@ -79,6 +85,21 @@ function PartnerGojekPage() {
     [navigate],
   );
   const cell = parseCellParam(search.cell);
+
+  // "Rincian Outstanding" — same open/close discipline as the cell modal.
+  const openOutstanding = useCallback(
+    (plateNorm: string) => navigate({ search: (prev) => ({ ...prev, outstanding: plateNorm }) }),
+    [navigate],
+  );
+  const closeOutstanding = useCallback(
+    () => navigate({ search: (prev) => ({ ...prev, outstanding: undefined }), replace: true }),
+    [navigate],
+  );
+  // Resolved against the loaded grid: a hand-edited or stale ?outstanding= key
+  // renders nothing instead of an empty dialog.
+  const outstandingRow = search.outstanding
+    ? grid.data?.rows.find((r) => r.plateNorm === search.outstanding)
+    : undefined;
 
   return (
     <div className="space-y-4">
@@ -193,6 +214,7 @@ function PartnerGojekPage() {
           <GojekMonitoringTable
             grid={grid.data}
             onCellClick={openCell}
+            onOutstandingClick={openOutstanding}
             onManageException={openException}
             readOnly
             mode={search.mode}
@@ -209,6 +231,20 @@ function PartnerGojekPage() {
           year={search.year}
           mode={search.mode}
           onClose={closeCell}
+        />
+      )}
+      {outstandingRow?.outstandingBreakdown && (
+        <OutstandingModal
+          subject={
+            search.mode === 'driver'
+              ? outstandingRow.driverName || 'Tanpa nama driver'
+              : outstandingRow.plateRaw || 'Tanpa Plat'
+          }
+          breakdown={outstandingRow.outstandingBreakdown}
+          month={search.month}
+          year={search.year}
+          mode={search.mode}
+          onClose={closeOutstanding}
         />
       )}
       <ExceptionPanel
