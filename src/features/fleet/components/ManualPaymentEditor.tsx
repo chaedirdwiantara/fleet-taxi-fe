@@ -166,6 +166,15 @@ export function ManualPaymentEditor({
                         </label>
                       </div>
                     </FormControl>
+                    {/* The choice is routinely misread as "does the driver
+                        still owe this?". It does not: both options settle the
+                        obligation, they differ only in what counts as omset. */}
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Kedua pilihan sama-sama melunasi kewajiban hari itu —{' '}
+                      <strong>Outstanding tetap berkurang</strong>. Bedanya hanya pada omset: “Tidak
+                      Masuk Setoran” tidak ikut dihitung sebagai setoran (Total Deduction &amp;
+                      TOTAL HARI INI).
+                    </p>
                     {setoran === '0' && (
                       <FormField
                         control={form.control}

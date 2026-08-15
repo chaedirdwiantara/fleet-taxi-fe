@@ -11,6 +11,7 @@ import { ImportPanel } from '@/features/fleet/components/ImportPanel';
 import { ImportHistoryDialog } from '@/features/fleet/components/ImportHistoryDialog';
 import { ExceptionPanel } from '@/features/fleet/components/ExceptionPanel';
 import { ManualPaymentEditor } from '@/features/fleet/components/ManualPaymentEditor';
+import { OutstandingModal } from '@/features/fleet/components/OutstandingModal';
 import { RawDataPanel } from '@/features/fleet/components/RawDataPanel';
 import { useGojekGridQuery } from '@/features/fleet/hooks/useFleetQueries';
 import {
@@ -36,13 +37,13 @@ function GojekGridPage() {
 
   const patchSearch = useCallback(
     (patch: Partial<FleetSearch>) => {
-      // period/filter changes close any open cell modal (its plate/day no
+      // period/filter changes close any open row modal (its plate/day no
       // longer belongs to the new period) unless the patch sets it explicitly
-      const clearCell = !('cell' in patch);
-      navigate({
-        search: (prev) => ({ ...prev, ...(clearCell ? { cell: undefined } : {}), ...patch }),
-        replace: true,
-      });
+      const clear = {
+        ...('cell' in patch ? {} : { cell: undefined }),
+        ...('outstanding' in patch ? {} : { outstanding: undefined }),
+      };
+      navigate({ search: (prev) => ({ ...prev, ...clear, ...patch }), replace: true });
     },
     [navigate],
   );
@@ -68,6 +69,16 @@ function GojekGridPage() {
     [navigate],
   );
 
+  // "Rincian Outstanding" — same open/close discipline as the cell modal.
+  const openOutstanding = useCallback(
+    (plateNorm: string) => navigate({ search: (prev) => ({ ...prev, outstanding: plateNorm }) }),
+    [navigate],
+  );
+  const closeOutstanding = useCallback(
+    () => navigate({ search: (prev) => ({ ...prev, outstanding: undefined }), replace: true }),
+    [navigate],
+  );
+
   const openException = (plate?: string) => {
     setExceptionPlate(plate);
     setExceptionOpen(true);
@@ -78,6 +89,11 @@ function GojekGridPage() {
     [grid.data?.availableRentalPartners],
   );
   const cell = parseCellParam(search.cell);
+  // Resolved against the loaded grid: a hand-edited or stale ?outstanding= key
+  // simply renders nothing instead of an empty dialog.
+  const outstandingRow = search.outstanding
+    ? grid.data?.rows.find((r) => r.plateNorm === search.outstanding)
+    : undefined;
 
   return (
     <div className="space-y-4">
@@ -132,6 +148,7 @@ function GojekGridPage() {
           <GojekMonitoringTable
             grid={grid.data}
             onCellClick={openCell}
+            onOutstandingClick={openOutstanding}
             mode={search.mode}
             emptyMessage="Tidak ada data untuk periode / filter ini — tabel hanya menampilkan plat yang terdaftar, baik oleh partner maupun melalui menu Plate Registration."
           />
@@ -147,6 +164,20 @@ function GojekGridPage() {
           mode={search.mode}
           onClose={closeCell}
           onEditDetail={setEditingDetailId}
+        />
+      )}
+      {outstandingRow?.outstandingBreakdown && (
+        <OutstandingModal
+          subject={
+            search.mode === 'driver'
+              ? outstandingRow.driverName || 'Tanpa nama driver'
+              : outstandingRow.plateRaw || 'Tanpa Plat'
+          }
+          breakdown={outstandingRow.outstandingBreakdown}
+          month={search.month}
+          year={search.year}
+          mode={search.mode}
+          onClose={closeOutstanding}
         />
       )}
       {editingDetailId !== null && (

@@ -47,6 +47,10 @@ export type FleetRow = {
     // grid tolerates a backend that predates the field (FE-ahead deploy window).
     outstandingMonth?: number;
   };
+  // "Rincian Outstanding": what the cumulative balance is made of. Optional —
+  // only the admin grid requests it, and a backend that predates the field
+  // simply leaves the cell unopenable.
+  outstandingBreakdown?: OutstandingBreakdown;
   driverHistory: string[];
   // Mirror of driverHistory: the plates behind this row. Plate mode → its own
   // plate; driver mode → every plate the person drove that month. Optional so
@@ -65,6 +69,42 @@ export type FleetRow = {
 
 // One Setoran target value and the day range it was active (backend RLE).
 export type DueSegment = { amount: number; fromDay: number; toDay: number };
+
+// ---- "Rincian Outstanding" -------------------------------------------------
+// Outstanding Total is an all-history figure, so on its own it cannot be
+// checked: a plate whose current driver is fully settled still looks indebted
+// because it carries what earlier drivers left behind. The backend therefore
+// ships the same balance read two ways — per contributor and per month — and
+// the cell opens them. Every figure is backend-computed; the client formats.
+
+// One contributor: the OPPOSITE identity of the row — a driver on a plate row,
+// a plate on a driver row.
+export type OutstandingPart = {
+  label: string;
+  due: number;
+  paid: number;
+  delta: number; // due − paid; negative = this contributor overpaid
+  from: string; // YYYY-MM-DD of its first transaction
+  to: string;
+};
+
+export type OutstandingMonth = {
+  ym: string; // YYYY-MM
+  due: number;
+  paid: number;
+  delta: number;
+  balance: number; // running balance after this month
+};
+
+export type OutstandingBreakdown = {
+  parts: OutstandingPart[]; // chronological
+  months: OutstandingMonth[]; // chronological
+  total: number; // equals summary.outstanding
+  contributorCount: number; // contributors that left a remainder
+  // Span of months that actually moved the balance — the cell's caption.
+  rangeFrom: string | null; // YYYY-MM
+  rangeTo: string | null;
+};
 
 // "Data Mentah Tanpa Plat": an unprocessed Manual Payment imported without a
 // plate. Lives outside the pivot/summary until an admin processes it (assigns

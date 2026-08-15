@@ -44,6 +44,28 @@ export function monthYearLabelID(month: number, year: number): string {
   );
 }
 
+/** "Agu 2026" from a `YYYY-MM` period — compact enough for a table column. */
+export function monthYearShortID(ym: string): string {
+  const [year, month] = ym.split('-').map(Number);
+  return new Intl.DateTimeFormat('id-ID', { month: 'short', year: 'numeric' }).format(
+    new Date(Date.UTC(year, month - 1, 1)),
+  );
+}
+
+/** "Mei–Agu 2026" / "Agu 2026" — the span two `YYYY-MM` bounds cover. */
+export function monthRangeShortID(from: string, to: string): string {
+  if (from === to) return monthYearShortID(from);
+  const [fromYear] = from.split('-').map(Number);
+  const [toYear] = to.split('-').map(Number);
+  // Same year → the year is said once, at the end.
+  if (fromYear === toYear) {
+    const monthShort = new Intl.DateTimeFormat('id-ID', { month: 'short' });
+    const [, fromMonth] = from.split('-').map(Number);
+    return `${monthShort.format(new Date(Date.UTC(fromYear, fromMonth - 1, 1)))}–${monthYearShortID(to)}`;
+  }
+  return `${monthYearShortID(from)}–${monthYearShortID(to)}`;
+}
+
 /** ["Januari".."Desember"] for month pickers. */
 export const MONTH_NAMES_ID = Array.from({ length: 12 }, (_, i) =>
   new Intl.DateTimeFormat('id-ID', { month: 'long' }).format(new Date(Date.UTC(2020, i, 1))),

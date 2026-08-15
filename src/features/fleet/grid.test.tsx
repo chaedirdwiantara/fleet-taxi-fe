@@ -101,6 +101,59 @@ describe('GojekMonitoringTable (faithful legacy pivot)', () => {
     expect(onCellClick).toHaveBeenCalledWith(row.plateNorm, day);
   });
 
+  // Outstanding Total is the row's only all-history figure, so it is the one
+  // that cannot be checked where it stands — every cell opens its audit trail.
+  describe('Outstanding Total drill-down', () => {
+    it('opens the rincian for any row, settled or overpaid included', async () => {
+      const user = userEvent.setup();
+      const { onOutstandingClick } = renderTable({ onOutstandingClick: vi.fn() });
+      const cells = screen.getAllByLabelText(/^Rincian outstanding /);
+      expect(cells.length).toBe(grid.rows.length);
+
+      await user.click(cells[0]);
+      expect(onOutstandingClick).toHaveBeenCalledWith(grid.rows[0].plateNorm);
+    });
+
+    it('is reachable by keyboard, not by mouse alone', async () => {
+      const user = userEvent.setup();
+      const { onOutstandingClick } = renderTable({ onOutstandingClick: vi.fn() });
+      const cell = screen.getAllByLabelText(/^Rincian outstanding /)[0];
+      cell.focus();
+      await user.keyboard('{Enter}');
+      expect(onOutstandingClick).toHaveBeenCalledTimes(1);
+      await user.keyboard(' ');
+      expect(onOutstandingClick).toHaveBeenCalledTimes(2);
+    });
+
+    it('captions the cell with the months that formed the balance', () => {
+      renderTable({ onOutstandingClick: vi.fn() });
+      const row = grid.rows.find(
+        (r) => r.summary.outstanding !== 0 && r.outstandingBreakdown?.rangeFrom,
+      )!;
+      const cell = screen.getByLabelText(new RegExp(`^Rincian outstanding ${row.plateRaw}:`));
+      // "Mei–Jun 2026" (one contributor) or "2 driver · Mei–Jun 2026"
+      expect(cell.textContent).toMatch(/\d{4}$/);
+    });
+
+    it('stays inert on surfaces that do not render the modal', () => {
+      renderTable(); // no onOutstandingClick — the partner grid
+      expect(screen.queryByLabelText(/^Rincian outstanding /)).toBeNull();
+    });
+
+    it('stays inert against a backend that predates the breakdown', () => {
+      const base = makeGojekGrid(6, 2026, 2) as unknown as FleetGrid;
+      const rows = base.rows.map(({ outstandingBreakdown: _drop, ...r }) => r);
+      render(
+        <GojekMonitoringTable
+          grid={{ ...base, rows }}
+          onCellClick={vi.fn()}
+          onOutstandingClick={vi.fn()}
+        />,
+      );
+      expect(screen.queryByLabelText(/^Rincian outstanding /)).toBeNull();
+    });
+  });
+
   it('renders an explicit "0" for in-data-but-Rp0 (pink) days', () => {
     const base = makeGojekGrid(6, 2026, 1) as unknown as FleetGrid;
     const row = {

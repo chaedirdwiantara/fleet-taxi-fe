@@ -12,6 +12,11 @@ import type { RawManualRow } from '../types';
 // admin processes them (isi plat & status setoran); after processing the record
 // merges into its plate's row and counts toward omset. Admin surface only —
 // the partner grid never receives raw rows (server-side plate scoping).
+//
+// Collapsed by default: the queue is a side task, and the monitoring table is
+// what the page is for. The header keeps the two figures that decide whether
+// it is worth opening — how many entries, and how much money — visible while
+// it stays shut.
 export function RawDataPanel({
   rows,
   totalAmount,
@@ -21,7 +26,7 @@ export function RawDataPanel({
   totalAmount: number;
   onProcess: (detailId: number) => void;
 }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   if (rows.length === 0) return null;
 
   return (
