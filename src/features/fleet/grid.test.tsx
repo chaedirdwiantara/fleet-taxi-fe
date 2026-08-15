@@ -136,8 +136,15 @@ describe('GojekMonitoringTable (faithful legacy pivot)', () => {
     });
 
     it('stays inert on surfaces that do not render the modal', () => {
-      renderTable(); // no onOutstandingClick — the partner grid
+      renderTable(); // no onOutstandingClick
       expect(screen.queryByLabelText(/^Rincian outstanding /)).toBeNull();
+    });
+
+    it('opens the same way on the partner layout', async () => {
+      const user = userEvent.setup();
+      const { onOutstandingClick } = renderTable({ readOnly: true, onOutstandingClick: vi.fn() });
+      await user.click(screen.getAllByLabelText(/^Rincian outstanding /)[0]);
+      expect(onOutstandingClick).toHaveBeenCalledWith(grid.rows[0].plateNorm);
     });
 
     it('stays inert against a backend that predates the breakdown', () => {

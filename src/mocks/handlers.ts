@@ -1799,12 +1799,10 @@ export const handlers = [
     // The filters narrow the partner's own scope; they can never widen it.
     return ok({
       ...pivoted,
-      // Only the admin grid renders "Rincian Outstanding", so only the admin
-      // endpoint asks the backend to compute it — mirror that omission here.
       rows: applyGridFilters(pivoted.rows, url, {
         plates: (r) => r.plateHistory ?? [],
         types: (r) => gojekRowTypes(pivoted, r),
-      }).map(({ outstandingBreakdown: _omit, ...row }) => row),
+      }),
     });
   }),
 
