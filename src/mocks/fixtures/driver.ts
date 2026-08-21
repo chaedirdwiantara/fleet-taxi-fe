@@ -2,11 +2,12 @@
 // from Fleet Monitoring (Gojek/Grab) on every list load — the mock emulates
 // that by simply serving a roster that already contains synced rows
 // (`source: 'gojek' | 'grab'`) alongside a manual one, in mixed lifecycle
-// states (active, nonaktif, resigned ± deposit-return proof).
+// states (active, nonaktif, resigned ± deposit-return proof, and one driver the
+// import stopped carrying → `exitedAt`).
 
 export type SeedDriverDocument = {
   id: number;
-  kind: 'ktp' | 'sim' | 'skck' | 'deposit_proof' | 'deposit_return_proof';
+  kind: 'ktp' | 'sim' | 'skck' | 'home_survey' | 'deposit_proof' | 'deposit_return_proof';
   contentType: string;
   status: 'pending' | 'uploaded';
 };
@@ -17,6 +18,8 @@ export type SeedDriver = {
   email: string | null;
   phone: string | null;
   address: string | null;
+  homeLat: number | null;
+  homeLng: number | null;
   ktpNo: string | null;
   simNo: string | null;
   simExpired: string | null;
@@ -29,17 +32,22 @@ export type SeedDriver = {
   depositReturnStatus: 'none' | 'waiting' | 'approved' | 'rejected';
   depositReturnDecidedAt: string | null;
   resignedAt: string | null;
+  /** YYYY-MM-DD — derived by the BE sync, never edited by the client. */
+  exitedAt: string | null;
   joinedAt: string;
   updatedAt: string;
   documents: SeedDriverDocument[];
 };
 
 const blank = {
+  homeLat: null,
+  homeLng: null,
   isActive: true,
   depositAmount: 0,
   depositReturnStatus: 'none',
   depositReturnDecidedAt: null,
   resignedAt: null,
+  exitedAt: null,
 } satisfies Partial<SeedDriver>;
 
 export const seedDrivers: SeedDriver[] = [
@@ -61,10 +69,13 @@ export const seedDrivers: SeedDriver[] = [
     depositAmount: 2_000_000,
     joinedAt: '2026-06-15T03:00:00.000Z',
     updatedAt: '2026-06-20T04:00:00.000Z',
+    homeLat: -6.229728,
+    homeLng: 106.689399,
     documents: [
       { id: 201, kind: 'ktp', contentType: 'image/jpeg', status: 'uploaded' },
       { id: 202, kind: 'sim', contentType: 'image/jpeg', status: 'uploaded' },
       { id: 203, kind: 'skck', contentType: 'application/pdf', status: 'uploaded' },
+      { id: 205, kind: 'home_survey', contentType: 'image/jpeg', status: 'uploaded' },
       { id: 204, kind: 'deposit_proof', contentType: 'image/jpeg', status: 'uploaded' },
     ],
   },
@@ -158,5 +169,27 @@ export const seedDrivers: SeedDriver[] = [
     joinedAt: '2026-04-20T03:00:00.000Z',
     updatedAt: '2026-07-10T03:00:00.000Z',
     documents: [{ id: 311, kind: 'ktp', contentType: 'image/jpeg', status: 'uploaded' }],
+  },
+  // Detected as gone by the roster sync (the import stopped carrying them) but
+  // never marked resign by hand — the `auto` half of the Driver Resign list.
+  {
+    ...blank,
+    id: 22,
+    name: 'Chandra Mata',
+    email: null,
+    phone: '081399911122',
+    address: 'Jl. Kenari No. 12, Bekasi',
+    ktpNo: null,
+    simNo: null,
+    simExpired: null,
+    driverCode: 'DRV-000022',
+    plateNumber: 'B 2000 GRB',
+    bankAccount: null,
+    source: 'gojek',
+    depositAmount: 1_200_000,
+    exitedAt: '2026-08-11',
+    joinedAt: '2026-05-12T03:00:00.000Z',
+    updatedAt: '2026-08-11T03:00:00.000Z',
+    documents: [],
   },
 ];

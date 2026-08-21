@@ -16,9 +16,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { formatDateTimeWIB } from '@/lib/datetime';
+import { formatDateID, formatDateTimeWIB } from '@/lib/datetime';
 import { formatRupiah } from '@/lib/money';
 import { DocumentUploadCard } from './components/DocumentUploadCard';
+import { HomeSurveyCard } from './components/HomeSurveyCard';
 import {
   MasterFields,
   masterInputFrom,
@@ -69,14 +70,23 @@ function DriverEditView({ detail, onBack }: { detail: DriverDetail; onBack: () =
             <p className="font-mono text-xs text-muted-foreground">{detail.driverCode}</p>
           )}
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
           <SourceBadge source={detail.source} />
-          <LifecycleBadge isActive={detail.isActive} resignedAt={detail.resignedAt} />
+          <LifecycleBadge
+            isActive={detail.isActive}
+            resignedAt={detail.resignedAt}
+            exitedAt={detail.exitedAt}
+          />
         </div>
       </div>
 
+      {/* Left column = who the driver is and where they live; right column =
+          the paperwork and the money that follow from it. */}
       <div className="grid items-start gap-4 md:grid-cols-2">
-        <InfoCard detail={detail} />
+        <div className="grid gap-4">
+          <InfoCard detail={detail} />
+          <HomeSurveyCard detail={detail} />
+        </div>
         <div className="grid gap-4">
           <DocumentsCard detail={detail} />
           <DepositCard detail={detail} />
@@ -270,7 +280,9 @@ function LifecycleCard({ detail }: { detail: DriverDetail }) {
         <CardDescription>
           {resigned
             ? `Resign sejak ${formatDateTimeWIB(detail.resignedAt!)} — kelola pengembalian deposit di sini.`
-            : 'Tandai driver yang berhenti bekerja; pengembalian deposit dikelola setelahnya.'}
+            : detail.exitedAt
+              ? `Terdeteksi keluar sejak ${formatDateID(detail.exitedAt)} — data import tidak lagi memuat driver ini. Tandai resign untuk mengunci statusnya dan mulai pengembalian deposit.`
+              : 'Tandai driver yang berhenti bekerja; pengembalian deposit dikelola setelahnya.'}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3 px-4">

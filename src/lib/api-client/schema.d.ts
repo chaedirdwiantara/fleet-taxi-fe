@@ -1377,7 +1377,8 @@ export interface paths {
         /** Sync the roster from fleet imports, then list own drivers (paginated, filterable) */
         get: operations["PortalDriversController_list"];
         put?: never;
-        post?: never;
+        /** Register a driver manually (source: manual) */
+        post: operations["PortalDriversController_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1869,7 +1870,7 @@ export interface components {
              * @example ktp
              * @enum {string}
              */
-            kind: "ktp" | "sim" | "skck" | "deposit_proof" | "deposit_return_proof";
+            kind: "ktp" | "sim" | "skck" | "home_survey" | "deposit_proof" | "deposit_return_proof";
             /**
              * @example image/jpeg
              * @enum {string}
@@ -1881,15 +1882,26 @@ export interface components {
              */
             sizeBytes: number;
         };
-        UpdateDriverDto: {
-            /** @example Budi Santoso */
-            name?: string;
+        CreateDriverDto: {
             /** @example budi@example.com */
             email?: string;
             /** @example 0812xxxxxxx */
             phone?: string;
-            /** @example Jl. Melati No. 1, Jakarta Selatan */
+            /**
+             * @description Alamat rumah hasil survey
+             * @example Jl. Melati No. 1, Jakarta Selatan
+             */
             address?: string;
+            /**
+             * @description Lintang titik rumah (WGS84). Kirim null untuk menghapus titik.
+             * @example -6.229728
+             */
+            homeLat?: number | null;
+            /**
+             * @description Bujur titik rumah (WGS84). Kirim null untuk menghapus titik.
+             * @example 106.689399
+             */
+            homeLng?: number | null;
             /**
              * @description Nomor KTP
              * @example 3174xxxxxxxxxxxx
@@ -1925,6 +1937,66 @@ export interface components {
              * @example true
              */
             isActive?: boolean;
+            /** @example Budi Santoso */
+            name: string;
+        };
+        UpdateDriverDto: {
+            /** @example budi@example.com */
+            email?: string;
+            /** @example 0812xxxxxxx */
+            phone?: string;
+            /**
+             * @description Alamat rumah hasil survey
+             * @example Jl. Melati No. 1, Jakarta Selatan
+             */
+            address?: string;
+            /**
+             * @description Lintang titik rumah (WGS84). Kirim null untuk menghapus titik.
+             * @example -6.229728
+             */
+            homeLat?: number | null;
+            /**
+             * @description Bujur titik rumah (WGS84). Kirim null untuk menghapus titik.
+             * @example 106.689399
+             */
+            homeLng?: number | null;
+            /**
+             * @description Nomor KTP
+             * @example 3174xxxxxxxxxxxx
+             */
+            ktpNo?: string;
+            /**
+             * @description Nomor SIM
+             * @example 1234-5678-901234
+             */
+            simNo?: string;
+            /**
+             * @description Masa berlaku SIM (YYYY-MM-DD)
+             * @example 2027-03-15
+             */
+            simExpired?: string;
+            /**
+             * @description Plat unit yang dioperasikan (harus plat terdaftar partner)
+             * @example B 1793 SCP
+             */
+            plateNumber?: string;
+            /**
+             * @description Rekening driver
+             * @example BCA 1234567890 a.n. Budi
+             */
+            bankAccount?: string;
+            /**
+             * @description Deposit (rupiah bulat)
+             * @example 2500000
+             */
+            depositAmount?: number;
+            /**
+             * @description Aktif/nonaktifkan driver
+             * @example true
+             */
+            isActive?: boolean;
+            /** @example Budi Santoso */
+            name?: string;
             /**
              * @description true = tandai resign (nonaktif); false = batalkan resign
              * @example false
@@ -4086,7 +4158,10 @@ export interface operations {
                 q?: string;
                 plate?: string;
                 active?: "true" | "false";
+                /** @description true = keluar dari armada (resign manual ATAU terdeteksi keluar dari data import) */
                 resigned?: "true" | "false";
+                /** @description Mempersempit resigned=true: manual = ditandai partner, auto = terdeteksi otomatis */
+                resignedType?: "manual" | "auto";
                 page?: string;
                 pageSize?: string;
             };
@@ -4097,6 +4172,27 @@ export interface operations {
         requestBody?: never;
         responses: {
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PortalDriversController_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateDriverDto"];
+            };
+        };
+        responses: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };

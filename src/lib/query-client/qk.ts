@@ -149,11 +149,14 @@ export const qk = {
     },
     // Driver management (roster auto-synced from Fleet Monitoring).
     driver: {
+      /** Invalidation prefix for every driver query (list, detail, picker). */
+      all: ['partner', 'driver'] as const,
       drivers: (p: {
         q?: string;
         plate?: string;
         active?: string;
         resigned?: string;
+        resignedType?: string;
         page: number;
       }) => ['partner', 'driver', 'list', p] as const,
       detail: (id: number) => ['partner', 'driver', 'detail', id] as const,

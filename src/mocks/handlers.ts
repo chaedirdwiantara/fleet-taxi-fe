@@ -603,6 +603,7 @@ const rentalFromBody = (
 // contain gojek/grab-sourced rows. All lifecycle changes ride one PATCH.
 let driversState: SeedDriver[] = structuredClone(seedDrivers);
 let nextDriverDocId = 10_000;
+let nextDriverId = 900; // manual registrations — above every seeded id
 // presigned-but-unconfirmed documents: docId → owning driver
 const pendingDriverDocs = new Map<number, { driverId: number }>();
 
@@ -610,11 +611,22 @@ const pendingDriverDocs = new Map<number, { driverId: number }>();
 export const resetDrivers = () => {
   driversState = structuredClone(seedDrivers);
   nextDriverDocId = 10_000;
+  nextDriverId = 900;
   pendingDriverDocs.clear();
 };
 
 const findDriver = (id: string | readonly string[] | undefined) =>
   driversState.find((d) => String(d.id) === id);
+
+/**
+ * Stands in for a later import carrying the driver again: the BE sync clears
+ * `exited_at` on its own, which is what drops the row off the Driver Resign
+ * list. Test-only lever — the client can never write this field.
+ */
+export const reappearInImport = (driverId: number) => {
+  const driver = driversState.find((d) => d.id === driverId);
+  if (driver) driver.exitedAt = null;
+};
 
 const driverDocViews = (d: SeedDriver) =>
   d.documents.map((doc) => ({
@@ -640,12 +652,15 @@ const presentDriverSummaryMock = (d: SeedDriver) => ({
   depositAmount: d.depositAmount,
   depositReturnStatus: d.depositReturnStatus,
   resignedAt: d.resignedAt,
+  exitedAt: d.exitedAt,
   joinedAt: d.joinedAt,
 });
 
 const presentDriverDetailMock = (d: SeedDriver) => ({
   ...presentDriverSummaryMock(d),
   address: d.address,
+  homeLat: d.homeLat,
+  homeLng: d.homeLng,
   ktpNo: d.ktpNo,
   simNo: d.simNo,
   bankAccount: d.bankAccount,
@@ -654,11 +669,12 @@ const presentDriverDetailMock = (d: SeedDriver) => ({
   documents: driverDocViews(d),
 });
 
-type DriverPatchBody = Partial<{
-  name: string;
+type DriverMasterDataBody = Partial<{
   email: string;
   phone: string;
   address: string;
+  homeLat: number | null;
+  homeLng: number | null;
   ktpNo: string;
   simNo: string;
   simExpired: string;
@@ -666,9 +682,14 @@ type DriverPatchBody = Partial<{
   bankAccount: string;
   depositAmount: number;
   isActive: boolean;
-  resigned: boolean;
-  depositReturned: boolean;
 }>;
+
+type DriverPatchBody = DriverMasterDataBody &
+  Partial<{
+    name: string;
+    resigned: boolean;
+    depositReturned: boolean;
+  }>;
 
 /** Master-data half of the PATCH (validation errors short-circuit). */
 const applyDriverMasterData = (d: SeedDriver, body: DriverPatchBody) => {
@@ -698,6 +719,18 @@ const applyDriverMasterData = (d: SeedDriver, body: DriverPatchBody) => {
     }
     d.plateNumber = trimmed || null;
   }
+  // The home pin is one value in two columns — the BE rejects half of it.
+  const lat = body.homeLat !== undefined ? body.homeLat : d.homeLat;
+  const lng = body.homeLng !== undefined ? body.homeLng : d.homeLng;
+  if ((lat === null) !== (lng === null)) {
+    return err(
+      400,
+      'VALIDATION_ERROR',
+      'Titik lokasi rumah harus berisi lintang dan bujur sekaligus',
+    );
+  }
+  d.homeLat = lat;
+  d.homeLng = lng;
   if (body.depositAmount !== undefined) {
     if (!Number.isInteger(body.depositAmount) || body.depositAmount < 0) {
       return err(400, 'VALIDATION_ERROR', 'depositAmount harus rupiah bulat');
@@ -2323,16 +2356,19 @@ export const handlers = [
     return ok({ deleted: true });
   }),
 
-  // The whole roster — includes resigned rows; the BE auto-syncs from Fleet
-  // Monitoring before answering (emulated here by the pre-seeded fixtures).
+  // The whole roster — includes drivers who have left; the BE auto-syncs from
+  // Fleet Monitoring before answering (emulated here by the pre-seeded
+  // fixtures, `exitedAt` included).
   http.get('*/partner/portal/drivers', ({ request }) => {
     const url = new URL(request.url);
     const q = url.searchParams.get('q')?.trim().toLowerCase();
     const plate = url.searchParams.get('plate');
     const active = url.searchParams.get('active');
     const resigned = url.searchParams.get('resigned');
+    const resignedType = url.searchParams.get('resignedType');
     const page = int(url.searchParams.get('page'), 1);
     const pageSize = int(url.searchParams.get('pageSize'), 20);
+    const outOfFleet = resigned === 'true';
     const filtered = driversState
       .filter(
         (d) =>
@@ -2347,14 +2383,70 @@ export const handlers = [
         return d.isActive === (active === 'true');
       })
       .filter((d) => {
-        if (resigned !== 'true' && resigned !== 'false') return true;
-        return (d.resignedAt != null) === (resigned === 'true');
+        // resigned=true → manual resign OR detected exit; resignedType narrows.
+        if (!outOfFleet) {
+          return resigned === 'false' ? d.resignedAt == null && d.exitedAt == null : true;
+        }
+        if (resignedType === 'manual') return d.resignedAt != null;
+        if (resignedType === 'auto') return d.exitedAt != null && d.resignedAt == null;
+        return d.resignedAt != null || d.exitedAt != null;
       })
-      .sort((a, b) => b.joinedAt.localeCompare(a.joinedAt));
+      .sort((a, b) =>
+        outOfFleet
+          ? (b.resignedAt ?? b.exitedAt ?? '').localeCompare(a.resignedAt ?? a.exitedAt ?? '')
+          : b.joinedAt.localeCompare(a.joinedAt),
+      );
     const rows = filtered
       .slice((page - 1) * pageSize, page * pageSize)
       .map(presentDriverSummaryMock);
     return ok(rows, { page, pageSize, total: filtered.length });
+  }),
+
+  // Manual registration — mirrors the BE: name required, source 'manual',
+  // driver code derived from the new id, name collision → 409.
+  http.post('*/partner/portal/drivers', async ({ request }) => {
+    const body = (await request.json()) as DriverMasterDataBody & { name?: string };
+    const name = body.name?.trim() ?? '';
+    if (name === '') return err(400, 'VALIDATION_ERROR', 'Nama driver wajib diisi');
+    if (driversState.some((d) => d.name.trim().toLowerCase() === name.toLowerCase())) {
+      return err(409, 'CONFLICT', 'Nama driver sudah ada');
+    }
+    const id = nextDriverId++;
+    const now = new Date().toISOString();
+    const driver: SeedDriver = {
+      id,
+      name,
+      email: null,
+      phone: null,
+      address: null,
+      homeLat: null,
+      homeLng: null,
+      ktpNo: null,
+      simNo: null,
+      simExpired: null,
+      driverCode: `DRV-${String(id).padStart(6, '0')}`,
+      plateNumber: null,
+      bankAccount: null,
+      source: 'manual',
+      isActive: true,
+      depositAmount: 0,
+      depositReturnStatus: 'none',
+      depositReturnDecidedAt: null,
+      resignedAt: null,
+      exitedAt: null,
+      joinedAt: now,
+      updatedAt: now,
+      documents: [],
+    };
+    const invalid = applyDriverMasterData(driver, body);
+    if (invalid) return invalid;
+    driversState.push(driver);
+    return HttpResponse.json(
+      { success: true, data: presentDriverDetailMock(driver) },
+      {
+        status: 201,
+      },
+    );
   }),
 
   http.get('*/partner/portal/drivers/:id', ({ params }) => {

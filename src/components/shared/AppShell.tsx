@@ -15,6 +15,7 @@ import {
   Receipt,
   ScrollText,
   Table2,
+  UserMinus,
   Users,
   Wallet,
 } from 'lucide-react';
@@ -97,6 +98,9 @@ const NAV: Record<Audience, NavEntry[]> = {
       icon: Users,
       children: [
         { to: '/partner/drivers', label: 'Daftar Driver', icon: Users },
+        // Sits right under the roster: it is the same people, one lifecycle
+        // step later (ditandai resign atau terdeteksi keluar dari import).
+        { to: '/partner/driver-resign', label: 'Driver Resign', icon: UserMinus },
         { to: '/partner/cicilan', label: 'Cicilan', icon: Wallet },
         { to: '/partner/cop', label: 'COP', icon: Car },
       ],
