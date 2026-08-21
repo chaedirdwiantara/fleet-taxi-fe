@@ -12,3 +12,16 @@ export const driverSearchSchema = z.object({
   page: z.number().int().min(1).catch(1),
 });
 export type DriverSearch = z.infer<typeof driverSearchSchema>;
+
+/**
+ * Driver Resign page. `resigned` is pinned to 'true' by the route (the page IS
+ * the resign list), so only the narrowing lives in the URL: `resignedType`
+ * splits manually marked resignations from the ones detected in the import.
+ */
+export const resignedDriverSearchSchema = z.object({
+  q: z.string().optional().catch(undefined),
+  plate: z.string().optional().catch(undefined),
+  resignedType: z.enum(['manual', 'auto']).optional().catch(undefined),
+  page: z.number().int().min(1).catch(1),
+});
+export type ResignedDriverSearch = z.infer<typeof resignedDriverSearchSchema>;

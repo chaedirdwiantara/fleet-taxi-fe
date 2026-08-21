@@ -1,6 +1,12 @@
 import { Badge } from '@/components/ui/badge';
-import { formatDateTimeWIB } from '@/lib/datetime';
-import { SOURCE_LABELS, type DepositReturnStatus, type DriverSource } from '../types';
+import { formatDateID, formatDateTimeWIB } from '@/lib/datetime';
+import {
+  RESIGNED_TYPE_LABELS,
+  SOURCE_LABELS,
+  type DepositReturnStatus,
+  type DriverSource,
+  type ResignedType,
+} from '../types';
 
 // Shared status-badge maps — same color family as rental monitoring:
 // emerald = positive, sky/amber = in progress, rose = negative,
@@ -21,19 +27,36 @@ export function SourceBadge({ source }: { source: DriverSource }) {
   return <Badge variant="outline">{label}</Badge>;
 }
 
-/** Aktif / Nonaktif / Resign — one badge for the whole lifecycle column. */
+/**
+ * Resign / Keluar / Aktif / Nonaktif — one badge for the whole lifecycle
+ * column, most decisive state first. "Resign" (rose) is the partner's own
+ * decision; "Keluar" (amber) is detected from the import and can clear itself
+ * when the driver reappears, so the two never share a colour.
+ */
 export function LifecycleBadge({
   isActive,
   resignedAt,
+  exitedAt = null,
 }: {
   isActive: boolean;
   resignedAt: string | null;
+  exitedAt?: string | null;
 }) {
   if (resignedAt) return <Badge className={ROSE}>Resign</Badge>;
+  if (exitedAt) return <Badge className={AMBER}>Keluar · {formatDateID(exitedAt)}</Badge>;
   return isActive ? (
     <Badge className={EMERALD}>Aktif</Badge>
   ) : (
     <Badge variant="outline">Nonaktif</Badge>
+  );
+}
+
+/** How a driver left the fleet — the Driver Resign list's "Tipe" column. */
+export function ResignedTypeBadge({ type }: { type: ResignedType }) {
+  return type === 'manual' ? (
+    <Badge className={ROSE}>{RESIGNED_TYPE_LABELS.manual}</Badge>
+  ) : (
+    <Badge className={AMBER}>{RESIGNED_TYPE_LABELS.auto}</Badge>
   );
 }
 

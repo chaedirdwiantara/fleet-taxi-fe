@@ -5,8 +5,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState, type ReactNode } from 'react';
 import { DriversPage } from './DriversPage';
 import { DriverEditPage } from './DriverEditPage';
-import { driverSearchSchema, type DriverSearch } from './searchSchema';
-import { resetDrivers, resetPartnerPlates } from '@/mocks/handlers';
+import { ResignedDriversPage } from './ResignedDriversPage';
+import {
+  driverSearchSchema,
+  resignedDriverSearchSchema,
+  type DriverSearch,
+  type ResignedDriverSearch,
+} from './searchSchema';
+import { reappearInImport, resetDrivers, resetPartnerPlates } from '@/mocks/handlers';
 
 // Radix Select needs these pointer APIs that jsdom doesn't implement.
 window.HTMLElement.prototype.scrollIntoView = () => {};
@@ -42,6 +48,19 @@ function DriversHarness({
   );
 }
 
+function ResignedHarness() {
+  const [search, setSearch] = useState<ResignedDriverSearch>(() =>
+    resignedDriverSearchSchema.parse({}),
+  );
+  return (
+    <ResignedDriversPage
+      search={search}
+      onPatch={(patch) => setSearch((prev) => ({ ...prev, ...patch }))}
+      onOpenDetail={() => {}}
+    />
+  );
+}
+
 // PDF skips the canvas-based client-side compression jsdom can't run.
 const pdfFile = (name = 'bukti.pdf') =>
   new File(['%PDF-1.4 mock'], name, { type: 'application/pdf' });
@@ -61,12 +80,13 @@ describe('Daftar Driver — synced roster list', () => {
     // resigned drivers stay in the roster, badged
     expect(screen.getByText('Tono Sucipto')).toBeInTheDocument();
     expect(screen.getAllByText('Resign').length).toBeGreaterThan(0);
+    // a driver the import stopped carrying wears the detected "Keluar" badge
+    expect(screen.getByText('Chandra Mata')).toBeInTheDocument();
+    expect(screen.getByText(/^Keluar · /)).toBeInTheDocument();
     // source badges: gojek/grab synced + manual
     expect(screen.getAllByText('Gojek').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Grab').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Manual').length).toBeGreaterThan(0);
-    // roster is synced — no create affordance
-    expect(screen.queryByRole('button', { name: /Tambah/i })).not.toBeInTheDocument();
     expect(screen.getByText(/tersinkron otomatis dari Fleet Monitoring/i)).toBeInTheDocument();
   });
 
@@ -76,11 +96,13 @@ describe('Daftar Driver — synced roster list', () => {
     await screen.findByText('Agus Salim');
 
     await user.click(screen.getByRole('combobox', { name: 'Filter resign' }));
-    await user.click(await screen.findByRole('option', { name: 'Resign' }));
+    await user.click(await screen.findByRole('option', { name: 'Resign / Keluar' }));
 
     await waitFor(() => expect(screen.queryByText('Agus Salim')).not.toBeInTheDocument());
     expect(screen.getByText('Tono Sucipto')).toBeInTheDocument();
     expect(screen.getByText('Sri Wahyuni')).toBeInTheDocument();
+    // the detected exit belongs to the same list, without a manual resign
+    expect(screen.getByText('Chandra Mata')).toBeInTheDocument();
   });
 
   it('snaps back to the last page when the current page ends up out of range', async () => {
@@ -89,6 +111,91 @@ describe('Daftar Driver — synced roster list', () => {
     render(<DriversHarness initialPage={2} />, { wrapper: wrapperFor(makeClient()) });
 
     expect(await screen.findByText('Agus Salim')).toBeInTheDocument();
+  });
+});
+
+describe('Daftar Driver — pendaftaran manual', () => {
+  it('registers a driver and hands the caller its id for the edit page', async () => {
+    const user = userEvent.setup();
+    const opened: number[] = [];
+    render(<DriversHarness onOpenDetail={(id) => opened.push(id)} />, {
+      wrapper: wrapperFor(makeClient()),
+    });
+    await screen.findByText('Agus Salim');
+
+    await user.click(screen.getByRole('button', { name: 'Tambah Driver' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.type(within(dialog).getByLabelText('Nama'), 'Joko Baru');
+    await user.type(within(dialog).getByLabelText('Telepon'), '081200011122');
+    await user.click(within(dialog).getByRole('button', { name: 'Simpan & Lengkapi' }));
+
+    await waitFor(() => expect(opened).toHaveLength(1));
+    // the fresh row is on the roster, marked as a manual entry
+    expect(await screen.findByText('Joko Baru')).toBeInTheDocument();
+    expect(screen.getAllByText('Manual').length).toBeGreaterThan(1);
+  });
+
+  it('blocks an empty name before hitting the API', async () => {
+    const user = userEvent.setup();
+    render(<DriversHarness />, { wrapper: wrapperFor(makeClient()) });
+    await screen.findByText('Agus Salim');
+
+    await user.click(screen.getByRole('button', { name: 'Tambah Driver' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Simpan & Lengkapi' }));
+
+    expect(await within(dialog).findByText('Nama wajib diisi')).toBeInTheDocument();
+  });
+
+  it('surfaces the CONFLICT error when the name already exists', async () => {
+    const user = userEvent.setup();
+    render(<DriversHarness />, { wrapper: wrapperFor(makeClient()) });
+    await screen.findByText('Agus Salim');
+
+    await user.click(screen.getByRole('button', { name: 'Tambah Driver' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.type(within(dialog).getByLabelText('Nama'), 'Agus Salim');
+    await user.click(within(dialog).getByRole('button', { name: 'Simpan & Lengkapi' }));
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Nama driver sudah ada');
+  });
+});
+
+describe('Driver Resign — daftar keluar armada', () => {
+  it('lists both halves: ditandai manual dan terdeteksi keluar', async () => {
+    render(<ResignedHarness />, { wrapper: wrapperFor(makeClient()) });
+
+    expect(await screen.findByText('Chandra Mata')).toBeInTheDocument();
+    expect(screen.getByText('Tono Sucipto')).toBeInTheDocument();
+    expect(screen.getByText('Sri Wahyuni')).toBeInTheDocument();
+    expect(screen.getAllByText('Ditandai Manual').length).toBe(2);
+    expect(screen.getByText('Terdeteksi Keluar')).toBeInTheDocument();
+    // drivers still on the roster never show up here
+    expect(screen.queryByText('Agus Salim')).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/Driver yang muncul lagi di import terbaru otomatis keluar/i),
+    ).toBeInTheDocument();
+  });
+
+  it('narrows to the automatically detected exits', async () => {
+    const user = userEvent.setup();
+    render(<ResignedHarness />, { wrapper: wrapperFor(makeClient()) });
+    await screen.findByText('Chandra Mata');
+
+    await user.click(screen.getByRole('combobox', { name: 'Filter tipe resign' }));
+    await user.click(await screen.findByRole('option', { name: 'Terdeteksi Keluar' }));
+
+    await waitFor(() => expect(screen.queryByText('Tono Sucipto')).not.toBeInTheDocument());
+    expect(screen.getByText('Chandra Mata')).toBeInTheDocument();
+  });
+
+  it('drops a detected driver once the roster sync sees them again', async () => {
+    // The sync clears exitedAt server-side; the mock stands in for that import.
+    reappearInImport(22);
+    render(<ResignedHarness />, { wrapper: wrapperFor(makeClient()) });
+
+    expect(await screen.findByText('Tono Sucipto')).toBeInTheDocument();
+    expect(screen.queryByText('Chandra Mata')).not.toBeInTheDocument();
   });
 });
 
@@ -123,6 +230,65 @@ describe('Halaman edit driver — informasi', () => {
     await user.click(screen.getByRole('button', { name: 'Simpan' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Nama driver sudah terdaftar');
+  });
+});
+
+describe('Halaman edit driver — survey rumah', () => {
+  it('opens the exact pin on the map when the house was surveyed', async () => {
+    // Agus Salim carries an address, a pin and a survey photo.
+    render(<DriverEditPage id={10} onBack={() => {}} />, { wrapper: wrapperFor(makeClient()) });
+    await screen.findByRole('heading', { name: 'Agus Salim' });
+
+    expect(screen.getByRole('link', { name: /Buka di Peta/ })).toHaveAttribute(
+      'href',
+      'https://www.google.com/maps/search/?api=1&query=-6.229728,106.689399',
+    );
+    expect(screen.getByLabelText('Alamat Rumah')).toHaveValue('Jl. Anggrek No. 3, Bekasi');
+    expect(screen.getByLabelText(/Titik Lokasi/)).toHaveValue('-6.229728, 106.689399');
+    expect(screen.getByAltText('Pratinjau Foto Survey Rumah')).toBeInTheDocument();
+  });
+
+  it('falls back to searching the address when there is no pin', async () => {
+    // Rudi Hartono has an address but no coordinates.
+    render(<DriverEditPage id={12} onBack={() => {}} />, { wrapper: wrapperFor(makeClient()) });
+    await screen.findByRole('heading', { name: 'Rudi Hartono' });
+
+    expect(screen.getByRole('link', { name: /Buka di Peta/ })).toHaveAttribute(
+      'href',
+      'https://www.google.com/maps/search/?api=1&query=Jl.%20Melati%20No.%201%2C%20Jakarta%20Selatan',
+    );
+    expect(screen.getByLabelText(/Titik Lokasi/)).toHaveValue('');
+  });
+
+  it('accepts a pasted Google Maps link and saves the pin', async () => {
+    const user = userEvent.setup();
+    // Dewi Lestari starts with neither address nor pin.
+    render(<DriverEditPage id={11} onBack={() => {}} />, { wrapper: wrapperFor(makeClient()) });
+    await screen.findByRole('heading', { name: 'Dewi Lestari' });
+    expect(screen.queryByRole('link', { name: /Buka di Peta/ })).not.toBeInTheDocument();
+
+    await user.type(screen.getByLabelText('Alamat Rumah'), 'Jl. Kenanga No. 9');
+    await user.type(
+      screen.getByLabelText(/Titik Lokasi/),
+      'https://www.google.com/maps/place/Rumah/@-6.175392,106.827153,17z',
+    );
+    await user.click(screen.getByRole('button', { name: 'Simpan Survey' }));
+
+    expect(await screen.findByRole('link', { name: /Buka di Peta/ })).toHaveAttribute(
+      'href',
+      'https://www.google.com/maps/search/?api=1&query=-6.175392,106.827153',
+    );
+  });
+
+  it('refuses to save an unreadable pin', async () => {
+    const user = userEvent.setup();
+    render(<DriverEditPage id={11} onBack={() => {}} />, { wrapper: wrapperFor(makeClient()) });
+    await screen.findByRole('heading', { name: 'Dewi Lestari' });
+
+    await user.type(screen.getByLabelText(/Titik Lokasi/), 'dekat masjid');
+
+    expect(await screen.findByText(/Titik tidak terbaca/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Simpan Survey' })).toBeDisabled();
   });
 });
 

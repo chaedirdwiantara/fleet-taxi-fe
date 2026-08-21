@@ -6,22 +6,30 @@ import { resolveMediaUrl, useUploadDriverDocument } from '../hooks';
 import { DOC_KIND_LABELS, type DriverDocument, type DriverDocumentKind } from '../types';
 
 // One card per document kind: upload (replaces the previous of its kind) and
-// preview link. `readOnly` locks settled documents (e.g. a returned deposit).
+// preview link. `readOnly` locks settled documents (e.g. a returned deposit);
+// `showPreview` adds an inline thumbnail for kinds whose whole point is the
+// picture (foto survey rumah) rather than a scan you file away.
 export function DocumentUploadCard({
   driverId,
   kind,
   document,
   readOnly = false,
+  showPreview = false,
 }: {
   driverId: number;
   kind: DriverDocumentKind;
   document?: DriverDocument;
   readOnly?: boolean;
+  showPreview?: boolean;
 }) {
   const upload = useUploadDriverDocument(driverId);
   const inputRef = useRef<HTMLInputElement>(null);
   const label = DOC_KIND_LABELS[kind];
   const uploaded = document?.status === 'uploaded';
+  const thumbnail =
+    showPreview && uploaded && document?.url && document.contentType.startsWith('image/')
+      ? resolveMediaUrl(document.url)
+      : null;
 
   const pickFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -44,6 +52,22 @@ export function DocumentUploadCard({
           <Badge variant="outline">Belum diunggah</Badge>
         )}
       </div>
+
+      {thumbnail && (
+        <a
+          href={thumbnail}
+          target="_blank"
+          rel="noreferrer"
+          className="block overflow-hidden rounded-md border bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        >
+          <img
+            src={thumbnail}
+            alt={`Pratinjau ${label}`}
+            loading="lazy"
+            className="h-40 w-full object-cover"
+          />
+        </a>
+      )}
 
       <div className="flex flex-wrap items-center gap-2">
         {uploaded && document?.url && (

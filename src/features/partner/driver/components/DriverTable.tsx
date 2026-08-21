@@ -13,8 +13,9 @@ import { formatRupiah } from '@/lib/money';
 import type { DriverSummary } from '../types';
 import { LifecycleBadge, SourceBadge } from './StatusBadge';
 
-// Roster table — read-only rows synced from Fleet Monitoring; all editing
-// (data completeness, resign, deposit return) happens on the edit page.
+// Roster table — read-only rows (synced from Fleet Monitoring or registered by
+// hand); all editing (data completeness, resign, deposit return) happens on the
+// edit page.
 export function DriverTable({
   items,
   onOpenDetail,
@@ -54,7 +55,11 @@ export function DriverTable({
                 {item.simExpired ? formatDateID(item.simExpired) : '-'}
               </TableCell>
               <TableCell>
-                <LifecycleBadge isActive={item.isActive} resignedAt={item.resignedAt} />
+                <LifecycleBadge
+                  isActive={item.isActive}
+                  resignedAt={item.resignedAt}
+                  exitedAt={item.exitedAt}
+                />
               </TableCell>
               <TableCell>
                 <span className="text-sm font-medium tabular-nums">

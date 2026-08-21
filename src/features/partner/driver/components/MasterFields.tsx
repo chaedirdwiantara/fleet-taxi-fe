@@ -11,9 +11,11 @@ import {
 import { usePartnerPlatesQuery } from '@/features/partner/hooks';
 import type { DriverDetail, DriverUpdateInput } from '../types';
 
-// Master-data fields of the driver edit page's Informasi Driver card. Plain
-// controlled object state — the form owns it and remounts per driver (keyed
-// remount pattern).
+// Master-data fields of the driver edit page's Informasi Driver card: identity,
+// contact, unit and bank. The home address lives in the Survey Rumah card
+// instead — it belongs with the survey photo and the map pin it opens.
+// Plain controlled object state — the form owns it and remounts per driver
+// (keyed remount pattern).
 
 const NONE = '__none';
 
@@ -29,7 +31,6 @@ export interface MasterFormValues {
   ktpNo: string;
   simNo: string;
   simExpired: string;
-  address: string;
   bankAccount: string;
   plateNumber: string;
 }
@@ -42,7 +43,6 @@ export function masterValuesFrom(initial: DriverDetail): MasterFormValues {
     ktpNo: initial.ktpNo ?? '',
     simNo: initial.simNo ?? '',
     simExpired: initial.simExpired ?? '',
-    address: initial.address ?? '',
     bankAccount: initial.bankAccount ?? '',
     plateNumber: initial.plateNumber ?? '',
   };
@@ -56,7 +56,6 @@ export function masterInputFrom(values: MasterFormValues): DriverUpdateInput {
     ktpNo: values.ktpNo.trim() || undefined,
     simNo: values.simNo.trim() || undefined,
     simExpired: values.simExpired || undefined,
-    address: values.address.trim() || undefined,
     bankAccount: values.bankAccount.trim() || undefined,
     plateNumber: values.plateNumber || undefined,
   };
@@ -174,16 +173,6 @@ export function MasterFields({
           onChange={(e) => onChange({ bankAccount: e.target.value })}
           placeholder="BCA 1234567890 a.n. Budi"
           maxLength={150}
-        />
-      </div>
-      <div className="space-y-1.5 sm:col-span-2">
-        <Label htmlFor={`${idPrefix}-address`}>Alamat</Label>
-        <Input
-          id={`${idPrefix}-address`}
-          value={values.address}
-          onChange={(e) => onChange({ address: e.target.value })}
-          placeholder="Jl. Melati No. 1, Jakarta Selatan"
-          maxLength={250}
         />
       </div>
     </div>

@@ -10,36 +10,43 @@ import { compressImage } from '@/features/partner/checkpoint/compressImage';
 import { resolveMediaUrl } from '@/features/partner/checkpoint/hooks';
 import { qk } from '@/lib/query-client';
 import type {
+  DriverCreateInput,
   DriverDetail,
   DriverDocument,
   DriverDocumentKind,
   DriverSummary,
   DriverUpdateInput,
   PresignDocumentResult,
+  ResignedType,
 } from './types';
 
 // Driver management — the roster auto-syncs from Fleet Monitoring
-// (Gojek/Grab) server-side on every GET /drivers; the FE only lists, edits,
-// and drives the resign / deposit-return lifecycle via PATCH. Every mutation
-// invalidates the whole ['partner','driver'] namespace.
+// (Gojek/Grab) server-side on every GET /drivers; the FE lists, registers
+// drivers the import does not know (POST), edits, and drives the resign /
+// deposit-return lifecycle via PATCH. Every mutation invalidates the whole
+// ['partner','driver'] namespace.
 
 const throwEnvelope = (error: unknown): never => {
   throw new ApiErrorException((error as { error: ApiError }).error);
 };
 
-const DRIVER_NS = ['partner', 'driver'] as const;
+const DRIVER_NS = qk.partner.driver.all;
 
 export { resolveMediaUrl };
 
 // ---- roster ------------------------------------------------------------------
 
-export function useDriversQuery(params: {
+export interface DriverListParams {
   q?: string;
   plate?: string;
   active?: string;
+  /** 'true' = out of the fleet (manual resign OR detected exit). */
   resigned?: string;
+  resignedType?: ResignedType;
   page: number;
-}) {
+}
+
+export function useDriversQuery(params: DriverListParams) {
   return useQuery({
     queryKey: qk.partner.driver.drivers(params),
     placeholderData: keepPreviousData,
@@ -54,6 +61,7 @@ export function useDriversQuery(params: {
             ...(params.plate && { plate: params.plate }),
             ...(flag(params.active) && { active: flag(params.active) }),
             ...(flag(params.resigned) && { resigned: flag(params.resigned) }),
+            ...(params.resignedType && { resignedType: params.resignedType }),
           },
         },
       });
@@ -101,6 +109,26 @@ export function useDriverQuery(id: number) {
       });
       if (error) throwEnvelope(error);
       return unwrap(data) as DriverDetail;
+    },
+  });
+}
+
+/**
+ * Manual registration — for drivers the Gojek/Grab import does not (yet) carry.
+ * The row lands with `source: 'manual'` and is otherwise a normal roster row,
+ * so the caller can send the user straight to its edit page.
+ */
+export function useCreateDriver() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: DriverCreateInput): Promise<DriverDetail> => {
+      const { data, error } = await api.POST('/partner/portal/drivers', { body });
+      if (error) throwEnvelope(error);
+      return unwrap(data) as DriverDetail;
+    },
+    onSuccess: (detail) => {
+      qc.setQueryData(qk.partner.driver.detail(detail.id), detail);
+      void qc.invalidateQueries({ queryKey: DRIVER_NS });
     },
   });
 }

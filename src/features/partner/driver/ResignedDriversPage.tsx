@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Info, Plus, RefreshCw, Search, X } from 'lucide-react';
+import { RefreshCw, Search, UserMinus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,32 +10,33 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { DriverCreateDialog } from './components/DriverCreateDialog';
-import { DriverTable } from './components/DriverTable';
+import { EmptyState } from '@/components/shared/EmptyState';
+import { ResignedDriverTable } from './components/ResignedDriverTable';
 import { useDriversQuery } from './hooks';
-import type { DriverSearch } from './searchSchema';
+import type { ResignedDriverSearch } from './searchSchema';
+import { RESIGNED_TYPE_LABELS, type ResignedType } from './types';
 
 const ALL = 'all';
 
-// Daftar Driver — the whole roster (including drivers who have left),
-// auto-synced server-side from Fleet Monitoring on every list load. Rows appear
-// on their own via that sync; "Tambah Driver" covers the drivers the import
-// does not carry, and lands on the edit page to finish the data.
-export function DriversPage({
+// Driver Resign — everyone who has left the fleet, from two sources that stay
+// in one list: drivers the partner marked resign on the edit page (manual), and
+// drivers the Gojek/Grab import stopped carrying (auto, mirrors the "Keluar"
+// tag in the monitoring grid). The auto half is recomputed on every load, so a
+// driver who shows up in a later import drops off this list by itself.
+export function ResignedDriversPage({
   search,
   onPatch,
   onOpenDetail,
 }: {
-  search: DriverSearch;
-  onPatch: (patch: Partial<DriverSearch>) => void;
+  search: ResignedDriverSearch;
+  onPatch: (patch: Partial<ResignedDriverSearch>) => void;
   onOpenDetail: (id: number) => void;
 }) {
-  const [createOpen, setCreateOpen] = useState(false);
   const list = useDriversQuery({
     q: search.q,
     plate: search.plate,
-    active: search.active,
-    resigned: search.resigned,
+    resigned: 'true',
+    resignedType: search.resignedType,
     page: search.page,
   });
 
@@ -57,11 +58,10 @@ export function DriversPage({
   const pageSize = list.data?.meta?.pageSize ?? 20;
   const lastPage = Math.max(1, Math.ceil(total / pageSize));
   const fadeWhileFetching = list.isFetching ? 'opacity-70 transition-opacity' : '';
-  const hasFilter = !!search.q || !!search.plate || !!search.active || !!search.resigned;
+  const hasFilter = !!search.q || !!search.plate || !!search.resignedType;
 
   // A shrinking result set can leave the URL pointing past the last page —
-  // snap back once the shrunken result is confirmed (isFetching guards
-  // placeholder data; lastPage < page guards re-patch loops).
+  // snap back once the shrunken result is confirmed (same guard as the roster).
   const rowCount = list.data?.rows.length;
   useEffect(() => {
     if (
@@ -77,30 +77,17 @@ export function DriversPage({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h2 className="text-lg font-semibold">Daftar Driver</h2>
-          <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
-            <RefreshCw className="size-3.5 shrink-0" aria-hidden />
-            Data driver tersinkron otomatis dari Fleet Monitoring (Gojek &amp; Grab).
-          </p>
-        </div>
-        <Button className="w-full sm:w-auto" onClick={() => setCreateOpen(true)}>
-          <Plus aria-hidden />
-          Tambah Driver
-        </Button>
+      <div>
+        <h2 className="text-lg font-semibold">Driver Resign</h2>
+        <p className="flex items-start gap-1.5 text-sm text-muted-foreground">
+          <RefreshCw className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+          <span>
+            Berisi driver yang ditandai resign lewat Daftar Driver dan yang terdeteksi keluar dari
+            data import Gojek/Grab. Driver yang muncul lagi di import terbaru otomatis keluar dari
+            daftar ini.
+          </span>
+        </p>
       </div>
-
-      <DriverCreateDialog
-        // Keyed remount clears the form (and the previous error) per opening.
-        key={createOpen ? 'open' : 'closed'}
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
-        onCreated={(driver) => {
-          setCreateOpen(false);
-          onOpenDetail(driver.id);
-        }}
-      />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <div className="relative w-full sm:w-72">
@@ -109,7 +96,7 @@ export function DriversPage({
             aria-hidden
           />
           <Input
-            aria-label="Cari driver"
+            aria-label="Cari driver resign"
             value={searchText}
             onChange={(e) => setSearchText(e.target.value)}
             placeholder="Cari nama / kode / email…"
@@ -134,35 +121,18 @@ export function DriversPage({
           className="w-full sm:w-44"
         />
         <Select
-          value={search.active ?? ALL}
+          value={search.resignedType ?? ALL}
           onValueChange={(v) =>
-            onPatch({ active: v === ALL ? undefined : (v as 'true' | 'false'), page: 1 })
+            onPatch({ resignedType: v === ALL ? undefined : (v as ResignedType), page: 1 })
           }
         >
-          <SelectTrigger className="w-full sm:w-40" aria-label="Filter status aktif">
+          <SelectTrigger className="w-full sm:w-52" aria-label="Filter tipe resign">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={ALL}>Semua status</SelectItem>
-            <SelectItem value="true">Aktif</SelectItem>
-            <SelectItem value="false">Nonaktif</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select
-          value={search.resigned ?? ALL}
-          onValueChange={(v) =>
-            onPatch({ resigned: v === ALL ? undefined : (v as 'true' | 'false'), page: 1 })
-          }
-        >
-          <SelectTrigger className="w-full sm:w-40" aria-label="Filter resign">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>Semua driver</SelectItem>
-            {/* "Resign" covers both halves of the Driver Resign list: ditandai
-                manual dan terdeteksi keluar dari data import. */}
-            <SelectItem value="true">Resign / Keluar</SelectItem>
-            <SelectItem value="false">Masih di roster</SelectItem>
+            <SelectItem value={ALL}>Semua tipe</SelectItem>
+            <SelectItem value="manual">{RESIGNED_TYPE_LABELS.manual}</SelectItem>
+            <SelectItem value="auto">{RESIGNED_TYPE_LABELS.auto}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -177,16 +147,21 @@ export function DriversPage({
           <Card className="py-4">
             <CardContent className="px-4">
               {list.data.rows.length === 0 ? (
-                <div className="flex items-start gap-2 rounded-lg border border-dashed bg-muted/40 px-4 py-6 text-sm text-muted-foreground">
-                  <Info className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
-                  <span>
-                    {hasFilter
-                      ? 'Tidak ada driver yang cocok dengan pencarian/filter.'
-                      : 'Belum ada driver — data muncul otomatis setelah sinkronisasi Fleet Monitoring, atau tambahkan manual lewat tombol Tambah Driver.'}
-                  </span>
-                </div>
+                <EmptyState
+                  icon={UserMinus}
+                  title={
+                    hasFilter
+                      ? 'Tidak ada driver resign yang cocok'
+                      : 'Belum ada driver yang resign'
+                  }
+                  description={
+                    hasFilter
+                      ? 'Ubah kata kunci, plat, atau tipe resign untuk melihat hasil lain.'
+                      : 'Driver akan muncul di sini setelah ditandai resign atau saat tidak lagi terbaca di data import.'
+                  }
+                />
               ) : (
-                <DriverTable items={list.data.rows} onOpenDetail={onOpenDetail} />
+                <ResignedDriverTable items={list.data.rows} onOpenDetail={onOpenDetail} />
               )}
             </CardContent>
           </Card>
