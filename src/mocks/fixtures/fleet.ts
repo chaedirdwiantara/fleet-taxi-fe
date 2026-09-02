@@ -310,8 +310,8 @@ function buildGojekRow(i: number, month: number, year: number, dim: number) {
   // Total Due IS the sum of the billed dues — the same identity the backend
   // enforces, so outstandingMonth below can be derived from it.
   const calculatedTarget = dueDays.reduce((sum, d) => sum + dailyDue[d], 0);
-  const gap = totalDeduction - calculatedTarget;
-  // Bln Ini = this month's delta; Total additionally carries a deterministic
+  // Bln Ini = this month's shortfall, read off the two fields above it; Total
+  // additionally carries a deterministic
   // balance from earlier months for some vehicles (mirrors the cumulative BE).
   const outstandingMonth = calculatedTarget - totalDeduction;
   const carryOver = i % 4 === 0 ? 350_000 : i % 7 === 0 ? -120_000 : 0;
@@ -340,7 +340,6 @@ function buildGojekRow(i: number, month: number, year: number, dim: number) {
     summary: {
       totalDeduction,
       calculatedTarget,
-      gap,
       billedDays: dueDays.length,
       billFromDay: dueDays.length > 0 ? dueDays[0] : null,
       billToDay: dueDays.length > 0 ? dueDays[dueDays.length - 1] : null,
@@ -370,9 +369,12 @@ export function makeGojekGrid(month: number, year: number, vehicleCount = 200) {
   const dim = daysInMonth(month, year);
   const rows = Array.from({ length: vehicleCount }, (_, i) => buildGojekRow(i, month, year, dim));
 
-  // Legacy groups by rental_partner then delivery_batch (drives the rowspan).
+  // Mirrors the backend order: subjects that left the fleet sink to the bottom
+  // as one block, then legacy grouping by rental_partner and delivery_batch
+  // (which drives the rowspan merge).
   rows.sort(
     (a, b) =>
+      Number(a.isExited) - Number(b.isExited) ||
       a.rentalPartner.localeCompare(b.rentalPartner) ||
       a.deliveryBatch.localeCompare(b.deliveryBatch) ||
       a.plateNorm.localeCompare(b.plateNorm),
@@ -385,9 +387,11 @@ export function makeGojekGrid(month: number, year: number, vehicleCount = 200) {
   const tableTotals = {
     totalDeduction: rows.reduce((s, r) => s + r.summary.totalDeduction, 0),
     totalDue: rows.reduce((s, r) => s + r.summary.calculatedTarget, 0),
-    // exited plates report on the Outstanding Driver Keluar card instead
+    // Only the all-time BALANCE is partitioned — exited plates report on the
+    // Outstanding Driver Keluar card instead. The month figure spans every row,
+    // exactly like the two totals above it, so the TOTAL line cross-foots.
     outstanding: rows.reduce((s, r) => s + (r.isExited ? 0 : r.summary.outstanding), 0),
-    outstandingMonth: rows.reduce((s, r) => s + (r.isExited ? 0 : r.summary.outstandingMonth), 0),
+    outstandingMonth: rows.reduce((s, r) => s + r.summary.outstandingMonth, 0),
   };
 
   // "Data Mentah Tanpa Plat": unprocessed Manual Payment rows without a plate.
@@ -449,7 +453,7 @@ export function scopeGojekGrid(
       totalDeduction: rows.reduce((s, r) => s + r.summary.totalDeduction, 0),
       totalDue: rows.reduce((s, r) => s + r.summary.calculatedTarget, 0),
       outstanding: rows.reduce((s, r) => s + (r.isExited ? 0 : r.summary.outstanding), 0),
-      outstandingMonth: rows.reduce((s, r) => s + (r.isExited ? 0 : r.summary.outstandingMonth), 0),
+      outstandingMonth: rows.reduce((s, r) => s + r.summary.outstandingMonth, 0),
     },
     rawRows: opts.keepRawRows ? grid.rawRows : [],
     rawTotalAmount: opts.keepRawRows ? grid.rawTotalAmount : 0,
@@ -576,7 +580,6 @@ export function makeRangeSummary(
 
   let totalDeduction = 0;
   let totalDue = 0;
-  let outstandingDelta = 0;
   let days = 0;
   const daily: { date: string; total: number }[] = [];
   const byPartnerMap: Record<string, number> = {};
@@ -594,19 +597,22 @@ export function makeRangeSummary(
     totalDeduction += total;
     daily.push({ date, total });
     totalDue += grid.rows.reduce((sum, r) => sum + (r.dailyDue[day] ?? 0), 0);
-    // Same partitioning as the whole-month totals: exited plates report under
-    // the Driver Keluar card instead.
     for (const r of grid.rows) {
-      const paid = r.days[day]?.countedAmount ?? 0;
-      byPartnerMap[r.rentalPartner] = (byPartnerMap[r.rentalPartner] ?? 0) + paid;
-      if (!r.isExited) outstandingDelta += (r.dailyDue[day] ?? 0) - paid;
+      byPartnerMap[r.rentalPartner] =
+        (byPartnerMap[r.rentalPartner] ?? 0) + (r.days[day]?.countedAmount ?? 0);
     }
   }
 
-  // A balance needs the whole month-to-date behind it, not just the range.
+  // A balance needs the whole month-to-date behind it, not just the range: peel
+  // the closing month off the cumulative total, then add it back truncated at
+  // the range's last day. Both halves use the same active-rows-only partition
+  // as tableTotals.outstanding — the month figure on the card spans every row
+  // and is deliberately not the quantity being peeled here.
+  let monthDeltaOfMonth = 0;
   let monthDeltaToDay = 0;
   for (const r of lastGrid.rows) {
     if (r.isExited) continue;
+    monthDeltaOfMonth += r.summary.outstandingMonth;
     for (let d = 1; d <= lastDay; d++) {
       monthDeltaToDay += (r.dailyDue[d] ?? 0) - (r.days[d]?.countedAmount ?? 0);
     }
@@ -618,9 +624,9 @@ export function makeRangeSummary(
     days,
     totalDeduction,
     totalDue,
-    outstandingAsOf:
-      lastGrid.tableTotals.outstanding - lastGrid.tableTotals.outstandingMonth + monthDeltaToDay,
-    outstandingDelta,
+    outstandingAsOf: lastGrid.tableTotals.outstanding - monthDeltaOfMonth + monthDeltaToDay,
+    // The range's own shortfall: what it billed minus what it collected.
+    outstandingDelta: totalDue - totalDeduction,
     charts: {
       daily,
       byPartner: Object.entries(byPartnerMap)
@@ -753,7 +759,6 @@ export function pivotGojekByDriver(grid: GojekGridFixture): GojekGridFixture {
       ...existing.summary,
       totalDeduction: existing.summary.totalDeduction + row.summary.totalDeduction,
       calculatedTarget: existing.summary.calculatedTarget + row.summary.calculatedTarget,
-      gap: existing.summary.gap + row.summary.gap,
       outstanding: existing.summary.outstanding + row.summary.outstanding,
       outstandingMonth: existing.summary.outstandingMonth + row.summary.outstandingMonth,
     };

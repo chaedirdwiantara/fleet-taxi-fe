@@ -18,8 +18,10 @@ import {
 
 // Faithful port of the legacy Gojek pivot (_table.blade.php): two-row sticky
 // blue header, frozen identity columns, rental-partner rowspan grouping,
-// 8-tone day cells, Total Deduction / Due / Gap / Outstanding, and a TOTAL row.
-// Rendered in the modern shadcn shell; horizontally scrollable on mobile.
+// 8-tone day cells, Total Deduction / Due / Outstanding Bln Ini / Outstanding
+// Total, and a TOTAL row. Rendered in the modern shadcn shell; horizontally
+// scrollable on mobile. Subjects that left the fleet are grouped at the bottom
+// (backend sort) behind a red rule.
 //
 // Two column layouts share this component:
 //  • admin   → No · Rental Partner · Plate · Type · Driver · Setoran
@@ -70,9 +72,12 @@ const DAY_W = 62;
 const SUMMARY: IdentityCol[] = [
   { id: 'totalDeduction', label: 'Total Deduction', width: 128 },
   { id: 'totalDue', label: 'Total Due (Target)', width: 128 },
-  { id: 'gap', label: 'Gap', width: 104 },
-  // Bln Ini = the selected month's own delta; Total = accumulated from the
-  // plate's first imported month up to (and including) the selected month.
+  // One shortfall column, not two: "Gap" and "Outstanding Bln Ini" used to sit
+  // side by side asking the same question with opposite signs and different
+  // bases, so they never agreed — with each other or with the two columns to
+  // their left. This one IS Total Due − Total Deduction, verifiable by eye.
+  // Bln Ini = this month alone; Total = accumulated from the plate's first
+  // imported month up to (and including) the selected month.
   { id: 'outstandingMonth', label: 'Outstanding Bln Ini', width: 132 },
   { id: 'outstanding', label: 'Outstanding Total', width: 132 },
 ];
@@ -297,10 +302,13 @@ export function GojekMonitoringTable({
 
         <tbody>
           {grid.rows.map((row, idx) => {
-            const gap = row.summary.gap;
             const billed = billedSpan(row);
             const outstanding = row.summary.outstanding;
             const outstandingMonth = row.summary.outstandingMonth ?? 0;
+            // Rows whose subject left the fleet arrive last (backend sort); the
+            // first of them carries a rule so the boundary is visible at a
+            // glance instead of having to read every "Keluar" badge.
+            const startsExitedBlock = row.isExited && !grid.rows[idx - 1]?.isExited;
             // Day cells announce whoever the row is *about*: a person in driver
             // mode (these rows have plates — "Tanpa Plat" is reserved for the
             // unplated Manual Payment rows of the plate view), a vehicle otherwise.
@@ -314,7 +322,16 @@ export function GojekMonitoringTable({
               onOutstandingClick && breakdown ? () => onOutstandingClick(row.plateNorm) : undefined;
             const outstandingSpan = outstandingCaption(breakdown, outstanding, byDriver);
             return (
-              <tr key={row.plateNorm} className="group">
+              <tr
+                key={row.plateNorm}
+                data-exited={row.isExited || undefined}
+                className={cn(
+                  'group',
+                  // border-separate ignores borders on <tr>, so the rule is put
+                  // on the row's own cells.
+                  startsExitedBlock && '[&>td]:border-t-2 [&>td]:border-t-red-400',
+                )}
+              >
                 {/* Identity cells are emitted in `identity` order, so the header
                     and the body can never disagree about which column is which
                     (the two layouts × two modes reorder them). */}
@@ -587,16 +604,8 @@ export function GojekMonitoringTable({
                     </span>
                   )}
                 </td>
-                <td
-                  className={cn(
-                    'border-r border-b bg-white px-2 py-1 text-right tabular-nums dark:bg-slate-950',
-                    gap < 0 ? 'text-red-600' : 'text-emerald-600',
-                  )}
-                >
-                  {nf(gap)}
-                </td>
-                {/* + merah = outstanding bulan ini nambah; − hijau = berkurang
-                    (overpayment bulan ini menurunkan saldo kumulatif) */}
+                {/* + merah = bulan ini masih kurang setor; − hijau = setor
+                    lebih dari yang ditagihkan bulan ini */}
                 <td
                   className={cn(
                     'border-r border-b bg-white px-2 py-1 text-right tabular-nums dark:bg-slate-950',
@@ -673,7 +682,6 @@ export function GojekMonitoringTable({
 
           {grid.rows.length > 0 &&
             (() => {
-              const totalGap = grid.tableTotals.totalDeduction - grid.tableTotals.totalDue;
               const totalOut = grid.tableTotals.outstanding;
               const totalOutMonth = grid.tableTotals.outstandingMonth ?? 0;
               // sticky bottom applied per-cell (not on <tr>, which WebKit ignores)
@@ -705,9 +713,6 @@ export function GojekMonitoringTable({
                     {rp(grid.tableTotals.totalDeduction)}
                   </td>
                   <td className={foot}>{rp(grid.tableTotals.totalDue)}</td>
-                  <td className={cn(foot, totalGap < 0 ? 'text-red-600' : 'text-emerald-600')}>
-                    {nf(totalGap)}
-                  </td>
                   <td
                     className={cn(
                       foot,

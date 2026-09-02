@@ -68,12 +68,17 @@ export function SummaryCards({
             gradient: 'from-orange-500 to-amber-400',
             // `?? 0` keeps the caption sane against a backend that predates the
             // field (FE-ahead-of-BE deploy window).
+            // The delta is Total Target − Total Setoran of the very same period,
+            // i.e. the two cards to the left — so the caption can be checked
+            // against them, and it matches the table's Outstanding Bln Ini.
             sub: range
               ? deltaLabel(range.outstandingDelta, 'Rentang ini')
               : deltaLabel(summary.totalOutstandingMonth ?? 0, 'Bulan ini'),
+            // Scoped to the HEADLINE only: the balance excludes drivers who
+            // left, while the delta above counts every row the period billed.
             note: range
-              ? `Posisi s/d ${formatDateShortID(range.toDate)} — hanya driver aktif`
-              : 'Hanya driver aktif — driver keluar dihitung terpisah',
+              ? `Saldo s/d ${formatDateShortID(range.toDate)} — hanya driver aktif`
+              : 'Saldo berjalan hanya driver aktif — driver keluar dihitung terpisah',
           },
           {
             label: 'Outstanding Driver Keluar',

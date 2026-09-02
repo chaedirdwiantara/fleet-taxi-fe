@@ -48,7 +48,9 @@ describe('SummaryCards — Tanggal range filter', () => {
     totalDeduction: 600_000,
     totalDue: 700_000,
     outstandingAsOf: 90_000,
-    outstandingDelta: 40_000,
+    // billed 700.000, collected 600.000 — the delta IS the difference between
+    // the two period figures above, which is what the caption claims.
+    outstandingDelta: 100_000,
     charts: { daily: [], byPartner: [] },
   };
 
@@ -59,18 +61,20 @@ describe('SummaryCards — Tanggal range filter', () => {
     expect(screen.getByText('Rp 700.000')).toBeInTheDocument();
     // ...and the balance is captioned with the date it was read at
     expect(screen.getByText('Rp 90.000')).toBeInTheDocument();
-    expect(screen.getByText(/Posisi s\/d 5 Agu 2026/)).toBeInTheDocument();
+    expect(screen.getByText(/Saldo s\/d 5 Agu 2026/)).toBeInTheDocument();
     // the range is spelled out, crossing the month boundary
     expect(screen.getByText('Rentang 25 Jul – 5 Agu 2026 · 12 hari')).toBeInTheDocument();
-    expect(screen.getByText(/Rentang ini: \+Rp 40\.000 \(nambah\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Rentang ini: \+Rp 100\.000 \(nambah\)/)).toBeInTheDocument();
     // Driver Keluar card is all-time — unchanged by the filter
     expect(screen.getByText('Rp 50.000')).toBeInTheDocument();
   });
 
   it('renders whole-month figures untouched without a range', () => {
-    render(<SummaryCards summary={{ ...summary, totalOutstandingMonth: 40_000 }} />);
+    // 1.200.000 billed − 1.000.000 collected: the caption is the difference
+    // between the two cards to its left, so a reader can check it by eye.
+    render(<SummaryCards summary={{ ...summary, totalOutstandingMonth: 200_000 }} />);
     expect(screen.getByText('Rp 1.000.000')).toBeInTheDocument();
-    expect(screen.getByText(/Bulan ini: \+Rp 40\.000/)).toBeInTheDocument();
+    expect(screen.getByText(/Bulan ini: \+Rp 200\.000/)).toBeInTheDocument();
     expect(screen.queryByText(/Rentang/)).toBeNull();
     // the Target card explains where its number comes from
     expect(
