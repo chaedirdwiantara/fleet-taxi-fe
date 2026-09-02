@@ -67,12 +67,11 @@ describe('admin fleet monitoring — synced to the registered plates', () => {
     expect(summary.current.data!.globalSummary).toEqual({
       totalDeduction: rows.reduce((s, r) => s + r.summary.totalDeduction, 0),
       totalDue: rows.reduce((s, r) => s + r.summary.calculatedTarget, 0),
-      // exited rows report on the Outstanding Driver Keluar card, not the main total
+      // only the all-time BALANCE is partitioned: exited rows report on the
+      // Outstanding Driver Keluar card, not the main total
       totalOutstanding: rows.reduce((s, r) => s + (r.isExited ? 0 : r.summary.outstanding), 0),
-      totalOutstandingMonth: rows.reduce(
-        (s, r) => s + (r.isExited ? 0 : (r.summary.outstandingMonth ?? 0)),
-        0,
-      ),
+      // the month figure spans every row, so it stays Total Due − Total Setoran
+      totalOutstandingMonth: rows.reduce((s, r) => s + (r.summary.outstandingMonth ?? 0), 0),
       outstandingDriverKeluar: exited.reduce((s, r) => s + r.summary.outstanding, 0),
       exitedCount: exited.filter((r) => r.summary.outstanding !== 0).length,
     });

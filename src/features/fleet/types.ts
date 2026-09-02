@@ -34,7 +34,6 @@ export type FleetRow = {
     // Days that have not elapsed, were never imported, or predate the plate's
     // first billing are not charged.
     calculatedTarget: number;
-    gap: number; // totalDeduction - calculatedTarget
     // The span calculatedTarget covers, so the cell can explain the figure.
     // Optional: a backend that predates the field simply renders no caption.
     billedDays?: number;
@@ -43,8 +42,10 @@ export type FleetRow = {
     // "Outstanding Total": cumulative Σdue − Σpaid from the plate's first
     // imported row up to the END of the selected month (negative = credit).
     outstanding: number;
-    // "Outstanding Bln Ini": the selected month's own delta. Optional so the
-    // grid tolerates a backend that predates the field (FE-ahead deploy window).
+    // "Outstanding Bln Ini": calculatedTarget − totalDeduction, i.e. the two
+    // fields above it — so the reader can verify the column by subtracting the
+    // two numbers printed on the same row. Positive = still short this month.
+    // Optional so the grid tolerates a backend that predates the field.
     outstandingMonth?: number;
   };
   // "Rincian Outstanding": what the cumulative balance is made of. Optional —
@@ -128,7 +129,9 @@ export type FleetGrid = {
     totalDeduction: number;
     totalDue: number;
     outstanding: number; // Outstanding Total (cumulative ≤ selected month)
-    outstandingMonth?: number; // Outstanding Bln Ini (optional: older backend)
+    // Outstanding Bln Ini = totalDue − totalDeduction of this same block, so
+    // the TOTAL line cross-foots. Optional: older backend.
+    outstandingMonth?: number;
   };
   // Admin processing queue — always empty on the partner surface (an unplated
   // row can never match the partner's plate scope). Optional: older backend.
@@ -205,9 +208,10 @@ export type DriverActivity = {
 
 // Tanggal-filter aggregates (present only when the summary was requested with
 // ?dateFrom&dateTo). `totalDeduction`/`totalDue` are PERIOD figures — what the
-// range itself collected and billed. `outstandingAsOf` is a BALANCE, read at the
-// range's closing date, and `outstandingDelta` is the range's own contribution
-// to it. A range covering one full month equals that month's GlobalSummary.
+// range itself collected and billed, and `outstandingDelta` is the shortfall
+// between them (totalDue − totalDeduction). `outstandingAsOf` is a BALANCE, read
+// at the range's closing date. A range covering one full month equals that
+// month's GlobalSummary.
 export type RangeSummary = {
   fromDate: string; // YYYY-MM-DD
   toDate: string;

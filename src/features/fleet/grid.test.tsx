@@ -29,6 +29,8 @@ describe('GojekMonitoringTable (faithful legacy pivot)', () => {
     expect(screen.getByText('Total Deduction')).toBeInTheDocument();
     expect(screen.getByText('Outstanding Bln Ini')).toBeInTheDocument();
     expect(screen.getByText('Outstanding Total')).toBeInTheDocument();
+    // "Gap" was the same shortfall with the opposite sign — one column now
+    expect(screen.queryByText('Gap')).toBeNull();
     // day headers 1..30
     const dayHeaders = screen
       .getAllByRole('columnheader')
@@ -50,6 +52,23 @@ describe('GojekMonitoringTable (faithful legacy pivot)', () => {
   it('renders a TOTAL row with the day + summary totals', () => {
     renderTable();
     expect(screen.getByText('TOTAL HARI INI')).toBeInTheDocument();
+  });
+
+  it('rules off the rows whose subject left the fleet, which the backend sorts last', () => {
+    renderTable();
+    const bodyRows = screen
+      .getAllByRole('row')
+      .filter((r) => r.querySelector('td') && !r.textContent?.includes('TOTAL HARI INI'));
+    const exitedFlags = bodyRows.map((r) => r.getAttribute('data-exited') === 'true');
+    expect(exitedFlags).toContain(true);
+    expect(exitedFlags).toContain(false);
+    // grid.rows arrives already ordered; the table must not reshuffle it
+    expect(exitedFlags).toEqual(grid.rows.map((r) => r.isExited));
+
+    // exactly one divider, on the first row of the exited block
+    const ruled = bodyRows.filter((r) => r.className.includes('border-t-red-400'));
+    expect(ruled).toHaveLength(1);
+    expect(ruled[0]).toBe(bodyRows[exitedFlags.indexOf(true)]);
   });
 
   // Only a PREFIX of the identity block is pinned — through the row's subject.
