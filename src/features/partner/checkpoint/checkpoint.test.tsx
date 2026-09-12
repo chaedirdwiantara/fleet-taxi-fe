@@ -321,12 +321,13 @@ describe('createCheckpointErrors', () => {
 });
 
 describe('HandoverPartyFields', () => {
+  // Fields are labelled by WHO the person is, with the direction as the caption
   it('keeps both sides free-text for a customer handover', () => {
     render(<PartyFieldsHarness handoverType="delivery_to_customer" />, {
       wrapper: wrapperFor(makeClient()),
     });
-    expect(screen.getByLabelText(/Nama Penyerah/)).toHaveRole('textbox');
-    expect(screen.getByLabelText(/Nama Penerima/)).toHaveRole('textbox');
+    expect(screen.getByLabelText(/Nama Petugas Partner.*menyerahkan/)).toHaveRole('textbox');
+    expect(screen.getByLabelText(/Nama Customer.*menerima/)).toHaveRole('textbox');
     expect(screen.getByLabelText(/Telepon/)).toBeInTheDocument();
   });
 
@@ -336,9 +337,9 @@ describe('HandoverPartyFields', () => {
       wrapper: wrapperFor(makeClient()),
     });
 
-    // Penyerah is the partner's own officer — still typed by hand
-    expect(screen.getByLabelText(/Nama Penyerah/)).toHaveRole('textbox');
-    const picker = screen.getByLabelText(/Nama Penerima/);
+    // The partner's own officer hands over — still typed by hand
+    expect(screen.getByLabelText(/Nama Petugas Partner.*menyerahkan/)).toHaveRole('textbox');
+    const picker = screen.getByLabelText(/Nama Driver.*menerima/);
     expect(picker).toHaveRole('combobox');
 
     await user.click(picker);
@@ -349,11 +350,19 @@ describe('HandoverPartyFields', () => {
     await waitFor(() => expect(picker).toHaveTextContent(/Agus Salim/i));
   });
 
-  it('moves the roster picker to the penyerah on a return', () => {
+  it('moves the roster picker to the driver when they hand the unit back', () => {
     render(<PartyFieldsHarness handoverType="return_from_driver" />, {
       wrapper: wrapperFor(makeClient()),
     });
-    expect(screen.getByLabelText(/Nama Penyerah/)).toHaveRole('combobox');
+    expect(screen.getByLabelText(/Nama Driver.*menyerahkan/)).toHaveRole('combobox');
+    expect(screen.getByLabelText(/Nama Petugas Partner.*menerima/)).toHaveRole('textbox');
+  });
+
+  // Before a handover type is picked neither side is known yet, so the fields
+  // fall back to naming the direction.
+  it('falls back to direction labels until a handover type is chosen', () => {
+    render(<PartyFieldsHarness handoverType="" />, { wrapper: wrapperFor(makeClient()) });
+    expect(screen.getByLabelText(/Nama Penyerah/)).toHaveRole('textbox');
     expect(screen.getByLabelText(/Nama Penerima/)).toHaveRole('textbox');
   });
 });

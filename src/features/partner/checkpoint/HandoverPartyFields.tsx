@@ -10,6 +10,13 @@ import { handoverSides, type HandoverPartyNames, type HandoverType } from './typ
  * keeps what the user typed where they typed it; the party mapping the API
  * stores happens once, at submit (`toPartyFields`).
  *
+ * Each field is labelled by **who the person is** — "Nama Petugas Partner",
+ * "Nama Driver", "Nama Customer" — with the direction ("menyerahkan" /
+ * "menerima") as the caption beside it. Naming the person first is what the
+ * user in the field actually looks for: they know they are the officer and
+ * that the other side is the driver holding the car, while which of them
+ * counts as penyerah flips with the handover type.
+ *
  * The side that is a driver is picked from the roster instead of typed, and
  * the phone belongs to — and sits with — the external party.
  */
@@ -67,9 +74,11 @@ export function HandoverPartyFields({
           <div key={role} className="space-y-3">
             <div className="space-y-1.5">
               <Label htmlFor={fieldId}>
-                Nama {role === 'giver' ? 'Penyerah' : 'Penerima'}
+                {/* Sebelum jenis serah terima dipilih, pihaknya belum diketahui —
+                    sementara itu kolomnya masih disebut menurut arahnya. */}
+                Nama {side ? side.partyLabel : role === 'giver' ? 'Penyerah' : 'Penerima'}
                 {side && (
-                  <span className="font-normal text-muted-foreground">· {side.partyLabel}</span>
+                  <span className="font-normal text-muted-foreground">· {side.actionLabel}</span>
                 )}
               </Label>
               {side?.fromDriverRoster ? (
@@ -92,7 +101,7 @@ export function HandoverPartyFields({
                   id={fieldId}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder={role === 'giver' ? 'Andi Pratama' : 'Budi Santoso'}
+                  placeholder={side ? side.namePlaceholder : 'Nama lengkap'}
                   maxLength={120}
                   autoComplete="off"
                   aria-invalid={!!error}

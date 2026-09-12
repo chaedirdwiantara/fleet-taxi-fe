@@ -90,8 +90,12 @@ export interface HandoverSide {
   party: HandoverParty;
   /** 'Penyerah' | 'Penerima' */
   roleLabel: string;
+  /** 'menyerahkan' | 'menerima' — roleLabel as an action, for field captions. */
+  actionLabel: string;
   /** 'Petugas Partner' | 'Driver' | 'Customer' */
   partyLabel: string;
+  /** Placeholder for a side that is typed by hand, matching who it is. */
+  namePlaceholder: string;
   /** This side is picked from the driver roster instead of typed free-hand. */
   fromDriverRoster: boolean;
   /** Media kind carrying this side's signature. */
@@ -106,12 +110,19 @@ const side = (
   role,
   party,
   roleLabel: role === 'giver' ? 'Penyerah' : 'Penerima',
+  actionLabel: role === 'giver' ? 'menyerahkan' : 'menerima',
   partyLabel:
     party === 'partner'
       ? 'Petugas Partner'
       : HANDOVER_COUNTERPART_KIND[handoverType] === 'driver'
         ? 'Driver'
         : 'Customer',
+  namePlaceholder:
+    party === 'partner'
+      ? 'Nama petugas yang memeriksa'
+      : HANDOVER_COUNTERPART_KIND[handoverType] === 'driver'
+        ? 'Nama driver pemegang unit'
+        : 'Nama penyewa unit',
   fromDriverRoster: party === 'counterpart' && HANDOVER_COUNTERPART_KIND[handoverType] === 'driver',
   signatureKind: party === 'partner' ? 'signature_partner' : 'signature_counterpart',
 });
