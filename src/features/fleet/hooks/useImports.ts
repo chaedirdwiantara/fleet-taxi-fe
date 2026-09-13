@@ -14,6 +14,11 @@ export type ImportBatch = {
   importedBy: number | null;
   uploaderName: string | null; // "Diunggah Oleh" — resolved server-side
   error: string | null;
+  /** `portal` = pulled automatically from the Gojek Fleet Partner Portal. */
+  source: 'manual' | 'portal';
+  syncRunId: number | null;
+  /** Rows dropped by the portal dedup (identical rows already in the period). */
+  skippedRows: number;
   createdAt: string;
   updatedAt: string;
 };

@@ -1,4 +1,4 @@
-import { Trash2 } from 'lucide-react';
+import { RefreshCw, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -59,20 +59,34 @@ export function ImportHistoryTable({ platform }: { platform: Platform }) {
           )}
           {imports.data?.map((batch) => (
             <tr key={batch.id} className="[&>td]:border-b [&>td]:px-3 [&>td]:py-2">
-              <td className="max-w-48 truncate font-medium" title={batch.filename}>
-                {batch.filename}
+              <td className="max-w-56" title={batch.filename}>
+                <span className="flex min-w-0 items-center gap-1.5">
+                  <span className="truncate font-medium">{batch.filename}</span>
+                  {batch.source === 'portal' && (
+                    <Badge variant="outline" className="shrink-0 gap-1">
+                      <RefreshCw aria-hidden /> Portal
+                    </Badge>
+                  )}
+                </span>
               </td>
               <td className="whitespace-nowrap">
                 {monthYearLabelID(batch.periodMonth, batch.periodYear)}
               </td>
               <td className="whitespace-nowrap text-muted-foreground">
-                {batch.uploaderName ?? 'Sistem / Tidak Diketahui'}
+                {batch.source === 'portal'
+                  ? 'Sinkronisasi Portal'
+                  : (batch.uploaderName ?? 'Sistem / Tidak Diketahui')}
               </td>
               <td>
                 <StatusBadge status={batch.status} />
               </td>
               <td className="text-right tabular-nums">
                 {(batch.totalRows ?? 0).toLocaleString('id-ID')}
+                {(batch.skippedRows ?? 0) > 0 && (
+                  <span className="block text-xs text-muted-foreground">
+                    {batch.skippedRows.toLocaleString('id-ID')} dilewati
+                  </span>
+                )}
               </td>
               <td className="text-xs whitespace-nowrap text-muted-foreground">
                 {formatDateTimeWIB(batch.createdAt)}

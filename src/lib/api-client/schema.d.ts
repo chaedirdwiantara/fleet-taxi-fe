@@ -266,6 +266,93 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/admin/gojek-portal-sync/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Portal account (never the password) + daily schedule */
+        get: operations["AdminGojekPortalSyncController_getSettings"];
+        /** Save portal account + schedule (empty password keeps the stored one) */
+        put: operations["AdminGojekPortalSyncController_updateSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/gojek-portal-sync/test-connection": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Login to the portal only; remembers lastVerifiedAt for the stored account */
+        post: operations["AdminGojekPortalSyncController_testConnection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/gojek-portal-sync/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Schedule state, last/current run, next scheduled tick */
+        get: operations["AdminGojekPortalSyncController_getStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/gojek-portal-sync/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sync run history (newest first) */
+        get: operations["AdminGojekPortalSyncController_listRuns"];
+        put?: never;
+        /** Run now (queued): optional WIB range, max 31 days */
+        post: operations["AdminGojekPortalSyncController_createRun"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/admin/gojek-portal-sync/runs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One sync run (poll while status = running) */
+        get: operations["AdminGojekPortalSyncController_getRun"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/admin/fleet/gojek/grid": {
         parameters: {
             query?: never;
@@ -1555,6 +1642,42 @@ export interface components {
              */
             partnerName?: string;
         };
+        UpdateGojekPortalSyncSettingsDto: {
+            /**
+             * @description Fleet Partner Portal account
+             * @example finance@rental.id
+             */
+            email: string;
+            /** @description Portal password. Omit / empty = keep the stored one. Never echoed back; only its digest is stored, encrypted. */
+            password?: string;
+            /** @example true */
+            isEnabled: boolean;
+            /**
+             * @description Daily run time, WIB, 30-minute steps
+             * @example 05:00
+             */
+            runAt: string;
+            /** @example 1 */
+            lookbackDays: number;
+        };
+        TestGojekPortalConnectionDto: {
+            /** @description Defaults to the stored account email */
+            email?: string;
+            /** @description Defaults to the stored password */
+            password?: string;
+        };
+        CreateGojekPortalSyncRunDto: {
+            /**
+             * @description WIB day; defaults to the schedule range
+             * @example 2026-09-01
+             */
+            dateFrom?: string;
+            /**
+             * @description WIB day, inclusive
+             * @example 2026-09-07
+             */
+            dateTo?: string;
+        };
         EditDriverDto: {
             /** @description fleet_import_details.id (manual-row / single-detail edit) */
             detailId?: number;
@@ -2145,7 +2268,7 @@ export interface operations {
                 audience?: "admin" | "partner";
                 /** @description Filter by actor email (substring match) */
                 actor?: string;
-                action?: "auth.login.success" | "auth.login.failure" | "auth.logout" | "auth.password_change" | "mutation.create" | "mutation.update" | "mutation.delete";
+                action?: "auth.login.success" | "auth.login.failure" | "auth.logout" | "auth.password_change" | "mutation.create" | "mutation.update" | "mutation.delete" | "sync.gojek_portal.failure";
                 /** @description Inclusive lower bound (ISO date) */
                 dateFrom?: string;
                 /** @description Inclusive upper bound (ISO date) */
@@ -2489,6 +2612,142 @@ export interface operations {
         requestBody?: never;
         responses: {
             202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminGojekPortalSyncController_getSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminGojekPortalSyncController_updateSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateGojekPortalSyncSettingsDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminGojekPortalSyncController_testConnection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TestGojekPortalConnectionDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminGojekPortalSyncController_getStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminGojekPortalSyncController_listRuns: {
+        parameters: {
+            query?: {
+                page?: number;
+                pageSize?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminGojekPortalSyncController_createRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateGojekPortalSyncRunDto"];
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AdminGojekPortalSyncController_getRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -79,7 +79,7 @@ get the "Something went wrong!" boundary with
 while the file itself serves fine to a fresh client.
 
 Cause: Cloudflare Pages answers a request for a not-yet-propagated asset with the
-**SPA fallback** — `index.html`, **HTTP 200** — cached under the *asset's*
+**SPA fallback** — `index.html`, **HTTP 200** — cached under the _asset's_
 policy. Check it yourself:
 
 ```bash
@@ -126,7 +126,7 @@ curl -sI https://fleet-taxi.id/assets/<hashed>.js
 
 Observed on 2026-08-08 (deploy `048e7b8`): the Pages URL returned
 `max-age=3600`, the custom domain `max-age=14400` — a four-hour poisoning window
-instead of one. The tell that the rule *is* matching and only the TTL is
+instead of one. The tell that the rule _is_ matching and only the TTL is
 overridden: `X-Content-Type-Options: nosniff`, from the same `/assets/*` block,
 survives on the custom domain, and so does `must-revalidate`; only `max-age`
 changes. `/index.html` at `max-age=0` is left alone, so the root document looks

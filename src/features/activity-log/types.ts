@@ -9,7 +9,8 @@ export type ActivityLogAction =
   | 'auth.password_change'
   | 'mutation.create'
   | 'mutation.update'
-  | 'mutation.delete';
+  | 'mutation.delete'
+  | 'sync.gojek_portal.failure';
 
 export type ActivityLog = {
   id: number;
@@ -46,4 +47,5 @@ export const ACTION_LABELS: Record<ActivityLogAction, string> = {
   'mutation.create': 'Membuat data',
   'mutation.update': 'Mengubah data',
   'mutation.delete': 'Menghapus data',
+  'sync.gojek_portal.failure': 'Sinkronisasi Gojek gagal',
 };

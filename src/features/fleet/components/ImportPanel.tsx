@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from '@tanstack/react-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { Loader2, Upload } from 'lucide-react';
+import { Loader2, RefreshCw, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useAdminSession } from '@/features/auth/hooks';
 import { currentMonthWIB, currentYearWIB } from '@/lib/datetime';
 import { useImportProgress } from '@/lib/socket/useImportProgress';
 import { qk, type Platform } from '@/lib/query-client';
@@ -37,6 +39,10 @@ export function ImportPanel({ platform }: { platform: Platform }) {
   const [month, setMonth] = useState(currentMonthWIB());
   const [year, setYear] = useState(currentYearWIB());
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const { data: session } = useAdminSession();
+  // The portal sync is a super_admin setting; only they get the shortcut.
+  const showPortalLink = platform === 'gojek' && (session?.roles ?? []).includes('super_admin');
 
   const upload = useUploadImport(platform);
   const activeStatus = useImportStatusQuery(platform, activeImportId);
@@ -81,6 +87,20 @@ export function ImportPanel({ platform }: { platform: Platform }) {
             Upload CSV/XLSX hasil ekspor portal partner; baris diparse asinkron di server.
           </DialogDescription>
         </DialogHeader>
+
+        {showPortalLink && (
+          <Link
+            to="/admin/gojek/portal-sync"
+            className="flex items-center gap-2 rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:text-foreground"
+          >
+            <RefreshCw className="size-4 shrink-0 text-primary" aria-hidden />
+            <span>
+              Tidak perlu unduh manual — atur{' '}
+              <span className="font-medium text-foreground">Sinkronisasi Portal Gojek</span> agar
+              laporan ditarik otomatis setiap hari.
+            </span>
+          </Link>
+        )}
 
         <form onSubmit={onSubmit} className="flex flex-wrap items-end gap-2">
           <div className="grid gap-1.5">
