@@ -19,6 +19,16 @@ export const qk = {
     // Plate Registration — the console's own plate registry (super_admin).
     // Mutating it changes the admin fleet scope, so it invalidates qk.fleet.all.
     plates: ['admin', 'plates'] as const,
+    // Gojek Fleet Partner Portal sync (super_admin only): account, schedule,
+    // run history. `all` is the invalidation prefix; a finished run also
+    // invalidates qk.fleet.imports('gojek') + the gojek grid.
+    gojekPortalSync: {
+      all: ['admin', 'gojek-portal-sync'] as const,
+      settings: ['admin', 'gojek-portal-sync', 'settings'] as const,
+      status: ['admin', 'gojek-portal-sync', 'status'] as const,
+      runs: (p: { page: number }) => ['admin', 'gojek-portal-sync', 'runs', p] as const,
+      run: (id: number) => ['admin', 'gojek-portal-sync', 'run', id] as const,
+    },
     // Activity log (super_admin only) — audit trail across both audiences.
     activityLogs: (p: {
       page: number;

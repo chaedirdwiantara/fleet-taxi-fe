@@ -13,6 +13,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Receipt,
+  RefreshCw,
   ScrollText,
   Table2,
   UserMinus,
@@ -50,6 +51,14 @@ const NAV: Record<Audience, NavEntry[]> = {
       children: [
         { to: '/admin/gojek/dashboard', label: 'Gojek Dashboard', icon: LayoutDashboard },
         { to: '/admin/fleet-monitoring', label: 'Gojek Monitoring', icon: Table2 },
+        // Feeds the grid above automatically; credentials live here, so it is
+        // a super_admin affair like the other console-wide settings.
+        {
+          to: '/admin/gojek/portal-sync',
+          label: 'Sinkronisasi Portal',
+          icon: RefreshCw,
+          requireRole: 'super_admin',
+        },
       ],
     },
     {

@@ -1,0 +1,72 @@
+// Deterministic Gojek Fleet Partner Portal sync fixture (super_admin feature).
+import type {
+  GojekPortalSyncRun,
+  GojekPortalSyncSettings,
+} from '@/features/gojek-portal-sync/types';
+
+export const seedGojekPortalSettings = (): GojekPortalSyncSettings => ({
+  email: 'finance@fleet-taxi.id',
+  hasPassword: true,
+  isEnabled: true,
+  runAt: '05:00',
+  lookbackDays: 2,
+  lastVerifiedAt: '2026-09-10T03:12:00Z',
+  updatedAt: '2026-09-10T03:10:00Z',
+  updatedByName: 'Fleet Super Admin',
+  encryptionConfigured: true,
+});
+
+export const seedGojekPortalRuns = (): GojekPortalSyncRun[] => [
+  {
+    id: 12,
+    trigger: 'schedule',
+    status: 'success',
+    dateFrom: '2026-09-10',
+    dateTo: '2026-09-11',
+    reportId: 4812,
+    filename: 'gojek-portal-2026-09-10_2026-09-11-run12.xlsx',
+    importedRows: 1_284,
+    skippedRows: 640,
+    importIds: [31],
+    message:
+      '1.284 baris masuk · periode: September 2026 (10 Sep–11 Sep). 640 baris dilewati karena sudah ada di batch sebelumnya.',
+    triggeredBy: null,
+    triggeredByName: null,
+    startedAt: '2026-09-11T22:00:04Z',
+    finishedAt: '2026-09-11T22:01:37Z',
+  },
+  {
+    id: 11,
+    trigger: 'schedule',
+    status: 'failed',
+    dateFrom: '2026-09-09',
+    dateTo: '2026-09-10',
+    reportId: 4790,
+    filename: null,
+    importedRows: null,
+    skippedRows: null,
+    importIds: [],
+    message: 'Laporan #4790 belum siap setelah 180 detik (status 1). Coba lagi beberapa saat lagi.',
+    triggeredBy: null,
+    triggeredByName: null,
+    startedAt: '2026-09-10T22:00:03Z',
+    finishedAt: '2026-09-10T22:03:10Z',
+  },
+  {
+    id: 10,
+    trigger: 'manual',
+    status: 'success',
+    dateFrom: '2026-09-01',
+    dateTo: '2026-09-08',
+    reportId: 4701,
+    filename: 'gojek-portal-2026-09-01_2026-09-08-run10.xlsx',
+    importedRows: 5_120,
+    skippedRows: 0,
+    importIds: [30],
+    message: '5.120 baris masuk · periode: September 2026 (1 Sep–8 Sep).',
+    triggeredBy: 2,
+    triggeredByName: 'Fleet Super Admin',
+    startedAt: '2026-09-09T02:15:00Z',
+    finishedAt: '2026-09-09T02:17:42Z',
+  },
+];

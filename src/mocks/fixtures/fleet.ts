@@ -904,9 +904,13 @@ export const importBatches = [
     totalRows: 10_240,
     processed: 10_240,
     percent: 100,
-    importedBy: 1,
-    uploaderName: 'Admin Fleet',
+    importedBy: null,
+    uploaderName: null,
     error: null,
+    // pulled by the portal sync (run #10) — shows the "Portal" marker
+    source: 'portal' as const,
+    syncRunId: 10,
+    skippedRows: 128,
     createdAt: '2026-06-02T03:15:00Z',
   },
   {
@@ -921,6 +925,9 @@ export const importBatches = [
     importedBy: 1,
     uploaderName: 'Admin Fleet',
     error: null,
+    source: 'manual' as const,
+    syncRunId: null,
+    skippedRows: 0,
     createdAt: '2026-07-03T08:00:00Z',
   },
 ];

@@ -16,6 +16,7 @@ import {
 import { makeAllFleetCell, makeAllFleetGrid } from './fixtures/allFleet';
 import { makeRentalGrid } from './fixtures/rentalGrid';
 import { makeActivityLogs } from './fixtures/activityLog';
+import { seedGojekPortalRuns, seedGojekPortalSettings } from './fixtures/gojekPortalSync';
 import {
   partnerMe,
   adminMe,
@@ -292,12 +293,31 @@ export const setSessionUser = (user: MockUser | null) => {
 };
 
 // ---- Mock import-batch state (upload → processing → done, rollback) ---------
-type MockBatch = Omit<(typeof importBatches)[number], 'status'> & {
+type MockBatch = Omit<(typeof importBatches)[number], 'status' | 'source'> & {
   status: 'pending' | 'processing' | 'done' | 'failed';
   error: string | null;
+  source: 'manual' | 'portal';
 };
 const batchState: MockBatch[] = importBatches.map((b) => ({ ...b }));
 let nextImportId = 100;
+
+// ---- Mock Gojek portal sync state (settings + runs; a queued run finishes
+// after two status polls, like the real worker seen through the poller) -----
+let portalSettings = seedGojekPortalSettings();
+let portalRuns = seedGojekPortalRuns();
+let nextPortalRunId = 100;
+const portalRunPolls = new Map<number, number>();
+export const resetGojekPortalSync = () => {
+  portalSettings = seedGojekPortalSettings();
+  portalRuns = seedGojekPortalRuns();
+  nextPortalRunId = 100;
+  portalRunPolls.clear();
+};
+/** Test hook: tweak the mocked server state (e.g. an unregistered encryption key). */
+export const patchGojekPortalSettings = (patch: Partial<typeof portalSettings>) => {
+  portalSettings = { ...portalSettings, ...patch };
+};
+const portalRunningRun = () => portalRuns.find((r) => r.status === 'running') ?? null;
 
 // ---- Mock exception state ----------------------------------------------------
 type MockException = {
@@ -957,6 +977,165 @@ export const handlers = [
   }),
 
   // Activity log (super_admin audit trail across both audiences).
+  // ---- Admin — Gojek Fleet Partner Portal sync (super_admin only) ------------
+  http.get('*/admin/gojek-portal-sync/settings', () => {
+    if (!getSessionUser()?.roles.includes('super_admin')) {
+      return err(403, 'FORBIDDEN', 'Insufficient permissions');
+    }
+    return ok(portalSettings);
+  }),
+
+  http.put('*/admin/gojek-portal-sync/settings', async ({ request }) => {
+    if (!getSessionUser()?.roles.includes('super_admin')) {
+      return err(403, 'FORBIDDEN', 'Insufficient permissions');
+    }
+    const body = (await request.json()) as {
+      email: string;
+      password?: string;
+      isEnabled: boolean;
+      runAt: string;
+      lookbackDays: number;
+    };
+    if (body.isEnabled && !portalSettings.hasPassword && !body.password) {
+      return err(
+        400,
+        'VALIDATION_ERROR',
+        'Kata sandi portal belum diisi — sinkronisasi belum bisa diaktifkan.',
+      );
+    }
+    portalSettings = {
+      ...portalSettings,
+      email: body.email,
+      hasPassword: portalSettings.hasPassword || !!body.password,
+      isEnabled: body.isEnabled,
+      runAt: body.runAt,
+      lookbackDays: body.lookbackDays,
+      lastVerifiedAt: body.password ? null : portalSettings.lastVerifiedAt,
+      updatedAt: new Date().toISOString(),
+      updatedByName: getSessionUser()?.fullName ?? null,
+    };
+    return ok(portalSettings);
+  }),
+
+  http.post('*/admin/gojek-portal-sync/test-connection', async ({ request }) => {
+    if (!getSessionUser()?.roles.includes('super_admin')) {
+      return err(403, 'FORBIDDEN', 'Insufficient permissions');
+    }
+    const body = (await request.json()) as { email?: string; password?: string };
+    if (body.password === 'salah') {
+      return err(
+        400,
+        'VALIDATION_ERROR',
+        'Login portal Gojek ditolak — Email atau kata sandi salah. Periksa email & kata sandi akun portal.',
+      );
+    }
+    const usesStored = !body.password && (!body.email || body.email === portalSettings.email);
+    const verifiedAt = usesStored ? new Date().toISOString() : null;
+    if (verifiedAt) portalSettings = { ...portalSettings, lastVerifiedAt: verifiedAt };
+    return ok({ email: body.email ?? portalSettings.email, verifiedAt });
+  }),
+
+  http.get('*/admin/gojek-portal-sync/status', () => {
+    if (!getSessionUser()?.roles.includes('super_admin')) {
+      return err(403, 'FORBIDDEN', 'Insufficient permissions');
+    }
+    const sorted = [...portalRuns].sort((a, b) => b.id - a.id);
+    return ok({
+      isEnabled: portalSettings.isEnabled,
+      hasCredentials: !!portalSettings.email && portalSettings.hasPassword,
+      encryptionConfigured: portalSettings.encryptionConfigured,
+      lastVerifiedAt: portalSettings.lastVerifiedAt,
+      lastSuccess: sorted.find((r) => r.status === 'success') ?? null,
+      lastRun: sorted[0] ?? null,
+      runningRun: portalRunningRun(),
+      todayScheduledAttempts: 0,
+      nextScheduledAt: portalSettings.isEnabled ? '2026-09-13T22:00:00Z' : null,
+    });
+  }),
+
+  http.get('*/admin/gojek-portal-sync/runs', ({ request }) => {
+    if (!getSessionUser()?.roles.includes('super_admin')) {
+      return err(403, 'FORBIDDEN', 'Insufficient permissions');
+    }
+    const url = new URL(request.url);
+    const page = int(url.searchParams.get('page'), 1);
+    const pageSize = int(url.searchParams.get('pageSize'), 20);
+    const sorted = [...portalRuns].sort((a, b) => b.id - a.id);
+    return ok(sorted.slice((page - 1) * pageSize, page * pageSize), {
+      page,
+      pageSize,
+      total: sorted.length,
+    });
+  }),
+
+  http.post('*/admin/gojek-portal-sync/runs', async ({ request }) => {
+    if (!getSessionUser()?.roles.includes('super_admin')) {
+      return err(403, 'FORBIDDEN', 'Insufficient permissions');
+    }
+    if (!portalSettings.email || !portalSettings.hasPassword) {
+      return err(400, 'VALIDATION_ERROR', 'Akun portal Gojek belum diatur.');
+    }
+    if (portalRunningRun()) {
+      return err(409, 'CONFLICT', 'Sinkronisasi lain masih berjalan. Tunggu sampai selesai.');
+    }
+    const body = (await request.json()) as { dateFrom?: string; dateTo?: string };
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+    const dateTo = body.dateTo ?? yesterday;
+    const dateFrom = body.dateFrom ?? yesterday;
+    if (dateFrom > dateTo) {
+      return err(400, 'VALIDATION_ERROR', 'Tanggal awal tidak boleh melewati tanggal akhir.');
+    }
+    if (dateTo > today) {
+      return err(400, 'VALIDATION_ERROR', 'Tanggal akhir tidak boleh melewati hari ini.');
+    }
+    const run = {
+      id: nextPortalRunId++,
+      trigger: 'manual' as const,
+      status: 'running' as const,
+      dateFrom,
+      dateTo,
+      reportId: null,
+      filename: null,
+      importedRows: null,
+      skippedRows: null,
+      importIds: [],
+      message: null,
+      triggeredBy: getSessionUser()?.id ?? null,
+      triggeredByName: getSessionUser()?.fullName ?? null,
+      startedAt: new Date().toISOString(),
+      finishedAt: null,
+    };
+    portalRuns = [run, ...portalRuns];
+    return HttpResponse.json({ success: true, data: run }, { status: 202 });
+  }),
+
+  http.get('*/admin/gojek-portal-sync/runs/:id', ({ params }) => {
+    if (!getSessionUser()?.roles.includes('super_admin')) {
+      return err(403, 'FORBIDDEN', 'Insufficient permissions');
+    }
+    const run = portalRuns.find((r) => String(r.id) === params.id);
+    if (!run) return err(404, 'NOT_FOUND', 'Sync run not found');
+    if (run.status === 'running') {
+      // each poll advances the worker: report requested → downloaded+importing → done
+      const polls = (portalRunPolls.get(run.id) ?? 0) + 1;
+      portalRunPolls.set(run.id, polls);
+      if (polls === 1) run.reportId = 4900 + run.id;
+      if (polls === 2) {
+        run.filename = `gojek-portal-${run.dateFrom}_${run.dateTo}-run${run.id}.xlsx`;
+        run.importIds = [nextImportId];
+      }
+      if (polls >= 3) {
+        run.status = 'success';
+        run.importedRows = 960;
+        run.skippedRows = 0;
+        run.message = `960 baris masuk · periode: ${run.dateFrom} s.d. ${run.dateTo}.`;
+        run.finishedAt = new Date().toISOString();
+      }
+    }
+    return ok({ ...run });
+  }),
+
   http.get('*/admin/activity-logs', ({ request }) => {
     const url = new URL(request.url);
     const page = int(url.searchParams.get('page'), 1);
@@ -1058,6 +1237,9 @@ export const handlers = [
       importedBy: 1,
       uploaderName: `${params.platform} admin`,
       error: null,
+      source: 'manual',
+      syncRunId: null,
+      skippedRows: 0,
       createdAt: new Date().toISOString(),
     });
     return HttpResponse.json({ success: true, data: { importId: id } }, { status: 201 });
