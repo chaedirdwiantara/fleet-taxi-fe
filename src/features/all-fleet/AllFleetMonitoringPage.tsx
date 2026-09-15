@@ -7,11 +7,14 @@ import { MonthYearPicker } from '@/features/fleet/components/MonthYearPicker';
 import { ViewModeToggle } from '@/features/fleet/components/ViewModeToggle';
 import { makeCellParam, parseCellParam, type FleetSearch } from '@/features/fleet/searchSchema';
 import { rentalSearchSchema } from '@/features/rental/searchSchema';
+import { GRAB_ENABLED } from '@/lib/features';
 import { formatNumberID } from '@/lib/money';
 import { AllFleetCellModal } from './components/AllFleetCellModal';
 import { AllFleetLegend } from './components/AllFleetLegend';
 import { AllFleetTable } from './components/AllFleetTable';
 import { usePartnerAllFleetGridQuery } from './hooks';
+import { SOURCE_META } from './lib/sourceTone';
+import { VISIBLE_ALL_FLEET_SOURCES } from './types';
 
 // All Fleet Monitoring — the partner's whole fleet income in one matrix: Gojek
 // setoran + Grab earning + Rental omset, per subject per day. Read-only, scoped
@@ -20,6 +23,12 @@ import { usePartnerAllFleetGridQuery } from './hooks';
 // Period, mode and the open cell all live in the URL (the route owns it); this
 // page only receives that state plus a patch callback, so it stays testable
 // without a router — same split as RentalMonitoringPage.
+
+/** "Gojek · Grab · Rental", minus any platform currently switched off. */
+const SOURCES_LABEL = VISIBLE_ALL_FLEET_SOURCES.map((source) => SOURCE_META[source].label).join(
+  ' · ',
+);
+
 export function AllFleetMonitoringPage({
   search,
   onPatch,
@@ -48,7 +57,7 @@ export function AllFleetMonitoringPage({
         <div>
           <h2 className="text-lg font-semibold">All Fleet Monitoring</h2>
           <p className="text-sm text-muted-foreground">
-            Pemasukan tiap {subjectWord} per tanggal dari Gojek · Grab · Rental
+            Pemasukan tiap {subjectWord} per tanggal dari {SOURCES_LABEL}
           </p>
         </div>
         <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
@@ -87,12 +96,16 @@ export function AllFleetMonitoringPage({
                 icon: Wallet,
                 gradient: 'from-emerald-500 to-green-400',
               },
-              {
-                label: 'Grab (Earning)',
-                value: totals.grab,
-                icon: CarFront,
-                gradient: 'from-orange-500 to-amber-400',
-              },
+              ...(GRAB_ENABLED
+                ? [
+                    {
+                      label: 'Grab (Earning)',
+                      value: totals.grab,
+                      icon: CarFront,
+                      gradient: 'from-orange-500 to-amber-400',
+                    },
+                  ]
+                : []),
               {
                 label: 'Rental (Omset)',
                 value: totals.rental,
@@ -114,7 +127,7 @@ export function AllFleetMonitoringPage({
         <EmptyState
           icon={Table2}
           title="Belum ada pemasukan pada periode ini"
-          description="Data muncul otomatis setelah admin mengimpor Gojek/Grab untuk plat yang Anda daftarkan, atau setelah Anda mencatat transaksi di Rental Management."
+          description={`Data muncul otomatis setelah admin mengimpor ${GRAB_ENABLED ? 'Gojek/Grab' : 'Gojek'} untuk plat yang Anda daftarkan, atau setelah Anda mencatat transaksi di Rental Management.`}
           action={
             <Link
               to="/partner/rental/management"
@@ -141,9 +154,10 @@ export function AllFleetMonitoringPage({
         Warna <b>latar</b> sel menunjukkan sumber pemasukan hari itu; warna <b>angkanya</b>{' '}
         menunjukkan status setoran Gojek pada hari itu, memakai legenda yang sama persis dengan
         halaman Gojek. Basis nominalnya juga sama dengan tiap halaman sumbernya — Gojek memakai
-        setoran yang dihitung, Grab memakai total earning collected, dan Rental memakai omset (harga
-        sewa + biaya tambahan). Karena itu Manual Payment yang <i>tidak masuk setoran</i> tampil{' '}
-        <b>0</b> berwarna ungu: nominalnya ada, tapi memang tidak dihitung ke setoran — angka
+        setoran yang dihitung,{' '}
+        {GRAB_ENABLED ? 'Grab memakai total earning collected, dan ' : 'dan '}Rental memakai omset
+        (harga sewa + biaya tambahan). Karena itu Manual Payment yang <i>tidak masuk setoran</i>{' '}
+        tampil <b>0</b> berwarna ungu: nominalnya ada, tapi memang tidak dihitung ke setoran — angka
         persisnya ada di rincian sel. Baris <b>TOTAL</b> selalu sama untuk kedua mode.
       </p>
 

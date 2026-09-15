@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, redirect } from '@tanstack/react-router';
 import { Car, CarFront, Gift, Route as RouteIcon, Table2, Wallet } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -22,8 +22,14 @@ import {
   MONTH_NAMES_ID,
   type DateRangeValue,
 } from '@/lib/datetime';
+import { GRAB_ENABLED } from '@/lib/features';
 
+// Unreachable while Grab is switched off — the sidebar entry is gone, so only a
+// live URL would still lead here.
 export const Route = createFileRoute('/_admin/admin/grab/dashboard')({
+  beforeLoad: () => {
+    if (!GRAB_ENABLED) throw redirect({ to: '/admin' });
+  },
   component: GrabDashboard,
 });
 

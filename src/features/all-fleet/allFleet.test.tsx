@@ -4,7 +4,9 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState, type ReactNode } from 'react';
 import { AllFleetMonitoringPage } from './AllFleetMonitoringPage';
+import { VISIBLE_ALL_FLEET_SOURCES } from './types';
 import { fleetSearchSchema, type FleetSearch } from '@/features/fleet/searchSchema';
+import { GRAB_ENABLED } from '@/lib/features';
 import { resetPartnerPlates, resetPartnerRentals } from '@/mocks/handlers';
 
 // Radix Select (MonthYearPicker) needs pointer APIs jsdom lacks.
@@ -58,14 +60,26 @@ describe('All Fleet Monitoring', () => {
     // per-source cards
     expect(await screen.findByText('Total Pemasukan')).toBeInTheDocument();
     expect(screen.getByText('Gojek (Setoran)')).toBeInTheDocument();
-    expect(screen.getByText('Grab (Earning)')).toBeInTheDocument();
     expect(screen.getByText('Rental (Omset)')).toBeInTheDocument();
     // matrix header: identity + the day band + the per-source summary block
     expect(screen.getByText('Pemasukan per Sumber')).toBeInTheDocument();
     expect(screen.getByText(/Tanggal \(/)).toBeInTheDocument();
     expect(matrix().getByRole('cell', { name: 'TOTAL' })).toBeInTheDocument();
-    // every source column carries a figure in the footer
-    expect(footerTotals().length).toBeGreaterThanOrEqual(4);
+    // every visible source column, plus Total, carries a figure in the footer
+    expect(footerTotals().length).toBeGreaterThanOrEqual(VISIBLE_ALL_FLEET_SOURCES.length + 1);
+  });
+
+  // A paused platform (lib/features) leaves no card and no column behind, but
+  // Total Pemasukan stays the backend's own figure — money is never hidden.
+  it('offers the Grab card and column only while Grab is switched on', async () => {
+    renderPage();
+    await screen.findByText('Pemasukan per Sumber');
+
+    expect(screen.queryByText('Grab (Earning)') !== null).toBe(GRAB_ENABLED);
+    expect(screen.getAllByRole('columnheader').some((h) => h.textContent === 'Grab')).toBe(
+      GRAB_ENABLED,
+    );
+    expect(screen.getByText('Total Pemasukan')).toBeInTheDocument();
   });
 
   it('names the plate as the subject and the driver as its mirror column', async () => {

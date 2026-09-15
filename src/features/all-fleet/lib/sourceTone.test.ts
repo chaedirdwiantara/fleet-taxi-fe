@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { GRAB_ENABLED } from '@/lib/features';
 import {
   activeSources,
   cellTone,
@@ -6,9 +7,10 @@ import {
   gojekStatusLabel,
   isClickable,
   numberToneClass,
+  SOURCE_LEGEND,
   toneClass,
 } from './sourceTone';
-import type { AllFleetDayCell, AllFleetGojekDay } from '../types';
+import { VISIBLE_ALL_FLEET_SOURCES, type AllFleetDayCell, type AllFleetGojekDay } from '../types';
 
 const cell = (overrides: Partial<AllFleetDayCell> = {}): AllFleetDayCell => ({
   gojek: 0,
@@ -43,14 +45,14 @@ describe('activeSources', () => {
 
 describe('cellTone', () => {
   it('tags a single-source day with that source', () => {
-    expect(cellTone(cell({ grab: 400_000, total: 400_000 }))).toEqual({
+    expect(cellTone(cell({ rental: 400_000, total: 400_000 }))).toEqual({
       kind: 'single',
-      source: 'grab',
+      source: 'rental',
     });
   });
 
   it('tags a multi-source day as mixed', () => {
-    expect(cellTone(cell({ gojek: 1, grab: 1, total: 2 }))).toEqual({ kind: 'mixed' });
+    expect(cellTone(cell({ gojek: 1, rental: 1, total: 2 }))).toEqual({ kind: 'mixed' });
   });
 
   it('separates "in the data but Rp 0" from "no data"', () => {
@@ -114,9 +116,6 @@ describe('numberToneClass — the figure says WHAT STATUS', () => {
   });
 
   it('falls back to the source colour where there is no target to judge', () => {
-    expect(numberToneClass(cell({ grab: 400_000, total: 400_000 }))).toBe(
-      'text-orange-700 dark:text-orange-400',
-    );
     expect(numberToneClass(cell({ rental: 400_000, total: 400_000 }))).toBe(
       'text-blue-700 dark:text-blue-400',
     );
@@ -125,7 +124,7 @@ describe('numberToneClass — the figure says WHAT STATUS', () => {
   it('reads a mixed-source day through Gojek, since only Gojek carries a target', () => {
     const mixed = cell({
       gojek: 200_000,
-      grab: 100_000,
+      rental: 100_000,
       total: 300_000,
       gojekDay: gojekDay({ displayAmount: 200_000, countedAmount: 200_000 }),
     });
@@ -187,9 +186,9 @@ describe('gojekStatus', () => {
     ).toBe('bebas');
   });
 
-  it('says nothing about a Grab- or Rental-only day', () => {
-    expect(gojekStatus(cell({ grab: 1, total: 1 }))).toBeNull();
-    expect(gojekStatusLabel(cell({ grab: 1, total: 1 }))).toBeNull();
+  it('says nothing about a day no Gojek figure reached', () => {
+    expect(gojekStatus(cell({ rental: 1, total: 1 }))).toBeNull();
+    expect(gojekStatusLabel(cell({ rental: 1, total: 1 }))).toBeNull();
   });
 
   it('names the verdict for the tooltip', () => {
@@ -209,6 +208,29 @@ describe('cellTone — moneyless Gojek days keep their identity', () => {
       }),
     });
     expect(cellTone(bebas)).toEqual({ kind: 'single', source: 'gojek' });
+  });
+});
+
+describe('a switched-off platform', () => {
+  // Asserted against the flag rather than against `false`, so the contract
+  // ("visible list, legend swatch and cell tint move together") holds whichever
+  // way lib/features is set — and flipping it can never leave one of the three
+  // behind.
+  it('offers its column, swatch and tint only while the platform is on', () => {
+    expect(VISIBLE_ALL_FLEET_SOURCES.includes('grab')).toBe(GRAB_ENABLED);
+    expect(SOURCE_LEGEND.some((item) => item.label === 'Grab')).toBe(GRAB_ENABLED);
+    expect(activeSources(cell({ grab: 400_000, total: 400_000 })).length > 0).toBe(GRAB_ENABLED);
+  });
+
+  it('never swallows the money: an unattributable day stays live and neutral', () => {
+    // The figure on screen is `total` — the backend's own — so hiding a source
+    // makes a cell unattributed, never smaller, and never inert.
+    const hidden = cell({ grab: 400_000, total: 400_000 });
+    expect(isClickable(hidden)).toBe(true);
+    if (!GRAB_ENABLED) {
+      expect(cellTone(hidden)).toEqual({ kind: 'mixed' });
+      expect(toneClass(cellTone(hidden))).toMatch(/slate/);
+    }
   });
 });
 

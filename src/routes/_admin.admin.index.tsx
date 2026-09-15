@@ -7,6 +7,7 @@ import { GradientStatRow } from '@/features/fleet/components/GradientStat';
 import { useGojekSummaryQuery } from '@/features/fleet/hooks/useFleetQueries';
 import { useGrabSummaryQuery } from '@/features/grab/hooks';
 import { currentMonthWIB, currentYearWIB, MONTH_NAMES_ID } from '@/lib/datetime';
+import { GRAB_ENABLED } from '@/lib/features';
 
 export const Route = createFileRoute('/_admin/admin/')({
   component: AdminLanding,
@@ -18,14 +19,15 @@ function AdminLanding() {
   const month = currentMonthWIB();
   const year = currentYearWIB();
   const gojek = useGojekSummaryQuery({ month, year });
-  const grab = useGrabSummaryQuery({ month, year });
   const periodLabel = `${MONTH_NAMES_ID[month - 1]} ${year}`;
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-lg font-semibold">Dashboard Admin</h2>
-        <p className="text-sm text-muted-foreground">Ringkasan Gojek &amp; Grab — {periodLabel}</p>
+        <p className="text-sm text-muted-foreground">
+          Ringkasan {GRAB_ENABLED ? 'Gojek & Grab' : 'Gojek'} — {periodLabel}
+        </p>
       </div>
 
       <PlatformSection
@@ -61,38 +63,9 @@ function AdminLanding() {
         )}
       </PlatformSection>
 
-      <PlatformSection
-        title="Grab"
-        detailTo="/admin/grab/dashboard"
-        isPending={grab.isPending}
-        isError={grab.isError}
-        errorMessage={grab.error?.message}
-      >
-        {grab.isSuccess && (
-          <GradientStatRow
-            cards={[
-              {
-                label: 'Total Pendapatan Terkumpul',
-                value: grab.data.globalSummary.totalEarning,
-                icon: Wallet,
-                gradient: 'from-blue-500 to-sky-400',
-              },
-              {
-                label: 'Total Tarif Driver',
-                value: grab.data.globalSummary.totalDriverFare,
-                icon: Car,
-                gradient: 'from-emerald-500 to-green-400',
-              },
-              {
-                label: 'Total Insentif',
-                value: grab.data.globalSummary.totalIncentive,
-                icon: Gift,
-                gradient: 'from-orange-500 to-amber-400',
-              },
-            ]}
-          />
-        )}
-      </PlatformSection>
+      {/* Its own component so the Grab summary is not even requested while the
+          platform is switched off — a hook cannot be called conditionally. */}
+      {GRAB_ENABLED && <GrabSection month={month} year={year} />}
 
       <div className="grid gap-3 sm:grid-cols-2">
         <QuickLink
@@ -107,20 +80,63 @@ function AdminLanding() {
           title="Gojek Monitoring"
           desc="Tabel pivot setoran 31 hari, import, exceptions, target."
         />
-        <QuickLink
-          to="/admin/grab/dashboard"
-          icon={<LayoutDashboard className="size-5" />}
-          title="Grab Dashboard"
-          desc="Ringkasan pendapatan, insentif, dan grafik bulanan."
-        />
-        <QuickLink
-          to="/admin/fleet-monitoring-grab"
-          icon={<ScrollText className="size-5" />}
-          title="Grab Monitoring"
-          desc="Tabel pivot earning per kendaraan (plat · kota · driver)."
-        />
+        {GRAB_ENABLED && (
+          <>
+            <QuickLink
+              to="/admin/grab/dashboard"
+              icon={<LayoutDashboard className="size-5" />}
+              title="Grab Dashboard"
+              desc="Ringkasan pendapatan, insentif, dan grafik bulanan."
+            />
+            <QuickLink
+              to="/admin/fleet-monitoring-grab"
+              icon={<ScrollText className="size-5" />}
+              title="Grab Monitoring"
+              desc="Tabel pivot earning per kendaraan (plat · kota · driver)."
+            />
+          </>
+        )}
       </div>
     </div>
+  );
+}
+
+function GrabSection({ month, year }: { month: number; year: number }) {
+  const grab = useGrabSummaryQuery({ month, year });
+
+  return (
+    <PlatformSection
+      title="Grab"
+      detailTo="/admin/grab/dashboard"
+      isPending={grab.isPending}
+      isError={grab.isError}
+      errorMessage={grab.error?.message}
+    >
+      {grab.isSuccess && (
+        <GradientStatRow
+          cards={[
+            {
+              label: 'Total Pendapatan Terkumpul',
+              value: grab.data.globalSummary.totalEarning,
+              icon: Wallet,
+              gradient: 'from-blue-500 to-sky-400',
+            },
+            {
+              label: 'Total Tarif Driver',
+              value: grab.data.globalSummary.totalDriverFare,
+              icon: Car,
+              gradient: 'from-emerald-500 to-green-400',
+            },
+            {
+              label: 'Total Insentif',
+              value: grab.data.globalSummary.totalIncentive,
+              icon: Gift,
+              gradient: 'from-orange-500 to-amber-400',
+            },
+          ]}
+        />
+      )}
+    </PlatformSection>
   );
 }
 

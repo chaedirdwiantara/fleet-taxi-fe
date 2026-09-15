@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, redirect } from '@tanstack/react-router';
 import { Car, Gift, Wallet } from 'lucide-react';
 import { FilterBar } from '@/features/fleet/components/FilterBar';
 import { TableFilterBar } from '@/features/fleet/components/TableFilterBar';
@@ -11,9 +11,15 @@ import { fleetSearchSchema, type FleetSearch } from '@/features/fleet/searchSche
 import { GrabMonitoringTable } from '@/features/grab/GrabMonitoringTable';
 import { GrabCellModal } from '@/features/grab/GrabCellModal';
 import { useGrabGridQuery } from '@/features/grab/hooks';
+import { GRAB_ENABLED } from '@/lib/features';
 
+// Unreachable while Grab is switched off — the sidebar entry is gone, so only a
+// live URL would still lead here. This also parks the Grab import panel.
 export const Route = createFileRoute('/_admin/admin/fleet-monitoring-grab')({
   validateSearch: fleetSearchSchema,
+  beforeLoad: () => {
+    if (!GRAB_ENABLED) throw redirect({ to: '/admin' });
+  },
   component: GrabGridPage,
 });
 

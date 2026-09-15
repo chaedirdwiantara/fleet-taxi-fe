@@ -9,7 +9,7 @@ import {
 } from '@/features/fleet/components/stickyGrid';
 import type { MonitoringMode } from '@/features/fleet/searchSchema';
 import {
-  ALL_FLEET_SOURCES,
+  VISIBLE_ALL_FLEET_SOURCES,
   type AllFleetDayCell,
   type AllFleetGrid,
   type AllFleetRow,
@@ -36,10 +36,14 @@ import {
 // subject, exactly like the Gojek grid's driver-history column.
 
 const DAY_W = 78;
+// One column per VISIBLE source (a switched-off platform drops out) plus Total,
+// which stays the backend's own figure rather than a sum of the columns shown.
 const SUMMARY: IdentityCol[] = [
-  { id: 'gojek', label: 'Gojek', width: 112 },
-  { id: 'grab', label: 'Grab', width: 112 },
-  { id: 'rental', label: 'Rental', width: 112 },
+  ...VISIBLE_ALL_FLEET_SOURCES.map((source) => ({
+    id: source,
+    label: SOURCE_META[source].label,
+    width: 112,
+  })),
   { id: 'total', label: 'Total', width: 128 },
 ];
 
@@ -188,7 +192,7 @@ export function AllFleetTable({
         : 'border-r border-b bg-white px-2 py-1 text-right tabular-nums dark:bg-slate-950';
     return (
       <>
-        {ALL_FLEET_SOURCES.map((source, i) => (
+        {VISIBLE_ALL_FLEET_SOURCES.map((source, i) => (
           <td
             key={source}
             className={cn(

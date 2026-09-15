@@ -27,7 +27,7 @@ import {
   TONE_LABEL,
   type CellTone as GojekTone,
 } from '@/features/fleet/lib/thresholds';
-import { ALL_FLEET_SOURCES, type AllFleetDayCell, type AllFleetSource } from '../types';
+import { VISIBLE_ALL_FLEET_SOURCES, type AllFleetDayCell, type AllFleetSource } from '../types';
 
 export type SourceMeta = {
   label: string;
@@ -102,10 +102,14 @@ export type CellTone =
   | { kind: 'single'; source: AllFleetSource }
   | { kind: 'mixed' }; //  more than one source
 
-/** Sources that actually carry money in this cell, in display order. */
+/**
+ * Sources that actually carry money in this cell, in display order. Reads the
+ * VISIBLE list: a switched-off platform must not tint a cell or add a split
+ * line the legend no longer explains.
+ */
 export function activeSources(cell: AllFleetDayCell | undefined): AllFleetSource[] {
   if (!cell) return [];
-  return ALL_FLEET_SOURCES.filter((source) => cell[source] !== 0);
+  return VISIBLE_ALL_FLEET_SOURCES.filter((source) => cell[source] !== 0);
 }
 
 export function cellTone(cell: AllFleetDayCell | undefined): CellTone {
@@ -116,6 +120,11 @@ export function cellTone(cell: AllFleetDayCell | undefined): CellTone {
   // how a bebas-setoran day or a display-only Manual Payment keeps its identity
   // instead of reading as an empty cell.
   if (cell?.gojekDay) return { kind: 'single', source: 'gojek' };
+  // Money whose only earner is a source the UI is not breaking out right now
+  // (see lib/features). "Gabungan" is the honest reading — no visible source
+  // owns this day — and it keeps the cell live rather than reading as empty.
+  // Unreachable while every source is visible: `total` is their sum.
+  if (cell && cell.total !== 0) return { kind: 'mixed' };
   if (cell?.isZero) return { kind: 'zero' };
   return { kind: 'empty' };
 }
@@ -182,11 +191,23 @@ export function isClickable(cell: AllFleetDayCell | undefined): boolean {
   return cellTone(cell).kind !== 'empty';
 }
 
-/** Legend rows for the BACKGROUND channel, in the order the page renders them. */
+const SOURCE_HINT: Record<AllFleetSource, string> = {
+  gojek: 'setoran',
+  grab: 'earning',
+  rental: 'omset Rental Monitoring',
+};
+
+/**
+ * Legend rows for the BACKGROUND channel, in the order the page renders them.
+ * Driven by the VISIBLE source list, so a switched-off platform leaves no
+ * swatch behind — the legend and the cells always agree.
+ */
 export const SOURCE_LEGEND: { swatch: string; label: string; hint?: string }[] = [
-  { swatch: SOURCE_META.gojek.swatch, label: 'Gojek', hint: 'setoran' },
-  { swatch: SOURCE_META.grab.swatch, label: 'Grab', hint: 'earning' },
-  { swatch: SOURCE_META.rental.swatch, label: 'Rental', hint: 'omset Rental Monitoring' },
+  ...VISIBLE_ALL_FLEET_SOURCES.map((source) => ({
+    swatch: SOURCE_META[source].swatch,
+    label: SOURCE_META[source].label,
+    hint: SOURCE_HINT[source],
+  })),
   { swatch: MIXED_SWATCH, label: 'Gabungan', hint: 'lebih dari satu sumber' },
   { swatch: ZERO_SWATCH, label: 'Kosong', hint: 'ada di data, Rp 0' },
 ];
