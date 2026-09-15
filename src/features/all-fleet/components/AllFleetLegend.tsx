@@ -1,4 +1,5 @@
 import { MousePointerClick } from 'lucide-react';
+import { GRAB_ENABLED } from '@/lib/features';
 import { cn } from '@/lib/utils';
 import type { MonitoringMode } from '@/features/fleet/searchSchema';
 import { SOURCE_LEGEND, STATUS_LEGEND, statusTextClass } from '../lib/sourceTone';
@@ -29,8 +30,9 @@ export function AllFleetLegend({ mode }: { mode: MonitoringMode }) {
           </span>
         ))}
         <span className="text-muted-foreground">
-          — sama persis dengan halaman <span className="font-medium">Gojek</span>. Grab dan Rental
-          tidak punya target harian, jadi angkanya memakai warna sumbernya.
+          — sama persis dengan halaman <span className="font-medium">Gojek</span>.{' '}
+          {GRAB_ENABLED ? 'Grab dan Rental tidak' : 'Rental tidak'} punya target harian, jadi
+          angkanya memakai warna sumbernya.
         </span>
       </div>
 

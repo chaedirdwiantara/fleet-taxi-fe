@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute, Link, redirect } from '@tanstack/react-router';
 import { Car, Gift, Info, SearchX, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/shared/EmptyState';
@@ -12,10 +12,18 @@ import { GrabCellModal } from '@/features/grab/GrabCellModal';
 import { usePartnerGrabGridQuery, usePartnerGrabSummaryQuery } from '@/features/grab/hooks';
 import { fleetSearchSchema, normalizeRange, type FleetSearch } from '@/features/fleet/searchSchema';
 import { formatRangeNoteID, monthYearLabelID } from '@/lib/datetime';
+import { GRAB_ENABLED } from '@/lib/features';
 
 // Partner portal Grab monitoring — read-only, scoped to registered plates.
+// While Grab is switched off the page is unreachable, including by bookmark:
+// the sidebar entry is gone, so a live URL would be the only way in.
 export const Route = createFileRoute('/_partner/partner/fleet-monitoring-grab')({
   validateSearch: fleetSearchSchema,
+  beforeLoad: () => {
+    if (!GRAB_ENABLED) {
+      throw redirect({ to: '/partner/all-fleet-monitoring', search: fleetSearchSchema.parse({}) });
+    }
+  },
   component: PartnerGrabPage,
 });
 

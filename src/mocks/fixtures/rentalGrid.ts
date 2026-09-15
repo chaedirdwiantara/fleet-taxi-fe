@@ -8,7 +8,7 @@ import type { SeedRental } from './rental';
 
 type RegisteredPlate = { plateNumber: string; plateNumberNorm: string; vehicleType: string | null };
 
-type MockRentalGridDay = { amount: number; paymentStatus: string; rentalId: number };
+type MockRentalGridDay = { amount: number; paymentStatus: string; rentalIds: number[] };
 type MockRentalGridTotals = { omset: number; cogs: number; nett: number; rentedDays: number };
 type MockRentalGridRow = {
   plateNorm: string;
@@ -120,7 +120,7 @@ export function makeRentalGrid(
           booking.pricePerDay +
           (day === firstDay ? booking.additionalCost : 0),
         paymentStatus: existing?.paymentStatus === UNPAID ? UNPAID : booking.paymentStatus,
-        rentalId: existing?.rentalId ?? booking.id,
+        rentalIds: [...(existing?.rentalIds ?? []), booking.id],
       };
     }
   }

@@ -61,8 +61,16 @@ import { currentMonthWIB, currentYearWIB } from '@/lib/datetime';
 const ok = <T>(data: T, meta?: { page: number; pageSize: number; total: number }) =>
   HttpResponse.json(meta ? { success: true, data, meta } : { success: true, data });
 
-const err = (status: number, code: string, message: string) =>
-  HttpResponse.json({ success: false, error: { code, message } }, { status });
+const err = (
+  status: number,
+  code: string,
+  message: string,
+  details?: Array<{ field: string; message: string }>,
+) =>
+  HttpResponse.json(
+    { success: false, error: details ? { code, message, details } : { code, message } },
+    { status },
+  );
 
 const int = (v: string | null, fallback: number) => {
   const n = Number(v);
@@ -572,8 +580,59 @@ type RentalUpsertBody = Partial<
     price: number;
     priceUnit: 'hari' | 'bulan';
     paymentProofIds: number[];
+    allowOverlap: boolean;
   }
 >;
+
+const RUPIAH_DATE_ID = new Intl.DateTimeFormat('id-ID', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
+
+const rangeLabelID = (startDate: string, endDate: string) => {
+  const from = RUPIAH_DATE_ID.format(new Date(`${startDate}T00:00:00Z`));
+  if (startDate === endDate) return from;
+  return `${from} – ${RUPIAH_DATE_ID.format(new Date(`${endDate}T00:00:00Z`))}`;
+};
+
+/**
+ * Mirrors the backend's one-shot overlap refusal (partner-rentals.service.ts):
+ * a plate MAY be rented twice over the same dates, but the write is refused
+ * once — with a `plateOverlap` detail per clashing rental — until the caller
+ * re-sends it with `allowOverlap`.
+ */
+const overlapRefusal = (body: RentalUpsertBody, excludeId?: number) => {
+  if (body.allowOverlap || !body.plateNumber || !body.startDate || !body.endDate) return null;
+  const norm = (plate: string) => plate.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const clashes = rentalsState
+    .filter(
+      (r) =>
+        r.id !== excludeId &&
+        norm(r.plateNumber) === norm(body.plateNumber!) &&
+        r.startDate <= body.endDate! &&
+        r.endDate >= body.startDate!,
+    )
+    .sort((a, b) => a.startDate.localeCompare(b.startDate))
+    .slice(0, 5);
+  if (clashes.length === 0) return null;
+
+  return err(
+    409,
+    'CONFLICT',
+    `Plat ${body.plateNumber} sudah punya rental pada rentang tanggal tersebut. ` +
+      'Lanjutkan hanya jika ini memang penyewaan terpisah.',
+    clashes.map((clash) => ({
+      field: 'plateOverlap',
+      message: [
+        rangeLabelID(clash.startDate, clash.endDate),
+        clash.customerName?.trim() || 'tanpa nama customer',
+        clash.paymentStatus,
+      ].join(' · '),
+    })),
+  );
+};
 
 const rentalFromBody = (
   body: RentalUpsertBody,
@@ -2414,6 +2473,8 @@ export const handlers = [
         'plateNumber, startDate, endDate, price, dan cogsPerDay wajib diisi',
       );
     }
+    const overlap = overlapRefusal(body);
+    if (overlap) return overlap;
     const resolved = resolveProofs(null, body.paymentProofIds, created.paymentStatus);
     if ('error' in resolved) return resolved.error;
     created.paymentProofs = resolved.proofs;
@@ -2454,6 +2515,8 @@ export const handlers = [
         'plateNumber, startDate, endDate, price, dan cogsPerDay wajib diisi',
       );
     }
+    const overlap = overlapRefusal(body, rentalsState[idx].id);
+    if (overlap) return overlap;
     const resolved = resolveProofs(rentalsState[idx], body.paymentProofIds, updated.paymentStatus);
     if ('error' in resolved) return resolved.error;
     updated.paymentProofs = resolved.proofs;

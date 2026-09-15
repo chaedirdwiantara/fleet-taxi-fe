@@ -1239,7 +1239,7 @@ export interface paths {
         /** Monthly rental recap: summary, nett per type, regions, items */
         get: operations["PartnerRentalsController_list"];
         put?: never;
-        /** Create a rental transaction (overlap-guarded per plate) */
+        /** Create a rental transaction (a same-plate date overlap needs allowOverlap) */
         post: operations["PartnerRentalsController_create"];
         delete?: never;
         options?: never;
@@ -1950,6 +1950,8 @@ export interface components {
              * @enum {string}
              */
             paymentStatus?: "Belum Dibayar" | "Sudah Dibayar";
+            /** @description Acknowledge that this plate already has a rental over the same dates (e.g. a second booking the same day). Absent/false ⇒ the overlap is refused with CONFLICT and one `plateOverlap` detail per clashing rental. */
+            allowOverlap?: boolean;
             /**
              * @description Confirmed proof ids to attach to this rental. Required when paymentStatus is Sudah Dibayar.
              * @example [

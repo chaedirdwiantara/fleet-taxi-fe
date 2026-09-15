@@ -3,9 +3,21 @@
 // the client never sums, prorates, or re-derives money.
 import type { DayFacts } from '@/features/fleet/lib/thresholds';
 import type { MonitoringMode } from '@/features/fleet/searchSchema';
+import { GRAB_ENABLED } from '@/lib/features';
 
+/** Every source the wire carries, in display order — the shape of the payload. */
 export const ALL_FLEET_SOURCES = ['gojek', 'grab', 'rental'] as const;
 export type AllFleetSource = (typeof ALL_FLEET_SOURCES)[number];
+
+/**
+ * The sources the UI currently breaks out. A switched-off platform (see
+ * `lib/features`) drops out here, which is what removes its summary column,
+ * legend swatch, cell tint and cell-modal section in one place. `total` is
+ * never derived from this list — it stays the backend's figure.
+ */
+export const VISIBLE_ALL_FLEET_SOURCES: readonly AllFleetSource[] = ALL_FLEET_SOURCES.filter(
+  (source) => source !== 'grab' || GRAB_ENABLED,
+);
 
 /**
  * Gojek's verdict on the day, exactly as Gojek Monitoring receives it, plus that

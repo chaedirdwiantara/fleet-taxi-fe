@@ -25,6 +25,7 @@ import { LogoMark } from '@/components/shared/Logo';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { ThemeToggle } from '@/components/shared/ThemeToggle';
+import { GRAB_ENABLED } from '@/lib/features';
 import { cn } from '@/lib/utils';
 import type { SessionUser } from '@/features/auth/hooks';
 
@@ -61,14 +62,18 @@ const NAV: Record<Audience, NavEntry[]> = {
         },
       ],
     },
-    {
-      label: 'Grab',
-      icon: GrabIcon,
-      children: [
-        { to: '/admin/grab/dashboard', label: 'Grab Dashboard', icon: LayoutDashboard },
-        { to: '/admin/fleet-monitoring-grab', label: 'Grab Monitoring', icon: Table2 },
-      ],
-    },
+    ...(GRAB_ENABLED
+      ? [
+          {
+            label: 'Grab',
+            icon: GrabIcon,
+            children: [
+              { to: '/admin/grab/dashboard', label: 'Grab Dashboard', icon: LayoutDashboard },
+              { to: '/admin/fleet-monitoring-grab', label: 'Grab Monitoring', icon: Table2 },
+            ],
+          } satisfies NavGroup,
+        ]
+      : []),
     // The console's own plate registry — it decides which vehicles the grids
     // above can show, so it sits right under them (super_admin cluster).
     {
@@ -90,7 +95,9 @@ const NAV: Record<Audience, NavEntry[]> = {
     // and the per-platform screens below are the drill-downs.
     { to: '/partner/all-fleet-monitoring', label: 'All Fleet Monitoring', icon: LayoutGrid },
     { to: '/partner/fleet-monitoring', label: 'Gojek', icon: GojekIcon },
-    { to: '/partner/fleet-monitoring-grab', label: 'Grab', icon: GrabIcon },
+    ...(GRAB_ENABLED
+      ? [{ to: '/partner/fleet-monitoring-grab', label: 'Grab', icon: GrabIcon } satisfies NavLeaf]
+      : []),
     // Rental has two readings of the same transactions: the ledger you edit
     // (Management) and the plate × day pivot you watch (Monitoring), so it gets
     // a group of its own rather than one ambiguous entry.
