@@ -21,7 +21,8 @@ export type RentalPaymentProof = {
   uploadedByEmail: string;
   uploadedAt: string;
 };
-export type RentalType = 'Dengan Driver' | 'Lepas Kunci';
+export const RENTAL_TYPES = ['Dengan Driver', 'Lepas Kunci', 'Rent to Rent'] as const;
+export type RentalType = (typeof RENTAL_TYPES)[number];
 export type RentalSortBy = 'date' | 'duration' | 'status' | 'omset' | 'cogs';
 export type RentalSortOrder = 'asc' | 'desc';
 

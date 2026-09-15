@@ -1919,7 +1919,7 @@ export interface components {
             /** @description Integer rupiah. Default 0. */
             deposit?: number;
             /** @enum {string} */
-            rentalType?: "Dengan Driver" | "Lepas Kunci";
+            rentalType?: "Dengan Driver" | "Lepas Kunci" | "Rent to Rent";
             /** @example Instagram */
             infoSource?: string;
             /** @example Jabodetabek */
