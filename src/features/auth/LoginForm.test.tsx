@@ -35,7 +35,7 @@ describe('LoginForm — post-login landing target', () => {
 
   // Regression: the partner area is fleet-monitoring-scoped and `/partner/dashboard`
   // was removed. Landing there rendered the router Not-Found boundary. The partner
-  // home is `/partner`, whose index route forwards to `/partner/fleet-monitoring`.
+  // home is `/partner`, whose index route forwards to `/partner/all-fleet-monitoring`.
   it('sends a partner to /partner (the real home), not the removed /partner/dashboard', async () => {
     renderForm({ audience: 'partner' });
     await submit('ops@bhisa.id');
