@@ -135,6 +135,12 @@ export type RentalUpsertInput = {
   paymentStatus?: PaymentStatus;
   /** Confirmed proof ids to attach; required when paymentStatus is paid. */
   paymentProofIds?: number[];
+  /**
+   * Confirms that this plate may share dates with another booking (a six-hour
+   * let, then another the same day). Without it the BE refuses the overlap once
+   * with CONFLICT — see `lib/plateOverlap`.
+   */
+  allowOverlap?: boolean;
 };
 
 export type CogsDefault = {
@@ -157,10 +163,15 @@ export type RentalGridTotals = {
 };
 
 export type RentalGridDayCell = {
+  /** Integer rupiah every booking of that day contributes, summed. */
   amount: number;
   paymentStatus: PaymentStatus;
-  /** The booking this day belongs to — the key to its row in `bookings`. */
-  rentalId: number;
+  /**
+   * Every booking this day belongs to — the keys to their rows in `bookings`.
+   * A plural: one plate may be let out twice over the same date, and `amount`
+   * is their sum, so the drill-down has to name all of them.
+   */
+  rentalIds: number[];
 };
 
 /** One booking's contribution to the month, for the cell drill-down. */

@@ -183,6 +183,77 @@ describe('RentalManagementPage', () => {
     vi.unstubAllGlobals();
   });
 
+  // A plate let out for six hours can be let out again the same day, so an
+  // overlapping range is allowed — after one confirmation, which is what stops
+  // a booking entered twice from doubling the month's omset.
+  it('asks to confirm an overlapping range, then saves the second booking', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText('B 1000 XYZ');
+
+    await user.click(screen.getByRole('button', { name: /Tambah Rental Data/i }));
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByLabelText('Plat'));
+    await user.click(await screen.findByRole('option', { name: /B 1000 XYZ/ }));
+    await waitFor(() => expect(within(dialog).getByText(/COGS dipakai:/)).toBeInTheDocument());
+
+    // The seeded B 1000 XYZ booking runs day 5–8; this one sits inside it.
+    fireEvent.change(within(dialog).getByLabelText('Tanggal Mulai'), {
+      target: { value: isoDay(6) },
+    });
+    fireEvent.change(within(dialog).getByLabelText('Tanggal Selesai'), {
+      target: { value: isoDay(6) },
+    });
+    await user.type(within(dialog).getByLabelText('Harga'), '400000');
+    await user.click(within(dialog).getByRole('button', { name: 'Simpan' }));
+
+    // Refused once: the clashing booking is named and Simpan is blocked.
+    const warning = await within(dialog).findByRole('alert');
+    expect(warning).toHaveTextContent(/sudah punya rental pada rentang tanggal ini/i);
+    expect(warning).toHaveTextContent('Andi Saputra');
+    expect(within(dialog).getByRole('button', { name: 'Simpan' })).toBeDisabled();
+    expect(screen.getAllByText('B 1000 XYZ')).toHaveLength(1);
+
+    // Confirmed: the same range goes through as a separate booking.
+    await user.click(within(warning).getByRole('checkbox'));
+    await user.click(within(dialog).getByRole('button', { name: 'Simpan' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByText('B 1000 XYZ')).toHaveLength(2));
+  });
+
+  it('retires a pending overlap confirmation when the schedule changes', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText('B 1000 XYZ');
+
+    await user.click(screen.getByRole('button', { name: /Tambah Rental Data/i }));
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByLabelText('Plat'));
+    await user.click(await screen.findByRole('option', { name: /B 1000 XYZ/ }));
+    await waitFor(() => expect(within(dialog).getByText(/COGS dipakai:/)).toBeInTheDocument());
+    fireEvent.change(within(dialog).getByLabelText('Tanggal Mulai'), {
+      target: { value: isoDay(6) },
+    });
+    fireEvent.change(within(dialog).getByLabelText('Tanggal Selesai'), {
+      target: { value: isoDay(6) },
+    });
+    await user.type(within(dialog).getByLabelText('Harga'), '400000');
+    await user.click(within(dialog).getByRole('button', { name: 'Simpan' }));
+    await within(dialog).findByRole('alert');
+
+    // Moving off the clashing days retires the warning — the acknowledgement
+    // described that plate and that range, not this one.
+    fireEvent.change(within(dialog).getByLabelText('Tanggal Mulai'), {
+      target: { value: isoDay(25) },
+    });
+    fireEvent.change(within(dialog).getByLabelText('Tanggal Selesai'), {
+      target: { value: isoDay(26) },
+    });
+    await waitFor(() => expect(within(dialog).queryByRole('alert')).not.toBeInTheDocument());
+    expect(within(dialog).getByRole('button', { name: 'Simpan' })).toBeEnabled();
+  });
+
   it('creates a rental via the dialog (COGS auto-picked from the plate type) and refreshes the list', async () => {
     const user = userEvent.setup();
     renderPage();

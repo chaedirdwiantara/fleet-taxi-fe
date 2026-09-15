@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { Link } from '@tanstack/react-router';
-import { Loader2, Search } from 'lucide-react';
+import { Loader2, Search, TriangleAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -23,6 +24,7 @@ import { formatRupiah } from '@/lib/money';
 import { usePartnerPlatesQuery } from '@/features/partner/hooks';
 import { matchCogsKey } from '../cogsMatcher';
 import { useCogsDefaultsQuery, useCreateRental, useUpdateRental } from '../hooks';
+import { plateOverlapClashes } from '../lib/plateOverlap';
 import {
   RENTAL_TYPES,
   type PaymentStatus,
@@ -126,6 +128,20 @@ function RentalForm({ initial, onClose }: { initial: RentalItem | null; onClose:
     initial?.infoSource && !initialInfoInList ? initial.infoSource : '',
   );
 
+  // Renting the same plate twice over the same dates is legitimate (a six-hour
+  // let, then another the same day), so the backend refuses it only until the
+  // partner confirms — see lib/plateOverlap. The clash list arrives with that
+  // refusal; ticking the box re-sends the write with `allowOverlap`.
+  const [allowOverlap, setAllowOverlap] = useState(false);
+  const overlapClashes = plateOverlapClashes(mutation.error);
+
+  // A clash describes this exact plate + range, so editing either retires both
+  // the warning and the acknowledgement rather than leaving a stale one armed.
+  const scheduleChanged = () => {
+    setAllowOverlap(false);
+    if (mutation.isError) mutation.reset();
+  };
+
   const selectedPlate = useMemo(
     () => plates.data?.find((p) => p.plateNumber === plateNumber),
     [plates.data, plateNumber],
@@ -147,6 +163,7 @@ function RentalForm({ initial, onClose }: { initial: RentalItem | null; onClose:
 
   const pickPlate = (nextPlateNumber: string) => {
     setPlateNumber(nextPlateNumber);
+    scheduleChanged();
     // auto-pick the COGS preset from the plate's vehicle type keywords
     const plate = plates.data?.find((p) => p.plateNumber === nextPlateNumber);
     const key = matchCogsKey(plate?.vehicleType);
@@ -177,7 +194,8 @@ function RentalForm({ initial, onClose }: { initial: RentalItem | null; onClose:
     price.trim() !== '' &&
     Number(price) > 0 &&
     cogsPerDay != null &&
-    !missingProof;
+    !missingProof &&
+    (overlapClashes == null || allowOverlap);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -204,6 +222,7 @@ function RentalForm({ initial, onClose }: { initial: RentalItem | null; onClose:
       customerPhone: customerPhone.trim() || undefined,
       paymentStatus,
       ...(proofs.length ? { paymentProofIds: proofs.map((p) => p.id) } : {}),
+      ...(allowOverlap ? { allowOverlap: true } : {}),
     };
     if (initial) {
       update.mutate({ id: initial.id, body }, { onSuccess: onClose });
@@ -300,7 +319,10 @@ function RentalForm({ initial, onClose }: { initial: RentalItem | null; onClose:
               id="rental-form-start"
               type="date"
               value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              onChange={(e) => {
+                setStartDate(e.target.value);
+                scheduleChanged();
+              }}
               required
               className={DATE_INPUT_CLASS}
             />
@@ -311,7 +333,10 @@ function RentalForm({ initial, onClose }: { initial: RentalItem | null; onClose:
               id="rental-form-end"
               type="date"
               value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
+              onChange={(e) => {
+                setEndDate(e.target.value);
+                scheduleChanged();
+              }}
               required
               className={DATE_INPUT_CLASS}
             />
@@ -497,7 +522,41 @@ function RentalForm({ initial, onClose }: { initial: RentalItem | null; onClose:
         </div>
       </div>
 
-      {mutation.isError && (
+      {/* An overlap is a question, not a failure, so it gets a warning panel
+          with the clashing bookings spelled out — not the red error line. */}
+      {overlapClashes && (
+        <div
+          role="alert"
+          className="space-y-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm"
+        >
+          <p className="flex items-start gap-2 font-medium">
+            <TriangleAlert
+              className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400"
+              aria-hidden
+            />
+            <span>
+              Plat {plateNumber} sudah punya rental pada rentang tanggal ini. Pastikan ini bukan
+              data yang terinput dua kali.
+            </span>
+          </p>
+          <ul className="ml-6 list-disc space-y-0.5 text-muted-foreground">
+            {overlapClashes.map((clash) => (
+              <li key={clash}>{clash}</li>
+            ))}
+          </ul>
+          <label className="ml-6 flex items-start gap-2 font-medium">
+            <Checkbox
+              checked={allowOverlap}
+              onCheckedChange={(checked) => setAllowOverlap(checked === true)}
+              disabled={mutation.isPending}
+              className="mt-0.5"
+            />
+            <span>Ya, ini penyewaan terpisah — simpan tetap.</span>
+          </label>
+        </div>
+      )}
+
+      {mutation.isError && !overlapClashes && (
         <p className="text-sm text-destructive" role="alert">
           {mutation.error.message}
         </p>

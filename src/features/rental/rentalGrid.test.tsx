@@ -6,8 +6,9 @@ import { useState, type ReactNode } from 'react';
 import { RentalDailyGridPage } from './RentalDailyGridPage';
 import { rentalGridSearchSchema, type RentalGridSearch } from './gridSearchSchema';
 import { dayTone, formatUtilization, isClickable, toneClass } from './lib/rentalDayTone';
+import { RentalDayCellModal } from './components/RentalDayCellModal';
 import { resetPartnerPlates, resetPartnerRentals } from '@/mocks/handlers';
-import type { RentalGridDayCell } from './types';
+import type { RentalGridBooking, RentalGridDayCell, RentalGridRow } from './types';
 
 // The page pulls <Link> from the router (shortcut to Rental Management); a plain
 // anchor keeps it renderable outside a RouterProvider — same approach as
@@ -48,8 +49,21 @@ const grid = () => within(screen.getByRole('table'));
 const cell = (over: Partial<RentalGridDayCell> = {}): RentalGridDayCell => ({
   amount: 450_000,
   paymentStatus: 'Belum Dibayar',
-  rentalId: 1,
+  rentalIds: [1],
   ...over,
+});
+
+const booking = (id: number, customerName: string, omset: number): RentalGridBooking => ({
+  id,
+  customerName,
+  displayStartDate: '2026-09-06',
+  displayEndDate: '2026-09-06',
+  days: 1,
+  omset,
+  cogsTotal: 250_000,
+  nettProfit: omset - 250_000,
+  paymentStatus: 'Belum Dibayar',
+  rentalType: 'Lepas Kunci',
 });
 
 beforeEach(() => {
@@ -138,6 +152,48 @@ describe('Rental Monitoring grid', () => {
     expect(badge).toBeInTheDocument();
     expect(screen.getByText(/\d+ tersewa/)).toBeInTheDocument();
     expect(screen.getByText(/Utilisasi armada/)).toBeInTheDocument();
+  });
+
+  // A plate let out for six hours can be let out again that day, so a cell's
+  // amount may be the sum of several bookings — the drill-down has to account
+  // for all of them or it reports less money than the cell that opened it.
+  it('accounts for every booking behind a doubled day', () => {
+    const row: RentalGridRow = {
+      plateNorm: 'B1000XYZ',
+      plateNumber: 'B 1000 XYZ',
+      vehicleType: 'Premium - BYD M6',
+      region: 'Jakarta',
+      days: { 6: cell({ amount: 1_300_000, rentalIds: [1, 2] }) },
+      bookings: [booking(1, 'Andi Saputra', 900_000), booking(2, 'Sewa Sore', 400_000)],
+      totals: { omset: 1_300_000, cogs: 250_000, nett: 1_050_000, rentedDays: 1 },
+    };
+
+    render(<RentalDayCellModal row={row} day={6} month={9} year={2026} onClose={() => {}} />);
+    const dialog = screen.getByRole('dialog');
+
+    expect(within(dialog).getByText('Rp 1.300.000')).toBeInTheDocument();
+    expect(within(dialog).getByText('(2 penyewaan terpisah)')).toBeInTheDocument();
+    expect(within(dialog).getByText('Andi Saputra')).toBeInTheDocument();
+    expect(within(dialog).getByText('Sewa Sore')).toBeInTheDocument();
+    // Σ of the blocks equals the day figure above them.
+    expect(within(dialog).getByText('Rp 900.000')).toBeInTheDocument();
+    expect(within(dialog).getByText('Rp 400.000')).toBeInTheDocument();
+  });
+
+  it('names a single booking without the "penyewaan terpisah" note', () => {
+    const row: RentalGridRow = {
+      plateNorm: 'B1000XYZ',
+      plateNumber: 'B 1000 XYZ',
+      vehicleType: null,
+      region: null,
+      days: { 6: cell({ amount: 900_000, rentalIds: [1] }) },
+      bookings: [booking(1, 'Andi Saputra', 900_000)],
+      totals: { omset: 900_000, cogs: 250_000, nett: 650_000, rentedDays: 1 },
+    };
+
+    render(<RentalDayCellModal row={row} day={6} month={9} year={2026} onClose={() => {}} />);
+    expect(screen.queryByText(/penyewaan terpisah/)).not.toBeInTheDocument();
+    expect(screen.getByText('Andi Saputra')).toBeInTheDocument();
   });
 
   it('explains the legend and where the figures come from', async () => {
