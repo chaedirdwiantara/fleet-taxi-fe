@@ -1,3 +1,4 @@
+import type { RentalType } from '@/features/rental/types';
 import { currentMonthWIB, currentYearWIB } from '@/lib/datetime';
 
 // Rental Monitoring seeds. Dates are anchored to the CURRENT WIB month so the
@@ -29,7 +30,7 @@ export type SeedRental = {
   additionalCost: number;
   additionalCostDescription: string | null;
   deposit: number;
-  rentalType: 'Dengan Driver' | 'Lepas Kunci' | null;
+  rentalType: RentalType | null;
   infoSource: string | null;
   serviceArea: string | null;
   customerName: string | null;

@@ -23,12 +23,13 @@ import { formatRupiah } from '@/lib/money';
 import { usePartnerPlatesQuery } from '@/features/partner/hooks';
 import { matchCogsKey } from '../cogsMatcher';
 import { useCogsDefaultsQuery, useCreateRental, useUpdateRental } from '../hooks';
-import type {
-  PaymentStatus,
-  RentalItem,
-  RentalPaymentProof,
-  RentalType,
-  RentalUpsertInput,
+import {
+  RENTAL_TYPES,
+  type PaymentStatus,
+  type RentalItem,
+  type RentalPaymentProof,
+  type RentalType,
+  type RentalUpsertInput,
 } from '../types';
 import { PaymentProofUploader } from './PaymentProofUploader';
 
@@ -275,8 +276,11 @@ function RentalForm({ initial, onClose }: { initial: RentalItem | null; onClose:
                 <SelectValue placeholder="Pilih tipe" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Dengan Driver">Dengan Driver</SelectItem>
-                <SelectItem value="Lepas Kunci">Lepas Kunci</SelectItem>
+                {RENTAL_TYPES.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {type}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
