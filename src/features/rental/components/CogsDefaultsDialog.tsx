@@ -1,5 +1,15 @@
 import { useState } from 'react';
-import { Loader2, Plus } from 'lucide-react';
+import { Loader2, Plus, Trash2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -17,13 +27,21 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useCogsDefaultsQuery, useUpsertCogsDefault } from '../hooks';
+import { formatRupiah } from '@/lib/money';
+import { useCogsDefaultsQuery, useDeleteCogsDefault, useUpsertCogsDefault } from '../hooks';
 import type { CogsDefault } from '../types';
 
 // Manage the per-vehicle-type COGS presets used by the rental form.
 export function CogsDefaultsDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const defaults = useCogsDefaultsQuery();
   const upsert = useUpsertCogsDefault();
+  // The preset outlives `confirmOpen` so the confirm keeps its text while it
+  // animates out instead of flashing an empty label.
+  const [pendingDelete, setPendingDelete] = useState<CogsDefault | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  // The BE refuses to delete the last preset (an empty table would re-seed
+  // the legacy defaults), so the row never offers it in the first place.
+  const canDelete = (defaults.data?.length ?? 0) > 1;
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -46,7 +64,7 @@ export function CogsDefaultsDialog({ open, onClose }: { open: boolean; onClose: 
                 <TableRow>
                   <TableHead>Label</TableHead>
                   <TableHead>COGS/Hari</TableHead>
-                  <TableHead className="w-20" />
+                  <TableHead className="w-28" />
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -56,6 +74,11 @@ export function CogsDefaultsDialog({ open, onClose }: { open: boolean; onClose: 
                   <PresetRow
                     key={`${preset.key}:${preset.label}:${preset.cogsPerDay}`}
                     preset={preset}
+                    canDelete={canDelete}
+                    onDelete={() => {
+                      setPendingDelete(preset);
+                      setConfirmOpen(true);
+                    }}
                   />
                 ))}
                 <NewPresetRow />
@@ -68,12 +91,28 @@ export function CogsDefaultsDialog({ open, onClose }: { open: boolean; onClose: 
             {upsert.error.message}
           </p>
         )}
+        {/* Nested inside DialogContent so Radix treats the confirm as a child
+            layer — rendered as a sibling, dismissing it would also dismiss
+            this dialog. */}
+        <DeletePresetDialog
+          preset={pendingDelete}
+          open={confirmOpen}
+          onClose={() => setConfirmOpen(false)}
+        />
       </DialogContent>
     </Dialog>
   );
 }
 
-function PresetRow({ preset }: { preset: CogsDefault }) {
+function PresetRow({
+  preset,
+  canDelete,
+  onDelete,
+}: {
+  preset: CogsDefault;
+  canDelete: boolean;
+  onDelete: () => void;
+}) {
   const upsert = useUpsertCogsDefault();
   const [label, setLabel] = useState(preset.label);
   const [amount, setAmount] = useState(String(preset.cogsPerDay));
@@ -88,6 +127,7 @@ function PresetRow({ preset }: { preset: CogsDefault }) {
       <TableCell>
         <Input
           aria-label={`Label ${preset.label}`}
+          className="min-w-32"
           value={label}
           onChange={(e) => setLabel(e.target.value)}
           maxLength={100}
@@ -96,6 +136,7 @@ function PresetRow({ preset }: { preset: CogsDefault }) {
       <TableCell>
         <Input
           aria-label={`COGS per hari ${preset.label}`}
+          className="min-w-28"
           type="number"
           min={0}
           step={1000}
@@ -103,20 +144,85 @@ function PresetRow({ preset }: { preset: CogsDefault }) {
           onChange={(e) => setAmount(e.target.value)}
         />
       </TableCell>
-      <TableCell className="text-right">
-        <Button
-          size="sm"
-          variant="outline"
-          disabled={!changed || upsert.isPending}
-          onClick={() =>
-            upsert.mutate({ key: preset.key, label: label.trim(), cogsPerDay: Number(amount) })
-          }
-        >
-          {upsert.isPending ? <Loader2 className="animate-spin" aria-hidden /> : null}
-          Simpan
-        </Button>
+      <TableCell>
+        <div className="flex items-center justify-end gap-1">
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={!changed || upsert.isPending}
+            onClick={() =>
+              upsert.mutate({ key: preset.key, label: label.trim(), cogsPerDay: Number(amount) })
+            }
+          >
+            {upsert.isPending ? <Loader2 className="animate-spin" aria-hidden /> : null}
+            Simpan
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={`Hapus ${preset.label}`}
+            title={canDelete ? undefined : 'Minimal satu tipe COGS harus tersisa'}
+            disabled={!canDelete || upsert.isPending}
+            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+            onClick={onDelete}
+          >
+            <Trash2 className="size-4" />
+          </Button>
+        </div>
       </TableCell>
     </TableRow>
+  );
+}
+
+function DeletePresetDialog({
+  preset,
+  open,
+  onClose,
+}: {
+  preset: CogsDefault | null;
+  open: boolean;
+  onClose: () => void;
+}) {
+  const remove = useDeleteCogsDefault();
+
+  return (
+    <AlertDialog
+      open={open}
+      onOpenChange={(o) => {
+        if (o) return;
+        remove.reset();
+        onClose();
+      }}
+    >
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Hapus tipe COGS ini?</AlertDialogTitle>
+          <AlertDialogDescription>
+            "{preset?.label}" ({formatRupiah(preset?.cogsPerDay ?? 0)}/hari) tidak akan ditawarkan
+            lagi saat menambah rental. Rental yang sudah tercatat tidak berubah.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        {remove.isError && (
+          <p className="text-sm text-destructive" role="alert">
+            Gagal menghapus: {remove.error.message}
+          </p>
+        )}
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={remove.isPending}>Batal</AlertDialogCancel>
+          <AlertDialogAction
+            disabled={remove.isPending}
+            className="bg-destructive text-white hover:bg-destructive/90"
+            onClick={(e) => {
+              e.preventDefault();
+              if (preset) remove.mutate(preset.key, { onSuccess: onClose });
+            }}
+          >
+            {remove.isPending ? <Loader2 className="animate-spin" aria-hidden /> : null}
+            Hapus
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 
@@ -142,6 +248,7 @@ function NewPresetRow() {
       <TableCell>
         <Input
           aria-label="Label tipe baru"
+          className="min-w-32"
           value={label}
           onChange={(e) => setLabel(e.target.value)}
           placeholder="Tipe baru"
@@ -151,6 +258,7 @@ function NewPresetRow() {
       <TableCell>
         <Input
           aria-label="COGS per hari tipe baru"
+          className="min-w-28"
           type="number"
           min={0}
           step={1000}

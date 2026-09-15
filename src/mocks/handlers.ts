@@ -2206,6 +2206,16 @@ export const handlers = [
     return ok({ ...created });
   }),
 
+  http.delete('*/partner/portal/rentals/cogs-defaults/:key', ({ params }) => {
+    const idx = cogsDefaultsState.findIndex((c) => c.key === params.key);
+    if (idx < 0) return err(404, 'NOT_FOUND', 'Setting COGS tidak ditemukan');
+    if (cogsDefaultsState.length <= 1) {
+      return err(409, 'CONFLICT', 'Minimal satu tipe COGS harus tersisa');
+    }
+    cogsDefaultsState.splice(idx, 1);
+    return ok({ deleted: true });
+  }),
+
   http.get('*/partner/portal/rentals/export', ({ request }) => {
     const url = new URL(request.url);
     const month = int(url.searchParams.get('month'), 6);

@@ -390,4 +390,37 @@ describe('RentalManagementPage', () => {
 
     await waitFor(() => expect(screen.queryByText('B 2000 GRB')).not.toBeInTheDocument());
   });
+
+  it('deletes a COGS preset from the settings dialog after confirming', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText('B 1000 XYZ');
+
+    await user.click(screen.getByRole('button', { name: /Atur Default COGS/i }));
+    const dialog = await screen.findByRole('dialog');
+    await within(dialog).findByLabelText('Label Darion');
+
+    // Cancelling only closes the confirm — the settings dialog stays open.
+    await user.click(within(dialog).getByRole('button', { name: 'Hapus Darion' }));
+    await user.click(
+      within(await screen.findByRole('alertdialog')).getByRole('button', {
+        name: 'Batal',
+      }),
+    );
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument());
+    expect(screen.getByRole('dialog')).toBe(dialog);
+    expect(within(dialog).getByLabelText('Label Darion')).toBeInTheDocument();
+
+    await user.click(within(dialog).getByRole('button', { name: 'Hapus Darion' }));
+    const confirm = await screen.findByRole('alertdialog');
+    expect(within(confirm).getByText(/"Darion"/)).toBeInTheDocument();
+    await user.click(within(confirm).getByRole('button', { name: 'Hapus' }));
+
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(within(dialog).queryByLabelText('Label Darion')).not.toBeInTheDocument(),
+    );
+    // the other presets are untouched
+    expect(within(dialog).getByLabelText('Label Denza D9')).toBeInTheDocument();
+  });
 });

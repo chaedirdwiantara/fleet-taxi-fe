@@ -233,6 +233,21 @@ export function useUpsertCogsDefault() {
   });
 }
 
+/** The BE refuses to delete the last remaining preset (CONFLICT). */
+export function useDeleteCogsDefault() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (key: string) => {
+      const { data, error } = await api.DELETE('/partner/portal/rentals/cogs-defaults/{key}', {
+        params: { path: { key } },
+      });
+      if (error) throwEnvelope(error);
+      return unwrap(data);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: RENTAL_NS }),
+  });
+}
+
 /**
  * Per-partner VAT settings. New rentals inherit the rate from here, so any
  * change invalidates the whole rental namespace — the list's PPN figures are
