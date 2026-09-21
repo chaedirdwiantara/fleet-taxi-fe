@@ -141,6 +141,12 @@ export type RentalUpsertInput = {
    * with CONFLICT — see `lib/plateOverlap`.
    */
   allowOverlap?: boolean;
+  /**
+   * Charge PPN on this transaction (default true). Only effective while the
+   * partner is a PKP; locked once the rental is paid — the BE answers CONFLICT
+   * if a settled row is asked to change it.
+   */
+  applyPpn?: boolean;
 };
 
 export type CogsDefault = {
