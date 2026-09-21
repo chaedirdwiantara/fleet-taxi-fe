@@ -36,7 +36,12 @@ export type RentalItem = {
   displayStartDate: string; // range clipped to the requested month
   displayEndDate: string;
   days: number;
+  /** How the price was quoted; a 'bulan' booking is pro-rated per calendar month by the BE. */
+  priceUnit: 'hari' | 'bulan';
+  /** Rupiah per day; for a 'bulan' booking the range's effective average. */
   pricePerDay: number;
+  /** The quoted monthly price; null for a 'hari' booking. */
+  pricePerMonth: number | null;
   cogsPerDay: number;
   cogsType: string | null;
   additionalCost: number;

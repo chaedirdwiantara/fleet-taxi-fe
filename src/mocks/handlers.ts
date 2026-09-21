@@ -543,9 +543,28 @@ const DAY_MS = 86_400_000;
 const rentalDays = (start: string, end: string) =>
   Math.max(1, Math.round((Date.parse(end) - Date.parse(start)) / DAY_MS) + 1);
 
+/**
+ * Gross of a monthly-priced booking, the backend's rule: each calendar month
+ * touched is billed price × (booked days ÷ days in THAT month), rounded once.
+ */
+const monthlyGross = (r: SeedRental): number => {
+  const price = r.pricePerMonth ?? 0;
+  let total = 0;
+  let cursor = r.startDate;
+  while (cursor <= r.endDate) {
+    const [y, m] = cursor.split('-').map(Number);
+    const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
+    const monthEnd = `${cursor.slice(0, 7)}-${String(daysInMonth).padStart(2, '0')}`;
+    const to = monthEnd < r.endDate ? monthEnd : r.endDate;
+    total += Math.round((price * rentalDays(cursor, to)) / daysInMonth);
+    cursor = new Date(Date.parse(to) + DAY_MS).toISOString().slice(0, 10);
+  }
+  return total;
+};
+
 const presentRental = (r: SeedRental, period?: { month: number; year: number }) => {
   const days = rentalDays(r.startDate, r.endDate);
-  const gross = r.pricePerDay * days;
+  const gross = r.priceUnit === 'bulan' ? monthlyGross(r) : r.pricePerDay * days;
   const cogsTotal = r.cogsPerDay * days;
   const omset = gross + r.additionalCost;
   const nettProfit = omset - cogsTotal;
@@ -562,6 +581,8 @@ const presentRental = (r: SeedRental, period?: { month: number; year: number }) 
   const ppnAmount = r.ppnRateBps > 0 ? Math.round((ppnBase * r.ppnRateBps) / 10_000) : 0;
   return {
     ...r,
+    // A monthly booking has no single day rate; the BE reports the average.
+    pricePerDay: r.priceUnit === 'bulan' ? Math.round(gross / days) : r.pricePerDay,
     displayStartDate,
     displayEndDate,
     days,
@@ -576,7 +597,16 @@ const presentRental = (r: SeedRental, period?: { month: number; year: number }) 
 };
 
 type RentalUpsertBody = Partial<
-  Omit<SeedRental, 'id' | 'pricePerDay' | 'createdAt' | 'updatedAt' | 'paymentProofs'> & {
+  Omit<
+    SeedRental,
+    | 'id'
+    | 'pricePerDay'
+    | 'priceUnit'
+    | 'pricePerMonth'
+    | 'createdAt'
+    | 'updatedAt'
+    | 'paymentProofs'
+  > & {
     price: number;
     priceUnit: 'hari' | 'bulan';
     paymentProofIds: number[];
@@ -649,7 +679,8 @@ const rentalFromBody = (
   ) {
     return null;
   }
-  const pricePerDay = body.priceUnit === 'bulan' ? Math.round(body.price / 30) : body.price;
+  // Kept as quoted; presentRental pro-rates a monthly price per calendar month.
+  const priceUnit = body.priceUnit === 'bulan' ? 'bulan' : 'hari';
   return {
     id,
     plateNumber: body.plateNumber,
@@ -657,7 +688,9 @@ const rentalFromBody = (
     region: body.region ?? null,
     startDate: body.startDate,
     endDate: body.endDate,
-    pricePerDay,
+    priceUnit,
+    pricePerDay: priceUnit === 'bulan' ? 0 : body.price,
+    pricePerMonth: priceUnit === 'bulan' ? body.price : null,
     cogsPerDay: body.cogsPerDay,
     cogsType: body.cogsType ?? null,
     additionalCost: body.additionalCost ?? 0,

@@ -62,7 +62,7 @@ export function RentalTable({
             <TableHead className="w-10">No</TableHead>
             <TableHead>Plat &amp; Tipe</TableHead>
             <TableHead>Tanggal (Durasi)</TableHead>
-            <TableHead className="text-right">Harga/Hari</TableHead>
+            <TableHead className="text-right">Harga</TableHead>
             <TableHead>Customer</TableHead>
             <TableHead>Status Bayar</TableHead>
             <TableHead className="text-right">Gross</TableHead>
@@ -99,7 +99,21 @@ export function RentalTable({
                 </div>
               </TableCell>
               <TableCell className="text-right tabular-nums">
-                {formatRupiah(item.pricePerDay)}
+                {/* Quoted price first; a monthly booking's day rate is only its
+                    average, so it is shown as the secondary figure. */}
+                {item.priceUnit === 'bulan' && item.pricePerMonth != null ? (
+                  <>
+                    <div>{formatRupiah(item.pricePerMonth)}</div>
+                    <div className="text-xs whitespace-nowrap text-muted-foreground">
+                      /bulan · ≈ {formatRupiah(item.pricePerDay)}/hari
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>{formatRupiah(item.pricePerDay)}</div>
+                    <div className="text-xs text-muted-foreground">/hari</div>
+                  </>
+                )}
               </TableCell>
               <TableCell>
                 <div className="text-sm">{item.customerName || '-'}</div>

@@ -15,7 +15,9 @@ const item = (overrides: Partial<RentalItem>): RentalItem => ({
   displayStartDate: '2026-09-01',
   displayEndDate: '2026-09-04',
   days: 4,
+  priceUnit: 'hari',
   pricePerDay: 266_667,
+  pricePerMonth: null,
   cogsPerDay: 166_666,
   cogsType: null,
   additionalCost: 0,
@@ -62,6 +64,21 @@ describe('RentalTable — booked range vs. the month slice', () => {
     expect(within(row).getByText('5 Agu 2026 – 4 Sep 2026')).toBeInTheDocument();
     expect(within(row).getByText('31 Hari')).toBeInTheDocument();
     expect(within(row).getByText('4 hari di Sep 2026')).toBeInTheDocument();
+  });
+
+  it('shows a monthly booking at its quoted price, with the day rate as a footnote', () => {
+    renderTable([
+      item({
+        priceUnit: 'bulan',
+        pricePerMonth: 8_000_000,
+        pricePerDay: 258_065,
+        startDate: '2026-08-01',
+        endDate: '2026-08-31',
+      }),
+    ]);
+    const row = screen.getByText('B 2847 SNF').closest('tr')!;
+    expect(within(row).getByText('Rp 8.000.000')).toBeInTheDocument();
+    expect(within(row).getByText('/bulan · ≈ Rp 258.065/hari')).toBeInTheDocument();
   });
 
   it('adds no caption when the booking sits entirely inside the month', () => {
