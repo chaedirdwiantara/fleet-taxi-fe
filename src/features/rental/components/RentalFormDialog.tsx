@@ -20,11 +20,18 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import { formatRupiah } from '@/lib/money';
 import { usePartnerPlatesQuery } from '@/features/partner/hooks';
 import { matchCogsKey } from '../cogsMatcher';
-import { useCogsDefaultsQuery, useCreateRental, useUpdateRental } from '../hooks';
+import {
+  useCogsDefaultsQuery,
+  useCreateRental,
+  useTaxSettingsQuery,
+  useUpdateRental,
+} from '../hooks';
 import { plateOverlapClashes } from '../lib/plateOverlap';
+import { formatPpnRate } from '../lib/ppnRate';
 import {
   RENTAL_TYPES,
   type PaymentStatus,
@@ -87,6 +94,7 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
 function RentalForm({ initial, onClose }: { initial: RentalItem | null; onClose: () => void }) {
   const plates = usePartnerPlatesQuery();
   const cogsDefaults = useCogsDefaultsQuery();
+  const taxSettings = useTaxSettingsQuery();
   const create = useCreateRental();
   const update = useUpdateRental();
   const mutation = initial ? update : create;
@@ -116,6 +124,16 @@ function RentalForm({ initial, onClose }: { initial: RentalItem | null; onClose:
   );
   // Evidence is uploaded before the rental exists (create) and sent as ids on save.
   const [proofs, setProofs] = useState<RentalPaymentProof[]>(initial?.paymentProofs ?? []);
+  // PPN is a per-transaction choice: on by default for a PKP partner, off for a
+  // sale outside the scope of VAT. An edit starts from what the row was written
+  // with, and a settled row is locked — the BE keeps the rate the customer paid.
+  const [applyPpn, setApplyPpn] = useState(initial ? initial.ppnRateBps > 0 : true);
+  const ppnLocked = initial?.paymentStatus === 'Sudah Dibayar';
+  // A non-PKP partner never charges PPN, so the switch is only offered to a
+  // PKP — or on a row that already carries tax, so it can still be read.
+  const ppnAvailable =
+    taxSettings.isSuccess &&
+    (taxSettings.data.isPkp || (initial != null && initial.ppnRateBps > 0));
 
   // Informasi Pelanggan
   const [customerName, setCustomerName] = useState(initial?.customerName ?? '');
@@ -221,6 +239,7 @@ function RentalForm({ initial, onClose }: { initial: RentalItem | null; onClose:
       customerName: customerName.trim() || undefined,
       customerPhone: customerPhone.trim() || undefined,
       paymentStatus,
+      applyPpn,
       ...(proofs.length ? { paymentProofIds: proofs.map((p) => p.id) } : {}),
       ...(allowOverlap ? { allowOverlap: true } : {}),
     };
@@ -452,6 +471,35 @@ function RentalForm({ initial, onClose }: { initial: RentalItem | null; onClose:
             </Select>
           </div>
         </div>
+
+        {/* Full width under the 2-col grid, like the evidence list below: the
+            tax choice affects the whole bill, not one field. */}
+        {ppnAvailable && taxSettings.isSuccess && (
+          <div className="flex items-start justify-between gap-4 rounded-lg border p-3">
+            <div className="space-y-1">
+              <Label htmlFor="rental-form-ppn" className="text-sm font-medium">
+                Kenakan PPN {formatPpnRate(taxSettings.data.statutoryRateBps)}
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                {ppnLocked
+                  ? 'Transaksi sudah dibayar, jadi PPN mengikuti tagihan yang telah dilunasi. Ubah status bayar ke Belum Dibayar dulu bila tagihannya perlu direvisi.'
+                  : 'Matikan untuk transaksi yang tidak dikenai PPN. PPN dihitung dari sewa ditambah biaya tambahan; deposit tidak dikenakan PPN.'}
+              </p>
+            </div>
+            <Switch
+              id="rental-form-ppn"
+              checked={applyPpn}
+              onCheckedChange={setApplyPpn}
+              disabled={ppnLocked || mutation.isPending}
+            />
+          </div>
+        )}
+        {taxSettings.isSuccess && !ppnAvailable && (
+          <p className="text-xs text-muted-foreground">
+            PPN tidak dikenakan karena partner belum berstatus PKP. Aktifkan lewat “Atur PPN” bila
+            diperlukan.
+          </p>
+        )}
 
         {/* Full width under the 2-col grid: evidence is a list, not a field.
             Kept visible after a revert so the history stays reachable. */}

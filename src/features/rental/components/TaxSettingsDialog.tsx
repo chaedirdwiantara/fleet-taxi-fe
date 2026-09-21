@@ -13,11 +13,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useTaxSettingsQuery, useUpdateTaxSettings } from '../hooks';
+import { formatPpnRate } from '../lib/ppnRate';
 import type { RentalTaxSettings } from '../types';
-
-/** 1100 → "11%" — the rate is server-owned, never hardcoded here. */
-const formatRate = (rateBps: number): string =>
-  `${(rateBps / 100).toLocaleString('id-ID', { maximumFractionDigits: 2 })}%`;
 
 /**
  * PKP status + NPWP. Turning this on starts charging PPN on rentals created
@@ -87,7 +84,7 @@ function TaxSettingsForm({
               Partner berstatus PKP
             </Label>
             <p className="text-xs text-muted-foreground">
-              Menyalakan ini menambahkan PPN {formatRate(settings.statutoryRateBps)} pada rental
+              Menyalakan ini menambahkan PPN {formatPpnRate(settings.statutoryRateBps)} pada rental
               yang dibuat setelahnya.
             </p>
           </div>

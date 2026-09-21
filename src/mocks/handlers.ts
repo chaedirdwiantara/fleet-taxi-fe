@@ -581,6 +581,7 @@ type RentalUpsertBody = Partial<
     priceUnit: 'hari' | 'bulan';
     paymentProofIds: number[];
     allowOverlap: boolean;
+    applyPpn: boolean;
   }
 >;
 
@@ -668,8 +669,9 @@ const rentalFromBody = (
     customerName: body.customerName ?? null,
     customerPhone: body.customerPhone ?? null,
     paymentStatus: body.paymentStatus ?? 'Belum Dibayar',
-    // Captured at write time from the partner's PKP status, like the backend.
-    ppnRateBps: taxSettingsState.ppnRateBps,
+    // Captured at write time from the partner's PKP status and the
+    // per-transaction opt-out, like the backend.
+    ppnRateBps: body.applyPpn === false ? 0 : taxSettingsState.ppnRateBps,
     paymentProofs: [], // filled by the caller after resolveProofs()
     createdAt,
     updatedAt: new Date().toISOString(),
@@ -2517,7 +2519,19 @@ export const handlers = [
     }
     const overlap = overlapRefusal(body, rentalsState[idx].id);
     if (overlap) return overlap;
-    const resolved = resolveProofs(rentalsState[idx], body.paymentProofIds, updated.paymentStatus);
+    // A settled row keeps the rate the customer paid; asking to change it is refused.
+    const existing = rentalsState[idx];
+    if (existing.paymentStatus === 'Sudah Dibayar') {
+      if (body.applyPpn != null && body.applyPpn !== existing.ppnRateBps > 0) {
+        return err(
+          409,
+          'CONFLICT',
+          'PPN transaksi yang sudah dibayar tidak dapat diubah. Ubah status bayar ke "Belum Dibayar" terlebih dahulu bila tagihannya memang perlu direvisi.',
+        );
+      }
+      updated.ppnRateBps = existing.ppnRateBps;
+    }
+    const resolved = resolveProofs(existing, body.paymentProofIds, updated.paymentStatus);
     if ('error' in resolved) return resolved.error;
     updated.paymentProofs = resolved.proofs;
 

@@ -21,11 +21,21 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { formatDateID } from '@/lib/datetime';
+import { daysInRangeISO, formatDateID, monthYearShortID } from '@/lib/datetime';
 import { formatRupiah } from '@/lib/money';
 import type { RentalItem } from '../types';
 
+/** True when the month clipped the booking on either end. */
+const spansOtherMonths = (item: RentalItem) =>
+  item.startDate !== item.displayStartDate || item.endDate !== item.displayEndDate;
+
 // Rental list table. All amounts arrive backend-computed; this only formats.
+//
+// The date cell always names the FULL booked range — what the customer agreed
+// to and what the invoice bills. The month's figures (gross, COGS, total) are
+// clipped to the month, so a booking that spills over from or into another
+// month says how many of its days are counted here; otherwise a 31-day rental
+// viewed in its last month would read as a 4-day one.
 export function RentalTable({
   items,
   onEdit,
@@ -75,11 +85,18 @@ export function RentalTable({
               </TableCell>
               <TableCell>
                 <div className="text-sm whitespace-nowrap">
-                  {formatDateID(item.displayStartDate)} – {formatDateID(item.displayEndDate)}
+                  {formatDateID(item.startDate)} – {formatDateID(item.endDate)}
                 </div>
-                <Badge className="mt-1 border-transparent bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-400">
-                  {item.days} Hari
-                </Badge>
+                <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <Badge className="border-transparent bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-400">
+                    {daysInRangeISO(item.startDate, item.endDate)} Hari
+                  </Badge>
+                  {spansOtherMonths(item) && (
+                    <span className="text-xs whitespace-nowrap text-muted-foreground">
+                      {item.days} hari di {monthYearShortID(item.displayStartDate.slice(0, 7))}
+                    </span>
+                  )}
+                </div>
               </TableCell>
               <TableCell className="text-right tabular-nums">
                 {formatRupiah(item.pricePerDay)}
@@ -159,7 +176,7 @@ export function RentalTable({
                       variant="ghost"
                       size="icon-sm"
                       aria-label={`Unduh invoice ${item.plateNumber}`}
-                      title="Unduh invoice (PDF)"
+                      title="Unduh invoice (PDF) — menagih seluruh periode sewa"
                       // Emerald, like the paid badge and nett profit — the red
                       // tokens are already taken by the destructive delete.
                       className="text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400"

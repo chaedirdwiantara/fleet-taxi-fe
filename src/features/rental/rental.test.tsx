@@ -495,3 +495,71 @@ describe('RentalManagementPage', () => {
     expect(within(dialog).getByLabelText('Label Denza D9')).toBeInTheDocument();
   });
 });
+
+describe('PPN per transaction', () => {
+  it('writes a rental without PPN when the switch is turned off', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText('B 1000 XYZ');
+
+    await user.click(screen.getByRole('button', { name: /Tambah Rental Data/i }));
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByLabelText('Plat'));
+    await user.click(await screen.findByRole('option', { name: /B 1000 XYZ/ }));
+    await waitFor(() => expect(within(dialog).getByText(/COGS dipakai:/)).toBeInTheDocument());
+    // Clear of every seeded booking (days 2–3, 5–8, 10–12).
+    fireEvent.change(within(dialog).getByLabelText('Tanggal Mulai'), {
+      target: { value: isoDay(20) },
+    });
+    fireEvent.change(within(dialog).getByLabelText('Tanggal Selesai'), {
+      target: { value: isoDay(21) },
+    });
+    await user.type(within(dialog).getByLabelText('Harga'), '400000');
+
+    // A PKP partner charges PPN by default; this sale is outside its scope.
+    const ppnSwitch = within(dialog).getByRole('switch', { name: /Kenakan PPN 11%/ });
+    expect(ppnSwitch).toBeChecked();
+    expect(ppnSwitch).toBeEnabled();
+    await user.click(ppnSwitch);
+    expect(ppnSwitch).not.toBeChecked();
+    await user.click(within(dialog).getByRole('button', { name: 'Simpan' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    // 2 hari x 400.000 = 800.000, billed as-is: no VAT line on this row.
+    const row = (await screen.findAllByText('Rp 800.000'))[0].closest('tr')!;
+    expect(within(row).getByText('2 Hari')).toBeInTheDocument();
+    expect(within(row).queryByText(/inc\. PPN/)).not.toBeInTheDocument();
+    // The seeded taxed row is untouched.
+    expect(screen.getByText('inc. PPN Rp 407.000')).toBeInTheDocument();
+  });
+
+  it('locks the PPN choice of a settled rental', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText('B 1000 XYZ');
+
+    await user.click(screen.getByRole('button', { name: 'Edit rental B 1000 XYZ' }));
+    const dialog = await screen.findByRole('dialog');
+    const ppnSwitch = within(dialog).getByRole('switch', { name: /Kenakan PPN 11%/ });
+    expect(ppnSwitch).toBeChecked();
+    expect(ppnSwitch).toBeDisabled();
+    expect(within(dialog).getByText(/Transaksi sudah dibayar/)).toBeInTheDocument();
+  });
+
+  it('offers no switch to a partner that is not a PKP', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText('B 1000 XYZ');
+
+    await user.click(screen.getByRole('button', { name: /Atur PPN/i }));
+    const settings = await screen.findByRole('dialog');
+    await user.click(within(settings).getByLabelText('Partner berstatus PKP'));
+    await user.click(within(settings).getByRole('button', { name: 'Simpan' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+
+    await user.click(screen.getByRole('button', { name: /Tambah Rental Data/i }));
+    const dialog = await screen.findByRole('dialog');
+    expect(await within(dialog).findByText(/partner belum berstatus PKP/i)).toBeInTheDocument();
+    expect(within(dialog).queryByRole('switch')).not.toBeInTheDocument();
+  });
+});

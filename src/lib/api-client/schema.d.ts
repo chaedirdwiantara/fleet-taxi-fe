@@ -1952,6 +1952,8 @@ export interface components {
             paymentStatus?: "Belum Dibayar" | "Sudah Dibayar";
             /** @description Acknowledge that this plate already has a rental over the same dates (e.g. a second booking the same day). Absent/false ⇒ the overlap is refused with CONFLICT and one `plateOverlap` detail per clashing rental. */
             allowOverlap?: boolean;
+            /** @description Charge PPN on this transaction. Default true. Only takes effect while the partner is a PKP — a non-PKP partner never charges PPN regardless. Set false for a sale outside the scope of VAT. Cannot change once the rental is Sudah Dibayar (CONFLICT); revert the payment status first. */
+            applyPpn?: boolean;
             /**
              * @description Confirmed proof ids to attach to this rental. Required when paymentStatus is Sudah Dibayar.
              * @example [
