@@ -24,7 +24,10 @@ export type SeedRental = {
   region: string | null;
   startDate: string;
   endDate: string;
+  priceUnit: 'hari' | 'bulan';
   pricePerDay: number;
+  /** Quoted monthly price; null unless priceUnit is 'bulan'. */
+  pricePerMonth: number | null;
   cogsPerDay: number;
   cogsType: string | null;
   additionalCost: number;
@@ -69,7 +72,9 @@ export const seedRentals: SeedRental[] = [
     region: 'Jakarta',
     startDate: d(5),
     endDate: d(8),
+    priceUnit: 'hari',
     pricePerDay: 900_000,
+    pricePerMonth: null,
     cogsPerDay: 250_000,
     cogsType: 'm6_cloud',
     additionalCost: 100_000,
@@ -96,7 +101,9 @@ export const seedRentals: SeedRental[] = [
     region: 'Jakarta',
     startDate: d(10),
     endDate: d(12),
+    priceUnit: 'hari',
     pricePerDay: 450_000,
+    pricePerMonth: null,
     cogsPerDay: 175_000,
     cogsType: 'binguo_neta',
     additionalCost: 0,
@@ -120,7 +127,9 @@ export const seedRentals: SeedRental[] = [
     region: 'Bandung',
     startDate: d(2),
     endDate: d(3),
+    priceUnit: 'hari',
     pricePerDay: 400_000,
+    pricePerMonth: null,
     cogsPerDay: 150_000,
     cogsType: 'air_ev',
     additionalCost: 50_000,

@@ -64,7 +64,8 @@ const INFO_SOURCES = [
 ] as const;
 
 // Create + edit share one form; the edit variant is prefilled with the FULL
-// startDate/endDate range, priceUnit "hari", and price = pricePerDay.
+// startDate/endDate range and the price AS QUOTED — a monthly booking comes
+// back as its monthly price with unit "bulan", never as a derived day rate.
 export function RentalFormDialog({
   open,
   initial,
@@ -108,8 +109,10 @@ function RentalForm({ initial, onClose }: { initial: RentalItem | null; onClose:
   const [plateQuery, setPlateQuery] = useState('');
 
   // Biaya & Pembayaran
-  const [price, setPrice] = useState(initial ? String(initial.pricePerDay) : '');
-  const [priceUnit, setPriceUnit] = useState<'hari' | 'bulan'>('hari');
+  const [price, setPrice] = useState(
+    initial ? String(initial.pricePerMonth ?? initial.pricePerDay) : '',
+  );
+  const [priceUnit, setPriceUnit] = useState<'hari' | 'bulan'>(initial?.priceUnit ?? 'hari');
   const [cogsKey, setCogsKey] = useState(initial?.cogsType ?? '');
   const [cogsPerDay, setCogsPerDay] = useState<number | null>(initial ? initial.cogsPerDay : null);
   const [deposit, setDeposit] = useState(initial && initial.deposit ? String(initial.deposit) : '');
@@ -398,7 +401,10 @@ function RentalForm({ initial, onClose }: { initial: RentalItem | null; onClose:
               </Select>
             </div>
             {priceUnit === 'bulan' && (
-              <p className="text-xs text-muted-foreground">Harga per bulan dibagi 30 hari.</p>
+              <p className="text-xs text-muted-foreground">
+                Harga per bulan dibagi jumlah hari kalender bulan berjalan (28–31 hari); satu bulan
+                penuh ditagih tepat sebesar harga ini.
+              </p>
             )}
           </div>
           <div className="space-y-1.5">

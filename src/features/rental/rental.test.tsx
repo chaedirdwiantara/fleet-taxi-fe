@@ -8,6 +8,7 @@ import { rentalSearchSchema, type RentalSearch } from './searchSchema';
 import { matchCogsKey } from './cogsMatcher';
 import { resetPartnerPlates, resetPartnerRentals } from '@/mocks/handlers';
 import { currentMonthWIB, currentYearWIB } from '@/lib/datetime';
+import { formatRupiah } from '@/lib/money';
 
 // compressImage re-encodes through createImageBitmap + canvas, neither of
 // which jsdom implements. These tests are about the upload gating, not the
@@ -561,5 +562,51 @@ describe('PPN per transaction', () => {
     const dialog = await screen.findByRole('dialog');
     expect(await within(dialog).findByText(/partner belum berstatus PKP/i)).toBeInTheDocument();
     expect(within(dialog).queryByRole('switch')).not.toBeInTheDocument();
+  });
+});
+
+describe('monthly-priced rentals', () => {
+  it('keeps the quote as entered: pro-rated per calendar month, and edited as /bulan', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText('B 1000 XYZ');
+
+    await user.click(screen.getByRole('button', { name: /Tambah Rental Data/i }));
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByLabelText('Plat'));
+    await user.click(await screen.findByRole('option', { name: /B 1000 XYZ/ }));
+    await waitFor(() => expect(within(dialog).getByText(/COGS dipakai:/)).toBeInTheDocument());
+    // Days 20–24: five days of this month, clear of the seeded bookings.
+    fireEvent.change(within(dialog).getByLabelText('Tanggal Mulai'), {
+      target: { value: isoDay(20) },
+    });
+    fireEvent.change(within(dialog).getByLabelText('Tanggal Selesai'), {
+      target: { value: isoDay(24) },
+    });
+    await user.type(within(dialog).getByLabelText('Harga'), '3000000');
+    await user.click(within(dialog).getByRole('combobox', { name: 'Satuan harga' }));
+    await user.click(await screen.findByRole('option', { name: 'Bulan' }));
+    expect(
+      within(dialog).getByText(/dibagi jumlah hari kalender bulan berjalan/i),
+    ).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: 'Simpan' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+
+    // 5 of the month's days at Rp 3.000.000/bulan — never "÷ 30".
+    const daysInThisMonth = new Date(currentYearWIB(), currentMonthWIB(), 0).getDate();
+    const expectedGross = Math.round((3_000_000 * 5) / daysInThisMonth);
+    const rows = screen.getAllByText('B 1000 XYZ').map((el) => el.closest('tr')!);
+    const row = rows.find((tr) => within(tr).queryByText('/bulan', { exact: false }))!;
+    expect(within(row).getByText('Rp 3.000.000')).toBeInTheDocument();
+    // getByText normalises the DOM's NBSP to a space, so the matcher must match that.
+    expect(
+      within(row).getByText(formatRupiah(expectedGross).replace(/\u00a0/g, ' ')),
+    ).toBeInTheDocument();
+
+    // Editing shows the monthly quote back, not the derived day rate.
+    await user.click(within(row).getByRole('button', { name: 'Edit rental B 1000 XYZ' }));
+    const edit = await screen.findByRole('dialog');
+    expect(within(edit).getByLabelText('Harga')).toHaveValue(3_000_000);
+    expect(within(edit).getByRole('combobox', { name: 'Satuan harga' })).toHaveTextContent('Bulan');
   });
 });
