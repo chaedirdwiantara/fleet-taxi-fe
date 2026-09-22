@@ -6,8 +6,10 @@ import { env } from '@/lib/env';
 import { qk } from '@/lib/query-client';
 import type {
   CogsDefault,
+  InvoiceAssetKind,
   PaymentStatus,
   RentalGrid,
+  RentalInvoiceSettings,
   RentalItem,
   RentalListData,
   RentalListParams,
@@ -276,6 +278,103 @@ export function useUpdateTaxSettings() {
   });
 }
 
+// ---- invoice signing -------------------------------------------------------------
+// Who signs the invoices, plus the PNG signature / stamp embedded on a signed
+// copy. The artwork goes up as a raw PUT (one small object per partner — no
+// presign flow); the name and title are a plain JSON PUT.
+
+export const INVOICE_ASSET_CONTENT_TYPE = 'image/png';
+/** Matches INVOICE_ASSET_MAX_BYTES on the backend, which is the real enforcement. */
+export const INVOICE_ASSET_MAX_BYTES = 2 * 1024 * 1024;
+
+export function useInvoiceSettingsQuery() {
+  return useQuery({
+    queryKey: qk.partner.rental.invoiceSettings,
+    queryFn: async (): Promise<RentalInvoiceSettings> => {
+      const { data, error } = await api.GET('/partner/portal/rentals/invoice-settings');
+      if (error) throwEnvelope(error);
+      return unwrap(data) as RentalInvoiceSettings;
+    },
+  });
+}
+
+export function useUpdateInvoiceSettings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: {
+      signatoryName?: string;
+      signatoryTitle?: string;
+    }): Promise<RentalInvoiceSettings> => {
+      const { data, error } = await api.PUT('/partner/portal/rentals/invoice-settings', { body });
+      if (error) throwEnvelope(error);
+      return unwrap(data) as RentalInvoiceSettings;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.partner.rental.invoiceSettings }),
+  });
+}
+
+/** Reads the error envelope off a raw fetch Response, falling back to the status. */
+async function envelopeError(res: Response, fallback: string): Promise<ApiErrorException> {
+  const body = (await res.json().catch(() => null)) as { error?: ApiError } | null;
+  return new ApiErrorException(
+    body?.error ?? { code: 'REQUEST_FAILED', message: `${fallback} (HTTP ${res.status})` },
+  );
+}
+
+/** Uploads (replaces) the signature or stamp PNG. Rejects other types before the request. */
+export function useUploadInvoiceAsset() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      kind,
+      file,
+    }: {
+      kind: InvoiceAssetKind;
+      file: File;
+    }): Promise<RentalInvoiceSettings> => {
+      if (file.type !== INVOICE_ASSET_CONTENT_TYPE) {
+        throw new ApiErrorException({
+          code: 'VALIDATION_ERROR',
+          message: 'Gambar harus berformat PNG (latar transparan).',
+        });
+      }
+      if (file.size > INVOICE_ASSET_MAX_BYTES) {
+        throw new ApiErrorException({
+          code: 'VALIDATION_ERROR',
+          message: 'Ukuran gambar maksimal 2 MB.',
+        });
+      }
+      // Plain fetch: the typed client serialises bodies as JSON; this one is raw PNG bytes.
+      const res = await fetch(
+        `${env.VITE_API_BASE_URL}/partner/portal/rentals/invoice-settings/${kind}`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': INVOICE_ASSET_CONTENT_TYPE },
+          body: file,
+          credentials: 'include',
+        },
+      );
+      if (!res.ok) throw await envelopeError(res, 'Unggah gagal');
+      return unwrap((await res.json()) as Parameters<typeof unwrap>[0]) as RentalInvoiceSettings;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.partner.rental.invoiceSettings }),
+  });
+}
+
+export function useRemoveInvoiceAsset() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (kind: InvoiceAssetKind): Promise<RentalInvoiceSettings> => {
+      const { data, error } = await api.DELETE('/partner/portal/rentals/invoice-settings/{kind}', {
+        params: { path: { kind } },
+      });
+      if (error) throwEnvelope(error);
+      return unwrap(data) as RentalInvoiceSettings;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.partner.rental.invoiceSettings }),
+  });
+}
+
 // ---- binary downloads ---------------------------------------------------------
 // NOT via the typed client: we need the raw Response to read the blob + the
 // Content-Disposition filename. Cookie session rides along with
@@ -327,6 +426,12 @@ export async function downloadRentalExport(params: RentalListParams): Promise<vo
   );
 }
 
+export interface InvoiceDownloadRequest {
+  item: Pick<RentalItem, 'id' | 'plateNumber'>;
+  /** Embed the uploaded signature and stamp; the BE refuses when none is set. */
+  signed: boolean;
+}
+
 /**
  * Per-transaction invoice PDF. The backend only bills settled rentals, so the
  * shortcut is offered on 'Sudah Dibayar' rows only; `variables` on the
@@ -334,9 +439,9 @@ export async function downloadRentalExport(params: RentalListParams): Promise<vo
  */
 export function useRentalInvoiceDownload() {
   return useMutation({
-    mutationFn: (item: Pick<RentalItem, 'id' | 'plateNumber'>) =>
+    mutationFn: ({ item, signed }: InvoiceDownloadRequest) =>
       downloadFile(
-        `/partner/portal/rentals/${item.id}/invoice`,
+        `/partner/portal/rentals/${item.id}/invoice${signed ? '?signed=true' : ''}`,
         `invoice-${item.plateNumber.replace(/[^a-zA-Z0-9]+/g, '-').toLowerCase()}.pdf`,
         'INVOICE_FAILED',
         (status) => `Invoice gagal dibuat (HTTP ${status})`,

@@ -175,11 +175,105 @@ describe('RentalManagementPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Unduh invoice B 1000 XYZ' }));
 
+    // The click asks how to sign first. No artwork in the seed → the signed
+    // option explains itself and the plain copy is preselected.
+    const dialog = await screen.findByRole('dialog', { name: 'Unduh Invoice' });
+    expect(within(dialog).getByText(/B 1000 XYZ · Andi Saputra/)).toBeInTheDocument();
+    const signedOption = within(dialog).getByRole('radio', {
+      name: 'Dengan tanda tangan & stempel',
+    });
+    expect(signedOption).toBeDisabled();
+    expect(within(dialog).getByText('Tanda tangan belum diunggah.')).toBeInTheDocument();
+    expect(within(dialog).getByRole('radio', { name: 'Tanpa tanda tangan' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    await user.click(within(dialog).getByRole('button', { name: 'Unduh PDF' }));
+
     await waitFor(() => expect(click).toHaveBeenCalled());
     const anchor = click.mock.instances[0] as HTMLAnchorElement;
     expect(anchor.download).toMatch(/^invoice-\d{4}-\d{2}-00001\.pdf$/);
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:invoice');
+    expect(
+      fetchSpy.mock.calls.some(([input]) => String(input).includes('/rentals/1/invoice')),
+    ).toBe(true);
+    expect(fetchSpy.mock.calls.some(([input]) => String(input).includes('signed='))).toBe(false);
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
 
+    fetchSpy.mockRestore();
+    click.mockRestore();
+    vi.unstubAllGlobals();
+  });
+
+  it('signs the invoice with the configured officer once a signature is uploaded', async () => {
+    const user = userEvent.setup();
+    const createObjectURL = vi.fn(() => 'blob:invoice');
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal('URL', Object.assign(URL, { createObjectURL, revokeObjectURL }));
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(function (this: HTMLAnchorElement) {});
+
+    renderPage();
+    await screen.findByText('B 1000 XYZ');
+
+    // The download dialog links to the settings when nothing is uploaded yet.
+    await user.click(screen.getByRole('button', { name: 'Unduh invoice B 1000 XYZ' }));
+    let dialog = await screen.findByRole('dialog', { name: 'Unduh Invoice' });
+    await user.click(within(dialog).getByRole('button', { name: /Atur tanda tangan/i }));
+
+    dialog = await screen.findByRole('dialog', { name: 'Atur Tanda Tangan' });
+    // Seeded officer is shown; the preview follows the form as it is edited.
+    expect(within(dialog).getByLabelText('Nama penandatangan')).toHaveValue('M Rizki');
+    expect(within(dialog).getByRole('button', { name: 'Simpan' })).toBeDisabled();
+    await user.clear(within(dialog).getByLabelText('Jabatan'));
+    await user.type(within(dialog).getByLabelText('Jabatan'), 'Kepala Operasional');
+    expect(within(dialog).getByText('Kepala Operasional')).toBeInTheDocument();
+
+    // A PNG is uploaded the moment it is picked — no Simpan needed for it.
+    const input = within(dialog).getByLabelText('Pilih file tanda tangan') as HTMLInputElement;
+    const png = new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], 'ttd.png', {
+      type: 'image/png',
+    });
+    Object.defineProperty(input, 'files', { value: [png], configurable: true });
+    fireEvent.change(input);
+    // Both the slot preview and the composed preview now show it.
+    expect(await within(dialog).findAllByRole('img', { name: 'Tanda tangan' })).toHaveLength(2);
+    expect(within(dialog).getByRole('button', { name: 'Ganti PNG' })).toBeInTheDocument();
+
+    // A JPEG never leaves the browser.
+    const jpg = new File([new Uint8Array([0xff, 0xd8])], 'ttd.jpg', { type: 'image/jpeg' });
+    Object.defineProperty(input, 'files', { value: [jpg], configurable: true });
+    fireEvent.change(input);
+    expect(await within(dialog).findByText(/harus berformat PNG/i)).toBeInTheDocument();
+
+    await user.click(within(dialog).getByRole('button', { name: 'Simpan' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+
+    // Now the signed copy is possible, and preselected.
+    await user.click(screen.getByRole('button', { name: 'Unduh invoice B 1000 XYZ' }));
+    dialog = await screen.findByRole('dialog', { name: 'Unduh Invoice' });
+    const signedOption = within(dialog).getByRole('radio', {
+      name: 'Dengan tanda tangan & stempel',
+    });
+    expect(signedOption).toBeEnabled();
+    expect(signedOption).toHaveAttribute('aria-checked', 'true');
+    expect(
+      within(dialog).getByText('Ditandatangani oleh M Rizki, Kepala Operasional.'),
+    ).toBeInTheDocument();
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    await user.click(within(dialog).getByRole('button', { name: 'Unduh PDF' }));
+    await waitFor(() => expect(click).toHaveBeenCalled());
+    expect(
+      fetchSpy.mock.calls.some(([input]) =>
+        String(input).includes('/rentals/1/invoice?signed=true'),
+      ),
+    ).toBe(true);
+
+    fetchSpy.mockRestore();
     click.mockRestore();
     vi.unstubAllGlobals();
   });
