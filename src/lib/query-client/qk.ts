@@ -189,6 +189,7 @@ export const qk = {
       grid: (p: { month: number; year: number }) => ['partner', 'rental', 'grid', p] as const,
       cogsDefaults: ['partner', 'rental', 'cogs-defaults'] as const,
       taxSettings: ['partner', 'rental', 'tax-settings'] as const,
+      invoiceSettings: ['partner', 'rental', 'invoice-settings'] as const,
     },
   },
 } as const;

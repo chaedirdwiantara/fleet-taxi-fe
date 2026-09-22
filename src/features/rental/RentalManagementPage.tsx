@@ -1,5 +1,15 @@
 import { useEffect, useState } from 'react';
-import { Download, FileSpreadsheet, Info, Landmark, Plus, Search, Settings, X } from 'lucide-react';
+import {
+  Download,
+  FileSpreadsheet,
+  Info,
+  Landmark,
+  PenLine,
+  Plus,
+  Search,
+  Settings,
+  X,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -10,7 +20,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { MONTH_NAMES_ID } from '@/lib/datetime';
+import { usePartnerSession } from '@/features/auth/hooks';
 import { CogsDefaultsDialog } from './components/CogsDefaultsDialog';
+import { InvoiceDownloadDialog } from './components/InvoiceDownloadDialog';
+import { InvoiceSettingsDialog } from './components/InvoiceSettingsDialog';
 import { TaxSettingsDialog } from './components/TaxSettingsDialog';
 import { PaymentStatusDialog } from './components/PaymentStatusDialog';
 import { RentalFilterBar } from './components/RentalFilterBar';
@@ -49,12 +62,17 @@ export function RentalManagementPage({
   const rentals = useRentalsQuery(params);
   const remove = useDeleteRental();
   const invoice = useRentalInvoiceDownload();
+  // The partner name is the fallback signatory shown in the invoice dialogs.
+  const session = usePartnerSession();
+  const partnerName = session.data?.partner?.name ?? '';
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<RentalItem | null>(null);
   const [paymentItem, setPaymentItem] = useState<RentalItem | null>(null);
   const [cogsOpen, setCogsOpen] = useState(false);
   const [taxOpen, setTaxOpen] = useState(false);
+  const [signatureOpen, setSignatureOpen] = useState(false);
+  const [invoiceItem, setInvoiceItem] = useState<RentalItem | null>(null);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
@@ -133,6 +151,10 @@ export function RentalManagementPage({
               <Landmark aria-hidden />
               Atur PPN
             </Button>
+            <Button variant="outline" onClick={() => setSignatureOpen(true)}>
+              <PenLine aria-hidden />
+              Atur Tanda Tangan
+            </Button>
             <div className="relative w-full sm:ml-auto sm:w-72">
               <Search
                 className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
@@ -180,8 +202,11 @@ export function RentalManagementPage({
                   items={rentals.data.items}
                   onEdit={setEditing}
                   onPaymentClick={setPaymentItem}
-                  onInvoice={(item) => invoice.mutate(item)}
-                  invoicePendingId={invoice.isPending ? (invoice.variables?.id ?? null) : null}
+                  onInvoice={(item) => {
+                    invoice.reset();
+                    setInvoiceItem(item);
+                  }}
+                  invoicePendingId={invoice.isPending ? (invoice.variables?.item.id ?? null) : null}
                   onDelete={(id) => remove.mutate(id)}
                   deletePending={remove.isPending}
                 />
@@ -189,11 +214,6 @@ export function RentalManagementPage({
               {remove.isError && (
                 <p className="mt-2 text-sm text-destructive" role="alert">
                   {remove.error.message}
-                </p>
-              )}
-              {invoice.isError && (
-                <p className="mt-2 text-sm text-destructive" role="alert">
-                  {invoice.error.message}
                 </p>
               )}
             </CardContent>
@@ -212,6 +232,25 @@ export function RentalManagementPage({
       <PaymentStatusDialog item={paymentItem} onClose={() => setPaymentItem(null)} />
       <CogsDefaultsDialog open={cogsOpen} onClose={() => setCogsOpen(false)} />
       <TaxSettingsDialog open={taxOpen} onClose={() => setTaxOpen(false)} />
+      <InvoiceSettingsDialog
+        open={signatureOpen}
+        partnerName={partnerName}
+        onClose={() => setSignatureOpen(false)}
+      />
+      <InvoiceDownloadDialog
+        item={invoiceItem}
+        partnerName={partnerName}
+        pending={invoice.isPending}
+        error={invoice.isError ? invoice.error.message : null}
+        onClose={() => setInvoiceItem(null)}
+        onDownload={(item, signed) =>
+          invoice.mutate({ item, signed }, { onSuccess: () => setInvoiceItem(null) })
+        }
+        onOpenSettings={() => {
+          setInvoiceItem(null);
+          setSignatureOpen(true);
+        }}
+      />
     </div>
   );
 }

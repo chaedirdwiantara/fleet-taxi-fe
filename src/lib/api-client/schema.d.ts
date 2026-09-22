@@ -1127,6 +1127,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/partner/portal/rentals/invoice-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Who signs the partner's invoices, and the uploaded signature/stamp */
+        get: operations["PartnerRentalsController_getInvoiceSettings"];
+        /** Set the signatory name and title printed on invoices */
+        put: operations["PartnerRentalsController_updateInvoiceSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/rentals/invoice-settings/{kind}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Upload (replace) the PNG signature or stamp artwork */
+        put: operations["PartnerRentalsController_uploadInvoiceAsset"];
+        post?: never;
+        /** Remove the signature or stamp artwork */
+        delete: operations["PartnerRentalsController_removeInvoiceAsset"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/partner/portal/rentals/invoice-settings/{kind}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Stream the signature or stamp PNG (dev; prod settings carry presigned S3 URLs) */
+        get: operations["PartnerRentalsController_invoiceAssetFile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/partner/portal/rentals/export": {
         parameters: {
             query?: never;
@@ -1874,6 +1927,18 @@ export interface components {
              * @example 01.234.567.8-901.000
              */
             npwp?: string;
+        };
+        UpdateInvoiceSettingsDto: {
+            /**
+             * @description Printed under the signature; empty falls back to the partner name
+             * @example M Rizki
+             */
+            signatoryName?: string;
+            /**
+             * @description Printed under the name, e.g. the job title
+             * @example Head of Rental Operations PT JGS
+             */
+            signatoryTitle?: string;
         };
         PresignRentalProofDto: {
             /**
@@ -3941,6 +4006,104 @@ export interface operations {
             };
         };
     };
+    PartnerRentalsController_getInvoiceSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PartnerRentalsController_updateInvoiceSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateInvoiceSettingsDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PartnerRentalsController_uploadInvoiceAsset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description signature = tanda tangan, stamp = stempel */
+                kind: "signature" | "stamp";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PartnerRentalsController_removeInvoiceAsset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description signature = tanda tangan, stamp = stempel */
+                kind: "signature" | "stamp";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PartnerRentalsController_invoiceAssetFile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description signature = tanda tangan, stamp = stempel */
+                kind: "signature" | "stamp";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     PartnerRentalsController_export: {
         parameters: {
             query: {
@@ -4183,7 +4346,10 @@ export interface operations {
     };
     PartnerRentalsController_invoice: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description true = embed the uploaded signature and stamp (409 when no signature is set) */
+                signed?: boolean;
+            };
             header?: never;
             path: {
                 id: number;

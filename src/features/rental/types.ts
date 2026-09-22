@@ -222,3 +222,15 @@ export type RentalGrid = {
   plateCount: number;
   activeCount: number;
 };
+
+/** The signature or company-stamp artwork of the partner's invoices. */
+export type InvoiceAssetKind = 'signature' | 'stamp';
+
+export type RentalInvoiceSettings = {
+  /** Officer printed under the signature; null signs as the partner itself. */
+  signatoryName: string | null;
+  signatoryTitle: string | null;
+  /** Viewable URL of the uploaded PNG (presigned in prod, API path in dev); null when none. */
+  signatureUrl: string | null;
+  stampUrl: string | null;
+};

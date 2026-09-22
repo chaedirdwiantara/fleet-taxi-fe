@@ -491,10 +491,34 @@ const seedTaxSettings: {
 };
 let taxSettingsState = { ...seedTaxSettings };
 
+// Invoice signing — no artwork in the seed, so the signed option starts disabled.
+type InvoiceSettingsState = {
+  signatoryName: string | null;
+  signatoryTitle: string | null;
+  signatureUrl: string | null;
+  stampUrl: string | null;
+};
+const seedInvoiceSettings: InvoiceSettingsState = {
+  signatoryName: 'M Rizki',
+  signatoryTitle: 'Head of Rental Operations PT JGS',
+  signatureUrl: null,
+  stampUrl: null,
+};
+let invoiceSettingsState = { ...seedInvoiceSettings };
+let invoiceAssetVersion = 0;
+// 1x1 transparent PNG — what the dev file route streams back for either asset.
+const INVOICE_ASSET_PNG = Uint8Array.from(
+  atob(
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+  ),
+  (c) => c.charCodeAt(0),
+);
+
 /** Reset rentals + COGS presets to the seed (call between tests). */
 export const resetPartnerRentals = () => {
   rentalsState = structuredClone(seedRentals);
   taxSettingsState = { ...seedTaxSettings };
+  invoiceSettingsState = { ...seedInvoiceSettings };
   nextRentalId = 100;
   nextProofId = 5000;
   draftProofs = new Map();
@@ -2336,11 +2360,63 @@ export const handlers = [
     return ok({ ...taxSettingsState });
   }),
 
-  http.get('*/partner/portal/rentals/:id/invoice', ({ params }) => {
+  http.get('*/partner/portal/rentals/invoice-settings', () => ok({ ...invoiceSettingsState })),
+
+  http.put('*/partner/portal/rentals/invoice-settings', async ({ request }) => {
+    const body = (await request.json()) as { signatoryName?: string; signatoryTitle?: string };
+    invoiceSettingsState = {
+      ...invoiceSettingsState,
+      signatoryName: body.signatoryName?.trim() || null,
+      signatoryTitle: body.signatoryTitle?.trim() || null,
+    };
+    return ok({ ...invoiceSettingsState });
+  }),
+
+  http.put('*/partner/portal/rentals/invoice-settings/:kind', async ({ request, params }) => {
+    const kind = params.kind as string;
+    if (kind !== 'signature' && kind !== 'stamp') {
+      return err(400, 'VALIDATION_ERROR', 'kind must be one of: signature, stamp');
+    }
+    if (request.headers.get('content-type') !== 'image/png') {
+      return err(400, 'VALIDATION_ERROR', 'Content-Type harus image/png');
+    }
+    const bytes = new Uint8Array(await request.arrayBuffer());
+    if (bytes.length === 0) return err(400, 'VALIDATION_ERROR', 'Body kosong');
+    invoiceAssetVersion += 1;
+    invoiceSettingsState = {
+      ...invoiceSettingsState,
+      [`${kind}Url`]: `/partner/portal/rentals/invoice-settings/${kind}/file?v=${invoiceAssetVersion}`,
+    };
+    return ok({ ...invoiceSettingsState });
+  }),
+
+  http.delete('*/partner/portal/rentals/invoice-settings/:kind', ({ params }) => {
+    const kind = params.kind as string;
+    if (kind !== 'signature' && kind !== 'stamp') {
+      return err(400, 'VALIDATION_ERROR', 'kind must be one of: signature, stamp');
+    }
+    invoiceSettingsState = { ...invoiceSettingsState, [`${kind}Url`]: null };
+    return ok({ ...invoiceSettingsState });
+  }),
+
+  http.get('*/partner/portal/rentals/invoice-settings/:kind/file', ({ params }) => {
+    const url =
+      params.kind === 'stamp' ? invoiceSettingsState.stampUrl : invoiceSettingsState.signatureUrl;
+    if (!url) return err(404, 'NOT_FOUND', 'Gambar belum diunggah');
+    return new HttpResponse(INVOICE_ASSET_PNG.buffer as ArrayBuffer, {
+      headers: { 'Content-Type': 'image/png' },
+    });
+  }),
+
+  http.get('*/partner/portal/rentals/:id/invoice', ({ params, request }) => {
     const rental = rentalsState.find((r) => r.id === Number(params.id));
     if (!rental) return err(404, 'NOT_FOUND', 'Rental tidak ditemukan');
     if (rental.paymentStatus !== 'Sudah Dibayar') {
       return err(409, 'CONFLICT', 'Invoice hanya tersedia untuk rental yang sudah dibayar.');
+    }
+    const signed = new URL(request.url).searchParams.get('signed');
+    if ((signed === 'true' || signed === '1') && !invoiceSettingsState.signatureUrl) {
+      return err(409, 'CONFLICT', 'Tanda tangan belum diunggah.');
     }
     const [year, month] = rental.startDate.split('-');
     // A tiny but well-formed PDF payload — enough for the blob-download flow.
