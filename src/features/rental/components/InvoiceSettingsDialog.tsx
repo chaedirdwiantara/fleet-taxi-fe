@@ -171,7 +171,7 @@ function InvoiceSettingsForm({
             kind="stamp"
             label="Stempel"
             url={settings.stampUrl}
-            hint="Opsional — dicetak di belakang tanda tangan."
+            hint="Opsional — dibubuhkan menimpa tanda tangan."
           />
         </div>
 
@@ -188,8 +188,8 @@ function InvoiceSettingsForm({
         <div className="flex items-start gap-2 rounded-lg border border-dashed bg-muted/40 p-3 text-xs text-muted-foreground">
           <Info className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden />
           <span>
-            Gunakan PNG berlatar transparan (maksimal 2 MB) agar tanda tangan tampak menimpa
-            stempel. Invoice yang sudah diunduh tidak berubah.
+            Gunakan PNG 24/32-bit berlatar transparan (maksimal 2 MB) agar stempel tampak menyatu
+            dengan tanda tangan. Invoice yang sudah diunduh tidak berubah.
           </span>
         </div>
 

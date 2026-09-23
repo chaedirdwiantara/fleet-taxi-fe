@@ -31,12 +31,12 @@ export function SignatureBlockPreview({
       aria-label="Pratinjau blok tanda tangan"
     >
       <span className="text-xs text-slate-500">Hormat kami,</span>
-      <div className="relative mt-1 h-16 w-40">
+      <div className="relative mt-1 h-18 w-40">
         {signatureUrl ? (
           <img
             src={resolveMediaUrl(signatureUrl)}
             alt="Tanda tangan"
-            className="absolute top-1 left-0 h-14 w-28 object-contain"
+            className="absolute top-1 left-0 h-16 w-30 object-contain"
           />
         ) : (
           <span className="absolute inset-0 flex items-center justify-center text-slate-300">
@@ -47,7 +47,7 @@ export function SignatureBlockPreview({
           <img
             src={resolveMediaUrl(stampUrl)}
             alt="Stempel"
-            className="absolute top-0 right-2 size-16 object-contain"
+            className="absolute top-0 left-17 size-18 object-contain"
           />
         )}
       </div>
