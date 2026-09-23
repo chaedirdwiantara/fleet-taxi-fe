@@ -3,8 +3,8 @@ import { cn } from '@/lib/utils';
 import { resolveMediaUrl } from '../hooks';
 
 /**
- * How the signing corner of the invoice will print: the signature over the
- * stamp's left edge (as a wet one lands), the officer's name, a rule, then
+ * How the signing corner of the invoice will print: the stamp pressed over
+ * the signature's right end (red over ink), the officer's name, a rule, then
  * the title. Same composition as the PDF, so what the user previews is what
  * the customer receives. Paper-white on purpose — it previews a document,
  * so it stays white in dark mode too.
@@ -32,13 +32,6 @@ export function SignatureBlockPreview({
     >
       <span className="text-xs text-slate-500">Hormat kami,</span>
       <div className="relative mt-1 h-16 w-40">
-        {stampUrl && (
-          <img
-            src={resolveMediaUrl(stampUrl)}
-            alt="Stempel"
-            className="absolute top-0 right-2 size-16 object-contain"
-          />
-        )}
         {signatureUrl ? (
           <img
             src={resolveMediaUrl(signatureUrl)}
@@ -49,6 +42,13 @@ export function SignatureBlockPreview({
           <span className="absolute inset-0 flex items-center justify-center text-slate-300">
             <PenLine className="size-5" aria-hidden />
           </span>
+        )}
+        {stampUrl && (
+          <img
+            src={resolveMediaUrl(stampUrl)}
+            alt="Stempel"
+            className="absolute top-0 right-2 size-16 object-contain"
+          />
         )}
       </div>
       <span className="mt-1 text-sm font-semibold">{signatoryName}</span>
